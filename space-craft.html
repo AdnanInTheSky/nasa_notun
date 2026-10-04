@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="en" data-kids>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlameAtlas — Spacecraft Fire & Solar EMP Simulation | NASA Space Apps 2026</title>
+  <link rel="icon" type="image/svg+xml" href="../hii/src/assets/logo.svg">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Three.js & OrbitControls CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <!-- Chart.js CDN for Real-time Telemetry -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- GSAP Animation CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Application Core Scripts -->
+  <script src="js/models.js"></script>
+  <script src="js/shared.js"></script>
+  <script src="js/space-craft-sim.js"></script>
+  <script src="js/space-craft-3d.js"></script>
+  <link rel="stylesheet" href="styles/main.css">
+
+  <style>
+    /* Custom Pulse & Glow Effects */
+    @keyframes alertPulse {
+      0%, 100% { box-shadow: 0 0 15px rgba(244, 63, 94, 0.4); border-color: rgba(244, 63, 94, 0.7); }
+      50% { box-shadow: 0 0 35px rgba(244, 63, 94, 0.85); border-color: rgba(244, 63, 94, 1); }
+    }
+    .emergency-strobe {
+      animation: alertPulse 1.2s infinite ease-in-out;
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.78);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      border-radius: 16px;
+    }
+    .glass-card-alert {
+      background: rgba(45, 10, 20, 0.82);
+      border: 1px solid rgba(244, 63, 94, 0.45);
+    }
+    .mono-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+    }
+    /* Scrollbar for logs and chat */
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.4);
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.3);
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="text-slate-100 flex min-h-screen bg-slate-950" x-data="spaceCraftPage()">
+  <div class="starfield" aria-hidden="true"></div>
+
+  <!-- Shared Sidebar Navigation -->
+  <aside class="w-64 border-r border-slate-800 bg-slate-950/80 backdrop-blur-md p-5 flex flex-col justify-between fixed top-0 bottom-0 left-0 z-30 hidden md:flex">
+    <div>
+      <a href="index.html" class="flex items-center gap-3 mb-8 group">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-600 via-orange-500 to-amber-400 p-0.5 shadow-lg shadow-rose-500/25 group-hover:scale-105 transition-transform flex items-center justify-center">
+          <i data-lucide="shield-alert" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <span class="font-bold tracking-tight text-white block text-lg leading-tight">FlameAtlas</span>
+          <span class="text-xs text-rose-400 font-mono" x-text="$store.app.kids ? 'Spacecraft Rescue' : 'Spacecraft Safety Simulator'"></span>
+        </div>
+      </a>
+
+      <nav class="space-y-1 text-sm font-medium">
+        <a href="index.html" class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="gauge" class="w-4 h-4 text-orange-400"></i>
+          <span x-text="$store.app.kids ? 'Mission Map' : 'Mission Overview'"></span>
+        </a>
+        <a href="flame-lab.html" class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="flask-conical" class="w-4 h-4 text-cyan-400"></i>
+          <span x-text="$store.app.kids ? 'Fire Lab 3D' : 'Flame Lab 3D'"></span>
+        </a>
+        <a href="space-craft.html" class="flex items-center gap-3 px-3 py-2 rounded-xl bg-rose-500/15 text-rose-400 border border-rose-500/30 font-semibold shadow-inner">
+          <i data-lucide="rocket" class="w-4 h-4"></i>
+          <span x-text="$store.app.kids ? 'Spacecraft Fire Sim' : 'Spacecraft Simulation'"></span>
+        </a>
+        <a href="solar-watch.html" class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
+          <span x-text="$store.app.kids ? 'Sun Blasts' : 'Solar Flare Watch'"></span>
+        </a>
+        <a href="earth-impact.html" class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="globe-2" class="w-4 h-4 text-emerald-400"></i>
+          <span x-text="$store.app.kids ? 'Storm vs Earth' : 'Solar Storm vs Earth'"></span>
+        </a>
+        <a href="material-ranker.html" class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
+          <span x-text="$store.app.kids ? 'Burn Race' : 'Material Ranker'"></span>
+        </a>
+        <a href="gravity-gap.html" class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="orbit" class="w-4 h-4 text-sky-400"></i>
+          <span x-text="$store.app.kids ? 'Gravity Guess' : 'Gravity Gap-Filler'"></span>
+        </a>
+        <a href="flame-radar.html" class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="radar" class="w-4 h-4 text-indigo-400"></i>
+          <span x-text="$store.app.kids ? 'Ghost Flames' : 'Invisible Flame Radar'"></span>
+        </a>
+        <a href="fire-gpt.html" class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="message-square-text" class="w-4 h-4 text-pink-400"></i>
+          <span x-text="$store.app.kids ? 'Quiz Time' : 'FireGPT AI'"></span>
+        </a>
+        <a href="gap-map.html" class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="map" class="w-4 h-4 text-yellow-400"></i>
+          <span x-text="$store.app.kids ? 'Plan Tests' : 'Research Gap Map'"></span>
+        </a>
+        <a href="sources.html" class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
+          <span x-text="$store.app.kids ? 'Space Cards' : 'Data Sources'"></span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- Spacecraft Telemetry Status Indicator -->
+    <div class="glass-pill p-3 border border-slate-800/80 text-xs text-slate-400 flex items-center gap-3">
+      <div class="w-2.5 h-2.5 rounded-full" :class="activeFiresCount > 0 ? 'bg-rose-500 animate-ping' : 'bg-emerald-400'"></div>
+      <div>
+        <p class="font-medium text-slate-200">NSS Prometheus</p>
+        <p class="text-[11px] text-slate-400" x-text="activeFiresCount > 0 ? 'ACTIVE FIRE ALARM (' + activeFiresCount + ')' : 'Flight Systems Nominal'"></p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Viewport & Simulation Control Deck -->
+  <div class="flex-1 md:ml-64 flex flex-col min-w-0">
+    <!-- Top Global Header -->
+    <header class="sticky top-0 z-20 bg-slate-950/85 backdrop-blur-md border-b border-slate-800/80 px-4 md:px-8 py-3 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <h1 class="text-lg md:text-xl font-bold tracking-tight text-white flex items-center gap-2">
+          <span>NSS Prometheus</span>
+          <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono hidden sm:inline">LEO Orbit · 420 km</span>
+        </h1>
+        <div class="hidden lg:flex items-center gap-2 text-xs font-mono">
+          <span class="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-cyan-400">
+            Centrifuge: <strong x-text="sim.gravityMetrics.artificialG.toFixed(2) + 'g'"></strong> (<span x-text="sim.centrifugeRpm.toFixed(1) + ' RPM'"></span>)
+          </span>
+          <span class="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-emerald-400">
+            Planet Grav: <strong x-text="sim.gravityMetrics.planetaryG.toFixed(2) + ' m/s²'"></strong>
+          </span>
+          <span class="px-2 py-1 rounded bg-slate-900 border border-slate-800" :class="sim.gravityMetrics.bearingStress > 70 ? 'text-rose-400 font-bold animate-pulse' : 'text-slate-400'">
+            Bearing Stress: <strong x-text="sim.gravityMetrics.bearingStress + '%'"></strong>
+          </span>
+        </div>
+      </div>
+
+      <!-- Quick Actions & Status -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <button @click="triggerSolarFlare('X10')" 
+                class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-500 hover:to-orange-400 text-white text-xs font-semibold shadow-md shadow-amber-500/20 flex items-center gap-1.5 transition-all">
+          <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+          <span>Blast Solar Flare</span>
+        </button>
+
+        <button @click="extinguishAll()" 
+                class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium flex items-center gap-1.5 transition-all">
+          <i data-lucide="flame-kindling" class="w-3.5 h-3.5 text-rose-400"></i>
+          <span>Suppress All</span>
+        </button>
+
+        <button @click="$store.app.toggleKids()" 
+                class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 transition-colors"
+                title="Toggle Mode">
+          <i data-lucide="sparkles" class="w-4 h-4 text-cyan-400"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Emergency Warning Strobe Banner (Appears when Fire or Fried Electronics Active) -->
+    <template x-if="activeFiresCount > 0 || friedElectronicsCount > 0 || sim.orbitalDecayRisk">
+      <div class="bg-rose-950/90 border-b border-rose-500/60 px-4 md:px-8 py-2.5 text-xs flex flex-wrap items-center justify-between gap-3 text-rose-200 emergency-strobe z-10">
+        <div class="flex items-center gap-2.5">
+          <div class="w-3 h-3 rounded-full bg-rose-500 animate-ping"></div>
+          <span class="font-bold tracking-wide uppercase text-rose-100 flex items-center gap-1.5">
+            <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400"></i>
+            <span x-text="sim.orbitalDecayRisk ? 'ORBITAL DECAY IN PROGRESS — PROPULSION BLACKOUT' : (activeFiresCount > 0 ? 'CRITICAL FIRE ALARM ACTIVE' : 'ELECTRONICS BUS SURGE FAILURE')"></span>
+          </span>
+          <span class="hidden sm:inline text-rose-300">|</span>
+          <span class="text-rose-200" x-text="briefing.message"></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button @click="openAuraChat('Where is the fire and how do I resolve it?')" 
+                  class="px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold tracking-wider uppercase transition-colors">
+            Ask AURA Assistant
+          </button>
+        </div>
+      </div>
+    </template>
+
+    <!-- Main Content Grid -->
+    <main class="flex-1 p-4 md:p-6 space-y-6">
+
+      <!-- 1. Interactive 3D Three.js Viewport & Flight Deck -->
+      <section class="glass-card p-4 relative overflow-hidden">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <div>
+            <h2 class="text-base font-semibold text-white flex items-center gap-2">
+              <i data-lucide="crosshair" class="w-4 h-4 text-cyan-400"></i>
+              <span>Interactive Spacecraft 3D Telemetry</span>
+            </h2>
+            <p class="text-xs text-slate-400">Orbiting Earth in Freefall · Habitation Centrifuge Ring Spinning · OrbitControls Enabled</p>
+          </div>
+
+          <!-- View Mode Switcher -->
+          <div class="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs">
+            <button @click="setViewMode('hull')" :class="viewMode === 'hull' ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40' : 'text-slate-400 hover:text-white'" class="px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1">
+              <i data-lucide="box" class="w-3.5 h-3.5"></i>
+              <span>Hull</span>
+            </button>
+            <button @click="setViewMode('xray')" :class="viewMode === 'xray' ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40' : 'text-slate-400 hover:text-white'" class="px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1">
+              <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+              <span>X-Ray</span>
+            </button>
+            <button @click="setViewMode('thermal')" :class="viewMode === 'thermal' ? 'bg-rose-500/20 text-rose-300 font-bold border border-rose-500/40' : 'text-slate-400 hover:text-white'" class="px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1">
+              <i data-lucide="flame" class="w-3.5 h-3.5 text-rose-400"></i>
+              <span>Thermal IR</span>
+            </button>
+            <button @click="setViewMode('electrical')" :class="viewMode === 'electrical' ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40' : 'text-slate-400 hover:text-white'" class="px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1">
+              <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>Circuits</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3D Canvas Box -->
+        <div class="relative w-full h-[380px] sm:h-[460px] md:h-[500px] rounded-xl overflow-hidden border border-slate-800/80 bg-[#02040b]" id="spacecraft-canvas-container">
+          <!-- 3D WebGL Canvas mounts here -->
+
+          <!-- Floating HUD Overlays -->
+          <div class="absolute top-3 left-3 flex flex-col gap-2 z-10 pointer-events-none">
+            <div class="bg-slate-950/80 backdrop-blur-md border border-slate-800 px-3 py-1.5 rounded-lg text-xs font-mono text-slate-300 space-y-0.5">
+              <div class="text-[10px] uppercase tracking-wider text-slate-400">Combustion Regime:</div>
+              <div class="font-bold flex items-center gap-1.5" :class="sim.gravityMetrics.effectiveG < 0.05 ? 'text-cyan-400' : 'text-orange-400'">
+                <span class="w-2 h-2 rounded-full" :class="sim.gravityMetrics.effectiveG < 0.05 ? 'bg-cyan-400 animate-pulse' : 'bg-orange-500 animate-pulse'"></span>
+                <span x-text="sim.gravityMetrics.effectiveG < 0.05 ? '0g Microgravity Spherical Diffusion Ball' : 'Buoyant Elongated Teardrop Plume (' + sim.gravityMetrics.effectiveG.toFixed(2) + 'g)'"></span>
+              </div>
+            </div>
+
+            <div class="bg-slate-950/80 backdrop-blur-md border border-slate-800 px-3 py-1.5 rounded-lg text-xs font-mono text-slate-300 space-y-0.5">
+              <div class="text-[10px] uppercase tracking-wider text-slate-400">Centrifuge Imbalance:</div>
+              <div class="text-slate-200">
+                CoM Shift: <strong class="text-amber-400" x-text="sim.gravityMetrics.centerOfMassShift + ' m'"></strong> | 
+                Wobble: <strong class="text-rose-400" x-text="sim.gravityMetrics.wobbleRms + '°/s'"></strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section Jump Buttons Bar -->
+          <div class="absolute bottom-3 left-3 right-3 flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none z-10 pointer-events-auto">
+            <span class="text-[11px] font-mono text-slate-400 shrink-0 bg-slate-950/80 px-2 py-1 rounded">Camera Focus:</span>
+            <button @click="focusSection('bridge')" class="px-2.5 py-1 rounded bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 text-xs text-slate-300 shrink-0 transition-colors">
+              Bridge (SEC-A)
+            </button>
+            <button @click="focusSection('centrifuge')" class="px-2.5 py-1 rounded bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 text-xs text-slate-300 shrink-0 transition-colors">
+              Centrifuge Ring (SEC-B)
+            </button>
+            <button @click="focusSection('science')" class="px-2.5 py-1 rounded bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 text-xs text-slate-300 shrink-0 transition-colors">
+              Science & ECLSS (SEC-C)
+            </button>
+            <button @click="focusSection('avionics')" class="px-2.5 py-1 rounded bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 text-xs text-slate-300 shrink-0 transition-colors">
+              Avionics Bay (SEC-D)
+            </button>
+            <button @click="focusSection('reactor')" class="px-2.5 py-1 rounded bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 text-xs text-slate-300 shrink-0 transition-colors">
+              Power Core (SEC-E)
+            </button>
+            <button @click="focusSection('propulsion')" class="px-2.5 py-1 rounded bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 text-xs text-slate-300 shrink-0 transition-colors">
+              Propulsion (SEC-F)
+            </button>
+            <button @click="resetCamera()" class="px-2.5 py-1 rounded bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-700/60 text-xs text-cyan-300 shrink-0 font-medium transition-colors">
+              Reset View
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Compartment Sections Status & Electronics Redundancy Grid -->
+      <section class="space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-base font-semibold text-white flex items-center gap-2">
+              <i data-lucide="layout-grid" class="w-4 h-4 text-orange-400"></i>
+              <span>Modular Compartments & Electronics Subsystems</span>
+            </h2>
+            <p class="text-xs text-slate-400">Primary 120V DC vs Redundant 28V Rad-Hardened GaN Backups · Mandatory Abandonment Protocol</p>
+          </div>
+          <span class="text-xs font-mono text-slate-400">Total Sections: 6</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <template x-for="sec in Object.values(sim.sections)" :key="sec.id">
+            <div class="glass-card p-4 flex flex-col justify-between transition-all"
+                 :class="{
+                   'border-rose-500/80 shadow-lg shadow-rose-950/50 bg-rose-950/30': sec.burning,
+                   'border-slate-800 opacity-60 bg-slate-950/80': sec.abandoned,
+                   'border-amber-500/50': sec.electronics.primary.status === 'FRIED' && !sec.abandoned && !sec.burning
+                 }">
+              
+              <!-- Card Header -->
+              <div>
+                <div class="flex items-start justify-between gap-2 mb-2">
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold" x-text="sec.code"></span>
+                      <h3 class="font-bold text-sm text-white" x-text="sec.name"></h3>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-0.5">
+                      Fuel: <strong class="text-slate-200" x-text="materials[sec.materialId]?.name || 'Unknown'"></strong> 
+                      (LOI: <span x-text="materials[sec.materialId]?.loi + '%'"></span>)
+                    </p>
+                  </div>
+
+                  <!-- Status Badge -->
+                  <div class="shrink-0">
+                    <template x-if="sec.abandoned">
+                      <span class="px-2 py-0.5 rounded bg-rose-950 border border-rose-500/50 text-[10px] font-bold text-rose-300 tracking-wider">
+                        ABANDONED
+                      </span>
+                    </template>
+                    <template x-if="sec.vented && !sec.abandoned">
+                      <span class="px-2 py-0.5 rounded bg-sky-950 border border-sky-500/50 text-[10px] font-bold text-sky-300 tracking-wider">
+                        VENTED (0 kPa)
+                      </span>
+                    </template>
+                    <template x-if="sec.burning">
+                      <span class="px-2 py-0.5 rounded bg-rose-600 text-[10px] font-bold text-white tracking-wider animate-pulse flex items-center gap-1">
+                        <i data-lucide="flame" class="w-3 h-3"></i>
+                        <span>FIRE (<span x-text="sec.heatReleaseRate + ' kW'"></span>)</span>
+                      </span>
+                    </template>
+                    <template x-if="!sec.burning && !sec.abandoned && !sec.vented">
+                      <span class="px-2 py-0.5 rounded bg-emerald-950 border border-emerald-500/40 text-[10px] font-bold text-emerald-300">
+                        NOMINAL
+                      </span>
+                    </template>
+                  </div>
+                </div>
+
+                <!-- Environmental Metrics Gauge Grid -->
+                <div class="grid grid-cols-3 gap-2 p-2 rounded-xl bg-slate-900/80 border border-slate-800 text-xs mb-3 font-mono">
+                  <div>
+                    <span class="text-[10px] text-slate-400 block">Temperature</span>
+                    <strong :class="sec.temperature > 80 ? 'text-rose-400' : (sec.temperature > 40 ? 'text-amber-400' : 'text-slate-200')" 
+                            x-text="sec.temperature.toFixed(1) + '°C'"></strong>
+                  </div>
+                  <div>
+                    <span class="text-[10px] text-slate-400 block">Oxygen (O₂)</span>
+                    <strong :class="sec.o2 < materials[sec.materialId]?.loi ? 'text-sky-400' : 'text-emerald-400'" 
+                            x-text="sec.o2.toFixed(1) + '%'"></strong>
+                  </div>
+                  <div>
+                    <span class="text-[10px] text-slate-400 block">Pressure</span>
+                    <strong class="text-slate-200" x-text="sec.pressure.toFixed(1) + ' kPa'"></strong>
+                  </div>
+                </div>
+
+                <!-- Electronics Subsystem Telemetry -->
+                <div class="space-y-2 mb-3">
+                  <!-- Primary Bus -->
+                  <div class="p-2 rounded-lg border text-xs"
+                       :class="sec.electronics.primary.status === 'FRIED' 
+                         ? 'bg-rose-950/40 border-rose-900/60 text-rose-300' 
+                         : (sec.electronics.primary.status === 'OVERHEATING' ? 'bg-amber-950/40 border-amber-900/60 text-amber-300' : 'bg-slate-900/60 border-slate-800/80 text-slate-300')">
+                    <div class="flex items-center justify-between font-mono text-[11px] mb-1">
+                      <span class="flex items-center gap-1.5 font-bold">
+                        <span class="w-1.5 h-1.5 rounded-full" :class="sec.electronics.primary.online ? 'bg-cyan-400' : 'bg-rose-500'"></span>
+                        <span x-text="sec.electronics.primary.name"></span>
+                      </span>
+                      <span class="font-bold uppercase text-[10px] px-1.5 py-0.2 rounded"
+                            :class="sec.electronics.primary.status === 'FRIED' ? 'bg-rose-900 text-rose-200' : 'bg-slate-800 text-cyan-300'"
+                            x-text="sec.electronics.primary.status"></span>
+                    </div>
+                    <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                      <span>120V Bus: <strong class="text-slate-200" x-text="sec.electronics.primary.voltage + 'V'"></strong> (<span x-text="sec.electronics.primary.current + 'A'"></span>)</span>
+                      <span>Health: <strong x-text="sec.electronics.primary.health + '%'"></strong></span>
+                    </div>
+                  </div>
+
+                  <!-- Redundant Backup Bus -->
+                  <div class="p-2 rounded-lg border text-xs"
+                       :class="sec.electronics.backup.status === 'ACTIVE' 
+                         ? 'bg-emerald-950/40 border-emerald-800/80 text-emerald-300' 
+                         : (sec.electronics.backup.status === 'FRIED' ? 'bg-rose-950/40 border-rose-900/60 text-rose-300' : 'bg-slate-900/40 border-slate-800 text-slate-400')">
+                    <div class="flex items-center justify-between font-mono text-[11px] mb-1">
+                      <span class="flex items-center gap-1.5 font-bold">
+                        <span class="w-1.5 h-1.5 rounded-full" :class="sec.electronics.backup.status === 'ACTIVE' ? 'bg-emerald-400' : 'bg-slate-500'"></span>
+                        <span x-text="sec.electronics.backup.name"></span>
+                      </span>
+                      <span class="font-bold uppercase text-[10px] px-1.5 py-0.2 rounded"
+                            :class="sec.electronics.backup.status === 'ACTIVE' ? 'bg-emerald-900 text-emerald-200' : 'bg-slate-800 text-slate-400'"
+                            x-text="sec.electronics.backup.status"></span>
+                    </div>
+                    <div class="flex items-center justify-between text-[10px] font-mono">
+                      <span>28V Isolated GaN (<span x-text="sec.electronics.backup.shieldingDb + ' dB'"></span> EMP shield)</span>
+                      <span>Health: <strong x-text="sec.electronics.backup.health + '%'"></strong></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action Controls Footer -->
+              <div class="pt-2 border-t border-slate-800/80 space-y-2">
+                <div class="grid grid-cols-2 gap-1.5 text-xs font-medium">
+                  <!-- Ignite / Re-light -->
+                  <button @click="igniteModule(sec.id)" 
+                          :disabled="sec.vented || sec.abandoned"
+                          class="px-2 py-1.5 rounded-lg bg-orange-500/15 hover:bg-orange-500/25 border border-orange-500/30 text-orange-300 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1 transition-colors">
+                    <i data-lucide="flame" class="w-3.5 h-3.5 text-orange-400"></i>
+                    <span>Ignite</span>
+                  </button>
+
+                  <!-- Suppress Gas (CO2) -->
+                  <button @click="suppressModule(sec.id)" 
+                          :disabled="!sec.burning"
+                          class="px-2 py-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1 transition-colors">
+                    <i data-lucide="spray-can" class="w-3.5 h-3.5 text-cyan-400"></i>
+                    <span>Suppress CO₂</span>
+                  </button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-1.5 text-xs font-medium">
+                  <!-- Vent to Vacuum (Purge) -->
+                  <button @click="ventModule(sec.id)" 
+                          :disabled="sec.vented || sec.abandoned"
+                          title="Depressurize to 0 kPa. Starves fire but dumps mass!"
+                          class="px-2 py-1.5 rounded-lg bg-sky-950 hover:bg-sky-900 border border-sky-800 text-sky-300 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1 transition-colors">
+                    <i data-lucide="wind" class="w-3.5 h-3.5 text-sky-400"></i>
+                    <span>Vent Vacuum</span>
+                  </button>
+
+                  <!-- Abandon Section -->
+                  <button @click="abandonModule(sec.id)" 
+                          :disabled="sec.abandoned"
+                          title="Mandatory when electronics are fried. Seals hermetic blast doors!"
+                          class="px-2 py-1.5 rounded-lg bg-rose-950/80 hover:bg-rose-900 border border-rose-800/80 text-rose-300 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1 transition-colors">
+                    <i data-lucide="door-closed" class="w-3.5 h-3.5 text-rose-400"></i>
+                    <span>Abandon</span>
+                  </button>
+                </div>
+
+                <!-- Reset Section -->
+                <button @click="resetModule(sec.id)" 
+                        class="w-full py-1 text-[11px] font-mono text-slate-400 hover:text-white bg-slate-900/60 hover:bg-slate-800/80 rounded transition-colors text-center">
+                  Restore & Repressurize Compartment
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </section>
+
+      <!-- 3. Gravity Impact, Centrifuge Wobble & Orbital Mechanics Panel -->
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Artificial Gravity & Centrifuge Dynamics -->
+        <div class="glass-card p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div>
+              <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                <i data-lucide="rotate-cw" class="w-4 h-4 text-cyan-400"></i>
+                <span>Centrifuge Artificial Gravity Dynamics</span>
+              </h3>
+              <p class="text-xs text-slate-400">Centrifugal acceleration a = ω²r · Radius: 14 meters</p>
+            </div>
+            <span class="text-xs px-2.5 py-1 rounded bg-slate-900 border border-slate-800 font-mono text-cyan-300 font-bold"
+                  x-text="sim.gravityMetrics.artificialG.toFixed(2) + 'g'"></span>
+          </div>
+
+          <!-- Centrifuge Speed Controls -->
+          <div class="space-y-2">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-400">Centrifuge Spin Speed (RPM):</span>
+              <span class="font-mono text-white font-bold" x-text="sim.centrifugeRpm.toFixed(1) + ' RPM'"></span>
+            </div>
+            <input type="range" min="0" max="10" step="0.1" 
+                   x-model.number="sim.centrifugeRpm" 
+                   class="range w-full"
+                   :disabled="sim.sections.centrifuge.abandoned || sim.sections.centrifuge.electronics.primary.status === 'FRIED'">
+            <div class="flex justify-between text-[11px] text-slate-500 font-mono">
+              <span>0 RPM (0.0g)</span>
+              <span>5.6 RPM (0.5g)</span>
+              <span>8.0 RPM (1.0g Nominal)</span>
+            </div>
+          </div>
+
+          <!-- Mass Redistribution & Nutation Wobble Readouts -->
+          <div class="grid grid-cols-3 gap-3 p-3 rounded-xl bg-slate-900/80 border border-slate-800 font-mono text-xs">
+            <div>
+              <span class="text-[10px] text-slate-400 block">Center of Mass Shift</span>
+              <strong class="text-amber-400 text-sm" x-text="sim.gravityMetrics.centerOfMassShift + ' m'"></strong>
+              <span class="text-[10px] text-slate-500 block">due to venting/abandon</span>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block">Centrifuge Bearing Stress</span>
+              <strong class="text-sm" :class="sim.gravityMetrics.bearingStress > 70 ? 'text-rose-400 animate-pulse' : 'text-slate-200'" x-text="sim.gravityMetrics.bearingStress + '%'"></strong>
+              <span class="text-[10px] text-slate-500 block">dynamic unbalance</span>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block">Nutation Precession</span>
+              <strong class="text-rose-400 text-sm" x-text="sim.gravityMetrics.wobbleRms + '°/s'"></strong>
+              <span class="text-[10px] text-slate-500 block">wobble frequency</span>
+            </div>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 text-xs text-slate-300 space-y-1.5 leading-relaxed">
+            <p class="font-bold text-white flex items-center gap-1.5">
+              <i data-lucide="info" class="w-3.5 h-3.5 text-cyan-400"></i>
+              <span>Physics Principle: Gravity Effect on Flame Spread</span>
+            </p>
+            <p>
+              In <strong class="text-cyan-300">0g microgravity</strong> (Grashof number Gr ≈ 0), buoyancy stops and hot air no longer rises. Flames form small spherical blue diffusion balls with slow burn rates.
+              Under <strong class="text-orange-300">1g centrifugal rotation</strong>, natural convection sucks fresh oxidizer into the base, accelerating flame spread rate by over <strong>300%</strong> into a vertical teardrop!
+            </p>
+          </div>
+        </div>
+
+        <!-- Planetary & Lunar Orbital Gravity Well -->
+        <div class="glass-card p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div>
+              <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                <i data-lucide="globe-2" class="w-4 h-4 text-emerald-400"></i>
+                <span>Planetary & Lunar Orbital Gravity Field</span>
+              </h3>
+              <p class="text-xs text-slate-400">External N-Body gravitational interactions & orbital decay</p>
+            </div>
+            <span class="text-xs px-2.5 py-1 rounded bg-slate-900 border border-slate-800 font-mono text-emerald-300 font-bold"
+                  x-text="sim.orbitalAltitude > 0 ? (sim.orbitalAltitude / 1000).toFixed(0) + ' km LEO' : 'Sub-orbital'"></span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 p-3 rounded-xl bg-slate-900/80 border border-slate-800 font-mono text-xs">
+            <div>
+              <span class="text-[10px] text-slate-400 block">Earth Gravitational Pull</span>
+              <strong class="text-emerald-400 text-sm" x-text="sim.gravityMetrics.planetaryG.toFixed(2) + ' m/s²'"></strong>
+              <span class="text-[10px] text-slate-500 block">at 420 km altitude</span>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block">Orbital Forward Velocity</span>
+              <strong class="text-cyan-400 text-sm" x-text="Math.round(sim.orbitalVelocity) + ' m/s'"></strong>
+              <span class="text-[10px] text-slate-500 block">centrifugal balance</span>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block">Lunar Tidal Acceleration</span>
+              <strong class="text-purple-400 text-sm" x-text="sim.gravityMetrics.lunarG + ' μm/s²'"></strong>
+              <span class="text-[10px] text-slate-500 block">across 32m hull boom</span>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block">Propulsion Electronics Status</span>
+              <strong :class="sim.orbitalDecayRisk ? 'text-rose-400 font-bold' : 'text-emerald-400 text-sm'" 
+                      x-text="sim.orbitalDecayRisk ? 'OFFLINE (DECAY)' : 'NOMINAL (HOLDING)'"></strong>
+              <span class="text-[10px] text-slate-500 block">station-keeping burns</span>
+            </div>
+          </div>
+
+          <!-- Orbital Decay Warning Countdown -->
+          <template x-if="sim.orbitalDecayRisk">
+            <div class="p-3 rounded-xl bg-rose-950/70 border border-rose-600/70 text-rose-200 text-xs space-y-1.5">
+              <div class="flex items-center justify-between font-bold text-rose-100">
+                <span class="flex items-center gap-1.5">
+                  <i data-lucide="alert-octagon" class="w-4 h-4 text-rose-400 animate-spin"></i>
+                  <span>ORBITAL RE-ENTRY COUNTDOWN</span>
+                </span>
+                <span class="font-mono text-sm" x-text="Math.floor(sim.orbitTimeRemaining / 60) + 'm ' + (sim.orbitTimeRemaining % 60) + 's'"></span>
+              </div>
+              <p class="text-[11px] text-rose-300">
+                Ion thruster grid and RCS electronics in Cargo Bay (SEC-F) are destroyed. Earth gravity and atmospheric drag are lowering orbital altitude. Repair backup electronics or execute emergency RCS cold-gas fire!
+              </p>
+            </div>
+          </template>
+
+          <template x-if="!sim.orbitalDecayRisk">
+            <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 text-xs text-slate-300 space-y-1">
+              <p class="font-bold text-white">Orbital Freefall Mechanics:</p>
+              <p>
+                In steady orbit, the spacecraft is in perpetual freefall around Earth, producing net weightlessness (0.00g). External planetary gravity holds the trajectory, while internal gravity exists only inside the spinning centrifuge ring.
+              </p>
+            </div>
+          </template>
+        </div>
+      </section>
+
+      <!-- 4. Solar Weather & Flare EMP Simulation Engine -->
+      <section class="glass-card p-5 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+          <div>
+            <h3 class="font-bold text-sm text-white flex items-center gap-2">
+              <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
+              <span>Solar Flare & EMP Electromagnetic Pulse Generator</span>
+            </h3>
+            <p class="text-xs text-slate-400">Simulate coronal mass ejections (CME), induced voltage spikes, and primary semiconductor breakdown</p>
+          </div>
+          <span class="text-xs px-2.5 py-1 rounded bg-amber-500/10 border border-amber-500/20 font-mono text-amber-400 font-bold"
+                x-text="'Shielding: ' + sim.shieldStrength + '%'"></span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Flare Class Selection -->
+          <div class="space-y-2">
+            <label class="text-xs text-slate-400 block font-medium">Select Eruption Magnitude:</label>
+            <div class="grid grid-cols-2 gap-1.5 text-xs font-mono">
+              <button @click="selectedFlare = 'C5'" :class="selectedFlare === 'C5' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="p-2 rounded-lg transition-colors">
+                Class C5 (Minor)
+              </button>
+              <button @click="selectedFlare = 'M3'" :class="selectedFlare === 'M3' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="p-2 rounded-lg transition-colors">
+                Class M3 (Moderate)
+              </button>
+              <button @click="selectedFlare = 'X1'" :class="selectedFlare === 'X1' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="p-2 rounded-lg transition-colors">
+                Class X1 (Strong)
+              </button>
+              <button @click="selectedFlare = 'X10'" :class="selectedFlare === 'X10' ? 'bg-rose-500 text-white font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="p-2 rounded-lg transition-colors">
+                Class X10 (Severe)
+              </button>
+              <button @click="selectedFlare = 'Carrington_X45'" :class="selectedFlare === 'Carrington_X45' ? 'bg-rose-600 text-white font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800 col-span-2'" class="p-2 rounded-lg transition-colors">
+                Carrington Event (X45+ Extreme EMP)
+              </button>
+            </div>
+          </div>
+
+          <!-- Shielding Controls -->
+          <div class="space-y-3">
+            <div>
+              <div class="flex justify-between text-xs mb-1.5">
+                <span class="text-slate-400">Magnetic Hull Shielding:</span>
+                <span class="font-mono text-cyan-400 font-bold" x-text="sim.shieldStrength + '%'"></span>
+              </div>
+              <input type="range" min="0" max="100" step="5" x-model.number="sim.shieldStrength" class="range w-full">
+            </div>
+            <div class="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 text-[11px] text-slate-400">
+              High magnetic deflection reduces induced EMF voltage surges across avionics PCBs. If shielding drops &lt;40% during an X-class flare, primary buses fry immediately.
+            </div>
+          </div>
+
+          <!-- Trigger Blast Button -->
+          <div class="flex flex-col justify-end space-y-2">
+            <button @click="triggerSolarFlare(selectedFlare)" 
+                    :disabled="sim.flareActive"
+                    class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white font-bold text-sm tracking-wide shadow-lg shadow-amber-600/30 disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+              <i data-lucide="zap" class="w-4 h-4"></i>
+              <span x-text="sim.flareActive ? 'CME Wavefront Hitting Ship...' : 'Trigger Solar CME Shockwave'"></span>
+            </button>
+            <p class="text-[11px] text-slate-500 text-center font-mono">Simulates DONKI space-weather solar radiation & EMP surge</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. Material Reaction Kinetics Database Table -->
+      <section class="glass-card p-5 space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div>
+            <h3 class="font-bold text-sm text-white flex items-center gap-2">
+              <i data-lucide="database" class="w-4 h-4 text-purple-400"></i>
+              <span>Spacecraft Materials Combustion & Reaction Kinetics</span>
+            </h3>
+            <p class="text-xs text-slate-400">Critical Oxygen Index (LOI), Pyrolysis Temperature, Peak Heat Release Rate (HRR) & Off-gassing Toxicity</p>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs font-mono">
+            <thead class="text-slate-400 border-b border-slate-800 bg-slate-900/50">
+              <tr>
+                <th class="p-2.5">Material</th>
+                <th class="p-2.5">Application</th>
+                <th class="p-2.5">LOI (%)</th>
+                <th class="p-2.5">Pyrolysis Temp</th>
+                <th class="p-2.5">Peak HRR</th>
+                <th class="p-2.5">Toxic Off-gas</th>
+                <th class="p-2.5">Reaction Behavior</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60 text-slate-300">
+              <template x-for="mat in Object.values(materials)" :key="mat.id">
+                <tr class="hover:bg-slate-900/40 transition-colors">
+                  <td class="p-2.5 font-bold text-white flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full" :class="mat.loi <= 21 ? 'bg-rose-400' : 'bg-emerald-400'"></span>
+                    <span x-text="mat.name"></span>
+                  </td>
+                  <td class="p-2.5 text-slate-400" x-text="mat.category"></td>
+                  <td class="p-2.5 font-bold" :class="mat.loi <= 21 ? 'text-rose-400' : 'text-emerald-400'" x-text="mat.loi + '%'"></td>
+                  <td class="p-2.5" x-text="mat.pyrolysisTemp + '°C'"></td>
+                  <td class="p-2.5" x-text="mat.hrrPeak + ' kW/m²'"></td>
+                  <td class="p-2.5 text-amber-300" x-text="mat.toxicGas"></td>
+                  <td class="p-2.5 text-[11px] text-slate-400" x-text="mat.description"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 6. Real-time Telemetry Charts (Chart.js) -->
+      <section class="glass-card p-5 space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div>
+            <h3 class="font-bold text-sm text-white flex items-center gap-2">
+              <i data-lucide="line-chart" class="w-4 h-4 text-cyan-400"></i>
+              <span>Live Sensor Telemetry Plots</span>
+            </h3>
+            <p class="text-xs text-slate-400">Tracking Cabin Temperature, O₂ Concentration, Centrifugal Gravity, and 120V Primary Bus Voltage</p>
+          </div>
+          <span class="text-xs font-mono text-cyan-400 animate-pulse">● LIVE 10 Hz SAMPLING</span>
+        </div>
+
+        <div class="w-full h-64">
+          <canvas id="telemetryChart"></canvas>
+        </div>
+      </section>
+
+      <!-- 7. AURA AI Emergency Chatbot & Damage Assessment Assistant -->
+      <section class="glass-card p-5 space-y-4 border border-rose-500/20" id="aura-chatbot-section">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-pink-600 to-rose-400 flex items-center justify-center text-white shadow-md shadow-pink-500/25">
+              <i data-lucide="bot" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                <span>AURA — Autonomous Utility & Rescue Assistant</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 font-mono">FireGPT Flight AI</span>
+              </h3>
+              <p class="text-xs text-slate-400">Real-time situational awareness citing NASA BASS, FLEX, Saffire & ECLSS flight rules</p>
+            </div>
+          </div>
+
+          <button @click="refreshBriefing()" class="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 transition-colors">
+            Update Advisory
+          </button>
+        </div>
+
+        <!-- Chat History Window -->
+        <div class="h-64 overflow-y-auto space-y-3 p-3 rounded-xl bg-slate-950/80 border border-slate-800/80 custom-scroll" id="chat-messages-container">
+          <template x-for="(msg, idx) in chatMessages" :key="idx">
+            <div class="flex flex-col space-y-1" :class="msg.sender === 'user' ? 'items-end' : 'items-start'">
+              <div class="text-[10px] text-slate-500 font-mono px-1" x-text="msg.sender === 'user' ? 'Flight Commander' : 'AURA Flight AI'"></div>
+              <div class="max-w-[85%] rounded-xl p-3 text-xs leading-relaxed"
+                   :class="msg.sender === 'user' ? 'bg-rose-600 text-white rounded-tr-none' : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-tl-none whitespace-pre-line'">
+                <p x-html="formatMarkdown(msg.text)"></p>
+                
+                <!-- Citations if present -->
+                <template x-if="msg.citations && msg.citations.length > 0">
+                  <div class="mt-2 pt-2 border-t border-slate-800/80 text-[10px] text-slate-400 flex flex-wrap gap-1.5">
+                    <span class="font-mono text-cyan-400">Sources:</span>
+                    <template x-for="cit in msg.citations" :key="cit">
+                      <span class="px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-300 font-mono" x-text="cit"></span>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Quick Question Chips -->
+        <div class="flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none text-xs">
+          <span class="text-[11px] text-slate-400 shrink-0 font-mono">Suggested:</span>
+          <button @click="askAura('Where is the fire and what is burning?')" class="px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 shrink-0 transition-colors">
+            Where is the fire?
+          </button>
+          <button @click="askAura('How do I resolve the thermal runaway in Power Core?')" class="px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 shrink-0 transition-colors">
+            Resolve battery fire
+          </button>
+          <button @click="askAura('Why did the solar flare fry our avionics?')" class="px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 shrink-0 transition-colors">
+            Why electronics fried?
+          </button>
+          <button @click="askAura('What will happen to artificial gravity if we abandon the Centrifuge?')" class="px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 shrink-0 transition-colors">
+            Abandoning centrifuge effect
+          </button>
+          <button @click="askAura('Explain flame shape differences between 0g and 1g')" class="px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 shrink-0 transition-colors">
+            0g vs 1g flame shape
+          </button>
+        </div>
+
+        <!-- User Prompt Input Form -->
+        <form @submit.prevent="submitChat()" class="flex items-center gap-2">
+          <input type="text" x-model="chatInput" placeholder="Ask AURA about compartment fires, electronics repair, gravity wobble, or vacuum venting..."
+                 class="flex-1 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500/80 transition-colors">
+          <button type="submit" class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-colors flex items-center gap-1.5">
+            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+            <span>Send</span>
+          </button>
+        </form>
+      </section>
+
+      <!-- 8. Scientific Citations, Flight Rules & Data Provenance -->
+      <section class="glass-card p-6 space-y-6 border border-slate-800" id="spacecraft-citations">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-500 flex items-center justify-center text-white shadow-lg shadow-cyan-500/25 shrink-0">
+              <i data-lucide="book-open" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs uppercase font-mono tracking-widest text-cyan-400 font-bold">Data Provenance & Scientific Basis</span>
+                <span class="px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800/80 font-mono text-[10px]">NASA Open Science</span>
+              </div>
+              <h2 class="text-lg md:text-xl font-bold text-white mt-0.5">Scientific Citations & Flight Standards</h2>
+              <p class="text-xs text-slate-400">Peer-reviewed combustion physics, flight experiments, space-weather APIs, and aerospace engineering standards governing the NSS Prometheus simulation</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 text-xs font-mono text-slate-400 shrink-0">
+            <span class="px-3 py-1 rounded-lg bg-slate-900 border border-slate-800 flex items-center gap-1.5">
+              <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>12 Verified Citations</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Citation Categories Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+          <!-- Category 1: Microgravity Combustion & Materials -->
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+            <div class="flex items-center gap-2 text-xs font-bold text-cyan-300 font-mono uppercase tracking-wider">
+              <i data-lucide="flame" class="w-4 h-4 text-orange-400"></i>
+              <span>Microgravity Combustion & Materials</span>
+            </div>
+
+            <div class="space-y-3 text-xs leading-relaxed">
+              <!-- Item 1 -->
+              <div class="p-3 rounded-lg bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 transition-colors">
+                <div class="flex items-start justify-between gap-2">
+                  <strong class="text-white font-mono text-xs">NASA PSI-26: Burning and Suppression of Solids (BASS)</strong>
+                  <a href="https://psi.ndc.nasa.gov/" target="_blank" rel="noopener" class="text-cyan-400 hover:text-cyan-300 shrink-0 flex items-center gap-1 font-mono text-[11px]">
+                    <span>PSI Repository</span>
+                    <i data-lucide="external-link" class="w-3 h-3"></i>
+                  </a>
+                </div>
+                <p class="text-slate-400 text-[11px] mt-1">
+                  ISS flight experiment measuring low-speed airflow effects on solid fuel burning. Provided Critical Oxygen Index (<strong class="text-slate-200">LOI</strong>) and flame spread velocities for Nomex HT90-40, Delrin, PMMA, and Kapton used in this simulation.
+                </p>
+              </div>
+
+              <!-- Item 2 -->
+              <div class="p-3 rounded-lg bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 transition-colors">
+                <div class="flex items-start justify-between gap-2">
+                  <strong class="text-white font-mono text-xs">NASA Saffire-I through VI (NTRS 20240002981)</strong>
+                  <a href="https://ntrs.nasa.gov/citations/20240002981" target="_blank" rel="noopener" class="text-cyan-400 hover:text-cyan-300 shrink-0 flex items-center gap-1 font-mono text-[11px]">
+                    <span>NTRS Citation</span>
+                    <i data-lucide="external-link" class="w-3 h-3"></i>
+                  </a>
+                </div>
+                <p class="text-slate-400 text-[11px] mt-1">
+                  Full-scale spacecraft fire experiments conducted on Cygnus cargo resupply vehicles. Provided real-world Heat Release Rates (<strong class="text-slate-200">HRR</strong>), toxic CO/CO₂ yields, and optical smoke obscuration (<strong class="text-slate-200">OD/m</strong>) models.
+                </p>
+              </div>
+
+              <!-- Item 3 -->
+              <div class="p-3 rounded-lg bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 transition-colors">
+                <div class="flex items-start justify-between gap-2">
+                  <strong class="text-white font-mono text-xs">NASA PSI-69 & NTRS 20150023456: Flame Extinguishment (FLEX)</strong>
+                  <a href="https://psi.ndc.nasa.gov/" target="_blank" rel="noopener" class="text-cyan-400 hover:text-cyan-300 shrink-0 flex items-center gap-1 font-mono text-[11px]">
+                    <span>FLEX Tests</span>
+                    <i data-lucide="external-link" class="w-3 h-3"></i>
+                  </a>
+                </div>
+                <p class="text-slate-400 text-[11px] mt-1">
+                  Evaluated carbon dioxide (CO₂) and helium suppressant dilution limits across 284 test points on the ISS, discovering invisible low-temperature (~500°C) cool-flame regimes in microgravity.
+                </p>
+              </div>
+
+              <!-- Item 4 -->
+              <div class="p-3 rounded-lg bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 transition-colors">
+                <div class="flex items-start justify-between gap-2">
+                  <strong class="text-white font-mono text-xs">NASA-STD-6001B (Test 1 & Upward Flammability)</strong>
+                  <a href="https://standards.nasa.gov/standard/NASA/NASA-STD-6001" target="_blank" rel="noopener" class="text-cyan-400 hover:text-cyan-300 shrink-0 flex items-center gap-1 font-mono text-[11px]">
+                    <span>NASA Standard</span>
+                    <i data-lucide="external-link" class="w-3 h-3"></i>
+                  </a>
+                </div>
+                <p class="text-slate-400 text-[11px] mt-1">
+                  Official NASA standard test procedure evaluating material flammability, odor, off-gassing, and upward flame propagation across habitable spacecraft compartments.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Category 2: Lithium-Ion Battery & Thermal Runaway Chemistry -->
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+            <div class="flex items-center gap-2 text-xs font-bold text-rose-300 font-mono uppercase tracking-wider">
+              <i data-lucide="battery-warning" class="w-4 h-4 text-rose-400"></i>
+              <span>Battery Chemistry & Thermal Runaway</span>
+            </div>
+
+            <div class="space-y-3 text-xs leading-relaxed">
+              <!-- Item 1 -->
+              <div class="p-3 rounded-lg bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 transition-colors">
+                <div class="flex items-start justify-between gap-2">
+                  <strong class="text-white font-mono text-xs">FAA Fire Safety Branch (Report DOT/FAA/TC-15/59)</strong>
+                  <a href="https://www.fire.tc.faa.gov/pdf/TC-15-59.pdf" target="_blank" rel="noopener" class="text-rose-400 hover:text-rose-300 shrink-0 flex items-center gap-1 font-mono text-[11px]">
+                    <span>FAA Report</span>
+                    <i data-lucide="external-link" class="w-3 h-3"></i>
+                  </a>
+                </div>
+                <p class="text-slate-400 text-[11px] mt-1">
+                  Thermal runaway propagation dynamics of Lithium-Ion 18650/21700 NMC cells. Establishes the 160°C cathode breakdown temperature, self-oxidizing decomposition (<strong class="text-slate-200">LOI = 0%</strong>), and explosive hydrogen/HF off-gassing.
+                </p>
+              </div>
+
+              <!-- Item 2 -->
+              <div class="p-3 rounded-lg bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 transition-colors">
+                <div class="flex items-start justify-between gap-2">
+                  <strong class="text-white font-mono text-xs">NASA JSC 20793: Crewed Space Vehicle Battery Safety</strong>
+                  <a href="https://ntrs.nasa.gov/citations/20170008589" target="_blank" rel="noopener" class="text-rose-400 hover:text-rose-300 shrink-0 flex items-center gap-1 font-mono text-[11px]">
+                    <span>JSC Standard</span>
+                    <i data-lucide="external-link" class="w-3 h-3"></i>
+                  </a>
+                </div>
+                <p class="text-slate-400 text-[11px] mt-1">
+                  Guidelines for spacecraft battery containment, cell-to-cell thermal isolation, emergency high-rate pressure relief vents, and mandatory compartment isolation upon thermal runaway onset.
+                </p>
+              </div>
+
+              <!-- Item 3 -->
+              <div class="p-3 rounded-lg bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 transition-colors">
+                <div class="flex items-start justify-between gap-2">
+                  <strong class="text-white font-mono text-xs">Thornton's Rule of Fire Safety (Combustion Energetics)</strong>
+                  <span class="text-slate-500 font-mono text-[11px]">Empirical Constant</span>
+                </div>
+                <p class="text-slate-400 text-[11px] mt-1">
+                  Governs compartment oxygen depletion: net heat of combustion per unit mass of oxygen consumed is universally <strong class="text-slate-200">13.1 ± 0.7 MJ per kg of O₂</strong> consumed across hydrocarbon and polymer materials.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Category 3: Space Weather & Solar Flare EMP Physics -->
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+            <div class="flex items-center gap-2 text-xs font-bold text-amber-300 font-mono uppercase tracking-wider">
+              <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
+              <span>Space Weather & EMP Electronics Damage</span>
+            </div>
+
+            <div class="space-y-3 text-xs leading-relaxed">
+              <!-- Item 1 -->
+              <div class="p-3 rounded-lg bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 transition-colors">
+                <div class="flex items-start justify-between gap-2">
+                  <strong class="text-white font-mono text-xs">NASA DONKI (Database of Notifications, Knowledge, Information)</strong>
+                  <a href="https://kauai.ccmc.gsfc.nasa.gov/DONKI/" target="_blank" rel="noopener" class="text-amber-400 hover:text-amber-300 shrink-0 flex items-center gap-1 font-mono text-[11px]">
+                    <span>DONKI Live API</span>
+                    <i data-lucide="external-link" class="w-3 h-3"></i>
+                  </a>
+                </div>
+                <p class="text-slate-400 text-[11px] mt-1">
+                  NASA GSFC / CCMC space weather catalog providing live Coronal Mass Ejection (CME) shock speeds (400–2,500 km/s), magnetic flux orientations (Bz), and GOES satellite X-ray flare class scales (C, M, X).
+                </p>
+              </div>
+
+              <!-- Item 2 -->
+              <div class="p-3 rounded-lg bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 transition-colors">
+                <div class="flex items-start justify-between gap-2">
+                  <strong class="text-white font-mono text-xs">NOAA Space Weather Prediction Center (SWPC Scales)</strong>
+                  <a href="https://www.swpc.noaa.gov/noaa-scales-explanation" target="_blank" rel="noopener" class="text-amber-400 hover:text-amber-300 shrink-0 flex items-center gap-1 font-mono text-[11px]">
+                    <span>NOAA SWPC</span>
+                    <i data-lucide="external-link" class="w-3 h-3"></i>
+                  </a>
+                </div>
+                <p class="text-slate-400 text-[11px] mt-1">
+                  Defines Radio Blackouts (R1–R5), Solar Radiation Storms (S1–S5, proton flux &gt;10 MeV), and Geomagnetic Disturbance storm indices (Kp / Dst) impacting spacecraft electronics.
+                </p>
+              </div>
+
+              <!-- Item 3 -->
+              <div class="p-3 rounded-lg bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 transition-colors">
+                <div class="flex items-start justify-between gap-2">
+                  <strong class="text-white font-mono text-xs">MIL-STD-188-125 / NASA-STD-4003 (EMP Protection)</strong>
+                  <a href="https://standards.nasa.gov/" target="_blank" rel="noopener" class="text-amber-400 hover:text-amber-300 shrink-0 flex items-center gap-1 font-mono text-[11px]">
+                    <span>Aerospace Standard</span>
+                    <i data-lucide="external-link" class="w-3 h-3"></i>
+                  </a>
+                </div>
+                <p class="text-slate-400 text-[11px] mt-1">
+                  Electromagnetic pulse hardening, shielding attenuation thresholds (40–80 dB), dielectric gate oxide puncture voltages (&gt;155V), and electrical arcing fire mitigation in wiring harnesses.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Category 4: Spacecraft Atmospheres & Astrodynamics -->
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+            <div class="flex items-center gap-2 text-xs font-bold text-emerald-300 font-mono uppercase tracking-wider">
+              <i data-lucide="orbit" class="w-4 h-4 text-emerald-400"></i>
+              <span>Atmospheres, Centrifuge & Astrodynamics</span>
+            </div>
+
+            <div class="space-y-3 text-xs leading-relaxed">
+              <!-- Item 1 -->
+              <div class="p-3 rounded-lg bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 transition-colors">
+                <div class="flex items-start justify-between gap-2">
+                  <strong class="text-white font-mono text-xs">NASA SP-2016-ECLSS & JSC 65995 (Exploration Atmospheres)</strong>
+                  <a href="https://ntrs.nasa.gov/citations/20130013897" target="_blank" rel="noopener" class="text-emerald-400 hover:text-emerald-300 shrink-0 flex items-center gap-1 font-mono text-[11px]">
+                    <span>JSC 65995</span>
+                    <i data-lucide="external-link" class="w-3 h-3"></i>
+                  </a>
+                </div>
+                <p class="text-slate-400 text-[11px] mt-1">
+                  Defines habitat atmosphere baselines: standard sea-level 14.7 psi / 21% O₂ (ISS) vs reduced pressure, enriched 8.2 psi / 34% O₂ (NASA Gateway & Artemis lunar bases) which increases material flame spread rates.
+                </p>
+              </div>
+
+              <!-- Item 2 -->
+              <div class="p-3 rounded-lg bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 transition-colors">
+                <div class="flex items-start justify-between gap-2">
+                  <strong class="text-white font-mono text-xs">Centrifuge Mechanics & Rigid-Body Dynamics</strong>
+                  <span class="text-slate-500 font-mono text-[11px]">Astrodynamics</span>
+                </div>
+                <p class="text-slate-400 text-[11px] mt-1">
+                  Centrifugal acceleration $a_c = \omega^2 R$ (8.0 RPM at 14m radius = $1.00g$). Dynamic mass balance unbalance torque ($F = \Delta m \cdot \omega^2 R$) and precession nutation calculated via Euler's equations of motion.
+                </p>
+              </div>
+
+              <!-- Item 3 -->
+              <div class="p-3 rounded-lg bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 transition-colors">
+                <div class="flex items-start justify-between gap-2">
+                  <strong class="text-white font-mono text-xs">Orbital Mechanics (Vis-Viva Equation & LEO Decay)</strong>
+                  <span class="text-slate-500 font-mono text-[11px]">Astrodynamics</span>
+                </div>
+                <p class="text-slate-400 text-[11px] mt-1">
+                  Orbital velocity $v = \sqrt{G M_E / r} = 7,660\text{ m/s}$ at 420 km altitude. Calculates orbital decay drag and re-entry trajectory countdown when propulsion electronics are offline.
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Provenance Footer Note -->
+        <div class="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-400">
+          <div class="flex items-center gap-2">
+            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+            <span>All models run entirely client-side using deterministic physics engines and live NASA open data schemas.</span>
+          </div>
+          <a href="sources.html" class="text-cyan-400 hover:text-cyan-300 font-mono text-[11px] flex items-center gap-1 shrink-0 font-medium">
+            <span>Explore 3D Collectible NASA Space Cards</span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+          </a>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Spacecraft Page Controller Script -->
+  <script>
+    function spaceCraftPage() {
+      return {
+        sim: null,
+        chatbot: null,
+        visualizer3D: null,
+        chart: null,
+        materials: {},
+        viewMode: 'hull',
+        selectedFlare: 'X10',
+        chatInput: '',
+        chatMessages: [],
+        activeFiresCount: 0,
+        friedElectronicsCount: 0,
+        briefing: { title: '', message: '' },
+        chartDataPoints: 30,
+
+        init() {
+          // Initialize Physics & Simulation Engine
+          this.sim = new SpacecraftSimulation();
+          this.chatbot = new AuraChatbot(this.sim);
+          this.materials = window.MATERIAL_DATABASE || {};
+
+          // Initial Welcome from AURA
+          const initialBriefing = this.chatbot.generateEmergencyBriefing();
+          this.briefing = initialBriefing;
+          this.chatMessages.push({
+            sender: 'aura',
+            text: `🛰️ **AURA Flight AI Online.** All telemetry channels active.\n\n${initialBriefing.message}\n\nYou can inspect the 3D model, ignite test materials, blast solar flares, or ask me for tactical suppression advice.`,
+            citations: ['NASA BASS PSI-26', 'NASA Saffire Flight Handbook']
+          });
+
+          // Mount 3D Scene
+          this.$nextTick(() => {
+            const container = document.getElementById('spacecraft-canvas-container');
+            if (container && typeof initSpacecraft3D === 'function') {
+              this.visualizer3D = initSpacecraft3D(container, this.sim);
+            }
+            this.initTelemetryChart();
+            lucide.createIcons();
+          });
+
+          // Run simulation loop (10 Hz)
+          setInterval(() => {
+            this.simulationTick();
+          }, 100);
+        },
+
+        simulationTick() {
+          if (!this.sim) return;
+
+          // Step physics by dt = 0.1s
+          const snapshot = this.sim.step(0.1);
+          this.activeFiresCount = snapshot.activeFires;
+          this.friedElectronicsCount = snapshot.friedCount;
+          this.briefing = this.chatbot.generateEmergencyBriefing();
+
+          // Update Chart.js periodically
+          this.updateTelemetryChart();
+        },
+
+        initTelemetryChart() {
+          const ctx = document.getElementById('telemetryChart')?.getContext('2d');
+          if (!ctx) return;
+
+          const labels = Array.from({ length: this.chartDataPoints }, (_, i) => `${i - this.chartDataPoints}s`);
+          const initialTemp = Array(this.chartDataPoints).fill(22);
+          const initialO2 = Array(this.chartDataPoints).fill(21);
+          const initialG = Array(this.chartDataPoints).fill(1.0);
+          const initialV = Array(this.chartDataPoints).fill(120);
+
+          this.chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: 'Cabin Max Temp (°C)',
+                  borderColor: '#f43f5e',
+                  backgroundColor: 'rgba(244, 63, 94, 0.1)',
+                  data: initialTemp,
+                  yAxisID: 'yTemp',
+                  tension: 0.3,
+                  borderWidth: 2,
+                  pointRadius: 0
+                },
+                {
+                  label: 'Cabin Min O₂ (%)',
+                  borderColor: '#34d399',
+                  backgroundColor: 'transparent',
+                  data: initialO2,
+                  yAxisID: 'yPct',
+                  tension: 0.3,
+                  borderWidth: 2,
+                  pointRadius: 0
+                },
+                {
+                  label: 'Centrifugal Gravity (g)',
+                  borderColor: '#38bdf8',
+                  backgroundColor: 'transparent',
+                  data: initialG,
+                  yAxisID: 'yG',
+                  tension: 0.3,
+                  borderWidth: 2,
+                  pointRadius: 0
+                },
+                {
+                  label: 'Primary Bus (V)',
+                  borderColor: '#fbbf24',
+                  backgroundColor: 'transparent',
+                  data: initialV,
+                  yAxisID: 'yVolt',
+                  tension: 0.3,
+                  borderWidth: 1.5,
+                  pointRadius: 0
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              animation: false,
+              interaction: { mode: 'index', intersect: false },
+              scales: {
+                x: {
+                  grid: { color: 'rgba(148, 163, 184, 0.08)' },
+                  ticks: { color: '#64748b', font: { size: 10, family: 'monospace' } }
+                },
+                yTemp: {
+                  type: 'linear',
+                  position: 'left',
+                  min: 0,
+                  max: 600,
+                  grid: { color: 'rgba(148, 163, 184, 0.08)' },
+                  ticks: { color: '#f43f5e', font: { size: 10, family: 'monospace' } }
+                },
+                yPct: {
+                  type: 'linear',
+                  position: 'right',
+                  min: 0,
+                  max: 30,
+                  display: false
+                },
+                yG: {
+                  type: 'linear',
+                  position: 'right',
+                  min: 0,
+                  max: 2,
+                  display: false
+                },
+                yVolt: {
+                  type: 'linear',
+                  position: 'right',
+                  min: 0,
+                  max: 220,
+                  display: false
+                }
+              },
+              plugins: {
+                legend: {
+                  labels: { color: '#cbd5e1', font: { size: 11, family: 'monospace' } }
+                }
+              }
+            }
+          });
+        },
+
+        updateTelemetryChart() {
+          if (!this.chart || !this.sim) return;
+
+          // Find max temperature and min O2 across sections
+          let maxTemp = 20;
+          let minO2 = 21;
+          let avgVoltage = 120;
+
+          for (const sec of Object.values(this.sim.sections)) {
+            if (sec.temperature > maxTemp) maxTemp = sec.temperature;
+            if (sec.o2 < minO2) minO2 = sec.o2;
+          }
+          avgVoltage = this.sim.sections.bridge.electronics.primary.voltage;
+
+          const datasets = this.chart.data.datasets;
+          datasets[0].data.shift();
+          datasets[0].data.push(maxTemp);
+
+          datasets[1].data.shift();
+          datasets[1].data.push(minO2);
+
+          datasets[2].data.shift();
+          datasets[2].data.push(this.sim.gravityMetrics.artificialG);
+
+          datasets[3].data.shift();
+          datasets[3].data.push(avgVoltage);
+
+          this.chart.update('none');
+        },
+
+        // Viewport Controls
+        setViewMode(mode) {
+          this.viewMode = mode;
+          if (this.visualizer3D) this.visualizer3D.setViewMode(mode);
+        },
+
+        focusSection(secId) {
+          if (this.visualizer3D) this.visualizer3D.focusSection(secId);
+        },
+
+        resetCamera() {
+          if (this.visualizer3D) this.visualizer3D.resetCamera();
+        },
+
+        // Module Actions
+        igniteModule(secId) {
+          if (this.sim) {
+            this.sim.igniteSection(secId);
+            if (window.sfx && sfx.pop) sfx.pop();
+            this.focusSection(secId);
+          }
+        },
+
+        suppressModule(secId) {
+          if (this.sim) {
+            this.sim.suppressSection(secId);
+            if (window.sfx && sfx.whoosh) sfx.whoosh();
+          }
+        },
+
+        ventModule(secId) {
+          if (this.sim) {
+            this.sim.ventSectionToVacuum(secId);
+            if (window.sfx && sfx.whoosh) sfx.whoosh();
+          }
+        },
+
+        abandonModule(secId) {
+          if (this.sim) {
+            this.sim.abandonSection(secId);
+            if (window.sfx && sfx.oops) sfx.oops();
+          }
+        },
+
+        resetModule(secId) {
+          if (this.sim) {
+            this.sim.resetSection(secId);
+            if (window.sfx && sfx.ding) sfx.ding();
+          }
+        },
+
+        extinguishAll() {
+          for (const secId of Object.keys(this.sim.sections)) {
+            if (this.sim.sections[secId].burning) {
+              this.sim.suppressSection(secId);
+            }
+          }
+          if (typeof confetti === 'function') {
+            confetti({ particleCount: 40, spread: 60, origin: { y: 0.85 } });
+          }
+        },
+
+        triggerSolarFlare(flareClass) {
+          if (this.sim) {
+            this.sim.triggerSolarFlare(flareClass);
+            if (window.sfx && sfx.whoosh) sfx.whoosh();
+          }
+        },
+
+        // AURA Chatbot Actions
+        submitChat() {
+          if (!this.chatInput.trim()) return;
+          const query = this.chatInput.trim();
+          this.chatInput = '';
+          this.askAura(query);
+        },
+
+        askAura(query) {
+          this.chatMessages.push({ sender: 'user', text: query });
+
+          setTimeout(() => {
+            const resp = this.chatbot.ask(query);
+            this.chatMessages.push({
+              sender: 'aura',
+              text: resp.reply,
+              citations: resp.citations || []
+            });
+
+            this.$nextTick(() => {
+              const el = document.getElementById('chat-messages-container');
+              if (el) el.scrollTop = el.scrollHeight;
+              lucide.createIcons();
+            });
+          }, 350);
+        },
+
+        openAuraChat(promptText) {
+          const el = document.getElementById('aura-chatbot-section');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+          if (promptText) this.askAura(promptText);
+        },
+
+        refreshBriefing() {
+          const b = this.chatbot.generateEmergencyBriefing();
+          this.chatMessages.push({
+            sender: 'aura',
+            text: `📋 **Current Tactical Status Report:**\n\n${b.message}`,
+            citations: ['Telemetry Bus 120V/28V', 'Flight Rule 14.8']
+          });
+          this.$nextTick(() => {
+            const el = document.getElementById('chat-messages-container');
+            if (el) el.scrollTop = el.scrollHeight;
+          });
+        },
+
+        formatMarkdown(text) {
+          if (!text) return '';
+          return text
+            .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-bold">$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em class="text-slate-300">$1</em>')
+            .replace(/\n/g, '<br>');
+        }
+      };
+    }
+
+    function registerSpacecraftComponent() {
+      if (typeof Alpine !== 'undefined' && typeof Alpine.data === 'function') {
+        Alpine.data('spaceCraftPage', window.spaceCraftPage);
+      }
+    }
+    document.addEventListener('alpine:init', registerSpacecraftComponent);
+    if (typeof Alpine !== 'undefined' && typeof Alpine.data === 'function') {
+      registerSpacecraftComponent();
+    }
+  </script>
+
+  <!-- Alpine.js CDN (Loaded at bottom with defer) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</body>
+</html>

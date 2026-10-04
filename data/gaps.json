@@ -1,0 +1,19 @@
+{
+  "gapO2": [15, 18, 21, 24, 27, 30, 34, 38],
+  "gapG": [1, 0.75, 0.5, 0.38, 0.16, 0.05, 0],
+  "gLabels": {
+    "1": "Earth 1g",
+    "0.75": "0.75g",
+    "0.5": "0.5g",
+    "0.38": "Mars .38g",
+    "0.16": "Moon .16g",
+    "0.05": "Flight .05g",
+    "0": "Orbit 0g"
+  },
+  "testNext": [
+    { "cond": "34% O₂ · 8.2 psi · 0.16g", "why": "Artemis baseline habitat — zero solid-fuel tests", "gain": 0.92 },
+    { "cond": "34% O₂ · 8.2 psi · 0.38g", "why": "Mars surface habitat — widest GP uncertainty", "gain": 0.88 },
+    { "cond": "30% O₂ · 10.2 psi · 0g", "why": "Gateway/transit bridge between FLEX-2 and BASS", "gain": 0.71 },
+    { "cond": "38% O₂ · 0.5g", "why": "Stress-case for enriched atmospheres", "gain": 0.54 }
+  ]
+}

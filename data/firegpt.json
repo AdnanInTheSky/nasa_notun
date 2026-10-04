@@ -1,0 +1,40 @@
+{
+  "kb": [
+    {
+      "keys": ["nomex", "34"],
+      "answer": "Yes — in a 34% O₂ / 8.2 psi Moon habitat, Nomex HT90-40 is expected to sustain upward flame spread. BASS samples self-extinguished in ISS air but spread slowly once O₂ exceeded ~30%. At 0.16g buoyant flow adds oxygen supply at the flame front, so spread is likely faster than in 0g.",
+      "citations": ["PSI-26 BASS", "NTRS 20150023456"],
+      "confidence": 0.78
+    },
+    {
+      "keys": ["cool flame", "invisible", "cool"],
+      "answer": "Cool flames are low-temperature (~500–800 K) reactions that emit almost no visible light. FLEX observed n-heptane droplets continuing to burn in a cool-flame regime after the hot flame went out, especially with CO₂ or He diluents at reduced O₂.",
+      "citations": ["PSI-69 FLEX", "PSI-117", "PSI-159 CFI-G"],
+      "confidence": 0.84
+    },
+    {
+      "keys": ["smoke", "detector"],
+      "answer": "Microgravity smoke particles are larger and more varied than on Earth because soot residence time increases without buoyancy. DAFT and SAME-2 found ionization-style detectors underestimate these particles, so optical/multi-wavelength sensors are recommended.",
+      "citations": ["PSI-47 DAFT", "NTRS 20130000422"],
+      "confidence": 0.81
+    },
+    {
+      "keys": ["mars", "gravity", "0.38"],
+      "answer": "No public experiment has burned solids at exactly 0.38g. FlameAtlas interpolates between 0g (BASS) and 1g ground data with a Gaussian Process; the uncertainty band is widest near Mars gravity, which is why the Research Gap Map flags it as a top test priority.",
+      "citations": ["PSI-26 BASS", "PSI-69 FLEX"],
+      "confidence": 0.62
+    },
+    {
+      "keys": ["suppress", "extinguish", "co2"],
+      "answer": "FLEX tested CO₂ and He as suppressants. CO₂ at ~15% concentration reliably extinguished heptane droplets at 1 atm, while He required higher concentrations. In enriched-O₂ habitats the required suppressant concentration increases roughly with O₂ fraction.",
+      "citations": ["PSI-69 FLEX", "NTRS 20150023456"],
+      "confidence": 0.76
+    }
+  ],
+  "suggested": [
+    "Will Nomex burn at 34% O₂ on the Moon?",
+    "Why are cool flames hard to see?",
+    "Can smoke detectors be trusted in microgravity?",
+    "What do we know about fire at Mars gravity?"
+  ]
+}

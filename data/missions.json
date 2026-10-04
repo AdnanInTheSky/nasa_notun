@@ -1,0 +1,52 @@
+[
+  {
+    "id": "iss",
+    "name": "ISS",
+    "subtitle": "Low Earth orbit",
+    "gravity": 0,
+    "o2": 21,
+    "pressure": 14.7,
+    "commDelay": "< 1 s",
+    "note": "Sea-level air, reference baseline for most experiments."
+  },
+  {
+    "id": "gateway",
+    "name": "Gateway",
+    "subtitle": "Lunar orbit",
+    "gravity": 0,
+    "o2": 26.5,
+    "pressure": 10.2,
+    "commDelay": "1.3 s",
+    "note": "Reduced-pressure, enriched-O₂ exploration atmosphere."
+  },
+  {
+    "id": "moon",
+    "name": "Moon",
+    "subtitle": "Artemis surface",
+    "gravity": 0.16,
+    "o2": 34,
+    "pressure": 8.2,
+    "commDelay": "1.3 s",
+    "note": "Proposed 8.2 psi / 34% O₂ habitat — materials ignite more easily."
+  },
+  {
+    "id": "transit",
+    "name": "Mars transit",
+    "subtitle": "Deep space cruise",
+    "gravity": 0,
+    "o2": 26.5,
+    "pressure": 10.2,
+    "commDelay": "4–20 min",
+    "note": "Long exposure, no resupply, growing comms delay."
+  },
+  {
+    "id": "mars",
+    "name": "Mars surface",
+    "subtitle": "Surface habitat",
+    "gravity": 0.38,
+    "o2": 34,
+    "pressure": 8.2,
+    "commDelay": "up to 20 min",
+    "note": "Partial gravity with almost no test data — the biggest unknown."
+  }
+]

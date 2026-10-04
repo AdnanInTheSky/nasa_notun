@@ -1,0 +1,10 @@
+{
+  "presets": [
+    { "label": "Orbit", "g": 0 },
+    { "label": "Moon", "g": 0.16 },
+    { "label": "Mars", "g": 0.38 },
+    { "label": "Earth", "g": 1 }
+  ],
+  "gravitySteps": 50,
+  "description": "Gaussian Process regression estimates flame spread across gravity levels from 0g (orbit) to 1g (Earth). The uncertainty band is widest at partial gravities (0.16g Moon, 0.38g Mars) where physical tests are scarce."
+}

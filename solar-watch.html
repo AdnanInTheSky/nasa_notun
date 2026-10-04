@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en" data-kids>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlameAtlas — Solar Flare Watch & Simulator | NASA DONKI API</title>
+  <link rel="icon" type="image/svg+xml" href="../hii/src/assets/logo.svg">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- GSAP CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Application Core Scripts -->
+  <script src="js/models.js"></script>
+  <script src="js/shared.js"></script>
+  <script src="js-api/donki-api.js"></script>
+  <script src="js/solar-scene-3d.js"></script>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body class="text-slate-100 flex min-h-screen bg-slate-950" x-data="solarWatchPage()">
+  <div class="starfield" aria-hidden="true"></div>
+
+  <!-- Shared Sidebar Navigation -->
+  <aside class="w-64 border-r border-slate-800 bg-slate-950/80 backdrop-blur-md p-5 flex flex-col justify-between fixed top-0 bottom-0 left-0 z-30 hidden md:flex">
+    <div>
+      <a href="index.html" class="flex items-center gap-3 mb-8 group">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 via-orange-500 to-yellow-400 p-0.5 shadow-lg shadow-amber-500/25 group-hover:scale-105 transition-transform flex items-center justify-center">
+          <i data-lucide="sun" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <span class="font-bold tracking-tight text-white block text-lg leading-tight">FlameAtlas</span>
+          <span class="text-xs text-amber-400 font-mono" x-text="$store.app.kids ? 'Sun Blasts & Simulator' : 'Solar Flare Watch & Sim'"></span>
+        </div>
+      </a>
+
+      <nav class="space-y-1 text-sm font-medium">
+        <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="gauge" class="w-4 h-4 text-orange-400"></i>
+          <span x-text="$store.app.kids ? 'Mission Map' : 'Mission Overview'"></span>
+        </a>
+        <a href="flame-lab.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="flask-conical" class="w-4 h-4 text-cyan-400"></i>
+          <span x-text="$store.app.kids ? 'Fire Lab 3D' : 'Flame Lab 3D'"></span>
+        </a>
+        <a href="space-craft.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="rocket" class="w-4 h-4 text-rose-400"></i>
+          <span x-text="$store.app.kids ? 'Spacecraft Fire Sim' : 'Spacecraft Simulation'"></span>
+        </a>
+        <a href="solar-watch.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/30 font-semibold shadow-inner">
+          <i data-lucide="sun" class="w-4 h-4"></i>
+          <span x-text="$store.app.kids ? 'Sun Blasts' : 'Solar Flare Watch'"></span>
+        </a>
+        <a href="earth-impact.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="globe-2" class="w-4 h-4 text-emerald-400"></i>
+          <span x-text="$store.app.kids ? 'Storm vs Earth' : 'Solar Storm vs Earth'"></span>
+        </a>
+        <a href="material-ranker.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
+          <span x-text="$store.app.kids ? 'Burn Race' : 'Material Ranker'"></span>
+        </a>
+        <a href="gravity-gap.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="orbit" class="w-4 h-4 text-sky-400"></i>
+          <span x-text="$store.app.kids ? 'Gravity Guess' : 'Gravity Gap-Filler'"></span>
+        </a>
+        <a href="flame-radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="radar" class="w-4 h-4 text-indigo-400"></i>
+          <span x-text="$store.app.kids ? 'Ghost Flames' : 'Invisible Flame Radar'"></span>
+        </a>
+        <a href="fire-gpt.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="message-square-text" class="w-4 h-4 text-pink-400"></i>
+          <span x-text="$store.app.kids ? 'Quiz Time' : 'FireGPT AI'"></span>
+        </a>
+        <a href="gap-map.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="map" class="w-4 h-4 text-yellow-400"></i>
+          <span x-text="$store.app.kids ? 'Plan Tests' : 'Research Gap Map'"></span>
+        </a>
+        <a href="sources.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
+          <span x-text="$store.app.kids ? 'Space Cards' : 'Data Sources'"></span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- Live API Status Chip -->
+    <div class="glass-pill p-3 border border-slate-800/80 text-xs text-slate-400 flex items-center gap-3">
+      <div class="w-2.5 h-2.5 rounded-full" :class="isLive ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'"></div>
+      <div>
+        <p class="font-medium text-slate-200" x-text="isLive ? 'NASA DONKI API: Live' : 'NASA DONKI: Verified Snapshot'"></p>
+        <p class="text-[11px] text-slate-400" x-text="apiSource"></p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Shell -->
+  <div class="flex-1 md:ml-64 flex flex-col min-w-0">
+    <!-- Topbar -->
+    <header class="sticky top-0 z-20 bg-slate-950/85 backdrop-blur-md border-b border-slate-800/80 px-4 md:px-8 py-3 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none">
+        <span class="text-xs uppercase tracking-wider text-slate-400 font-mono hidden sm:inline">Active Habitat:</span>
+        <template x-for="p in $store.app.phases" :key="p.id">
+          <button @click="$store.app.setPhase(p.id)"
+                  :class="$store.app.currentPhaseId === p.id 
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold shadow-md shadow-amber-500/20' 
+                    : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800'"
+                  class="px-3 py-1.5 rounded-lg text-xs tracking-wide transition-all shrink-0 flex items-center gap-1.5"
+                  x-text="p.name">
+          </button>
+        </template>
+      </div>
+
+      <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+        <a href="#solar-citations" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-cyan-400 flex items-center gap-1 font-mono transition-colors">
+          <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+          <span class="hidden sm:inline">Data Citations</span>
+        </a>
+
+        <button @click="$store.app.toggleKids()" class="glass-pill px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 text-slate-300 hover:text-white hover:border-cyan-500/40 transition-colors">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span x-text="$store.app.kids ? 'Kids Mode' : 'Pro Mode'"></span>
+        </button>
+
+        <button @click="$store.app.toggleSound()" class="glass-pill p-2 text-slate-400 hover:text-white">
+          <i :data-lucide="$store.app.sound ? 'volume-2' : 'volume-x'" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+      <!-- Section Header with Mode Selector -->
+      <section class="glass-panel p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-xs font-mono uppercase tracking-widest text-amber-400 font-bold">NASA DONKI Space Weather & Physics Simulator</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono border"
+                  :class="isLive ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-amber-500/20 text-amber-300 border-amber-500/40'"
+                  x-text="isLive ? 'LIVE DONKI FEED' : 'VERIFIED NASA SNAPSHOT'"></span>
+          </div>
+          <h1 class="text-2xl md:text-3xl font-extrabold text-white">Solar Flare Watch & Eruption Simulator</h1>
+          <p class="text-slate-400 text-xs md:text-sm mt-1 max-w-2xl">
+            Simulate coronal mass ejections, magnetic loop reconnections, and high-energy particle storms. Compare live simulation physics alongside 30 days of real NASA DONKI satellite observations.
+          </p>
+        </div>
+
+        <!-- Mode Switcher: Simulation Studio vs Real NASA Data vs Storm Shelter Game -->
+        <div class="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-medium">
+          <button @click="setMode('simulation')" 
+                  :class="mode === 'simulation' ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold shadow-md shadow-amber-500/20' : 'text-slate-400 hover:text-white'" 
+                  class="px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5">
+            <i data-lucide="flask-conical" class="w-3.5 h-3.5"></i>
+            <span>Simulator Studio</span>
+          </button>
+          <button @click="setMode('real')" 
+                  :class="mode === 'real' ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold shadow-md shadow-amber-500/20' : 'text-slate-400 hover:text-white'" 
+                  class="px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5">
+            <i data-lucide="database" class="w-3.5 h-3.5"></i>
+            <span>Real NASA Data</span>
+          </button>
+          <button @click="setMode('game')" 
+                  :class="mode === 'game' ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold shadow-md shadow-amber-500/20' : 'text-slate-400 hover:text-white'" 
+                  class="px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5">
+            <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+            <span>Shelter Game</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- 3D Solar System Canvas & Space-Weather Telemetry Panel -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 3D Canvas Box -->
+        <div class="lg:col-span-2 glass-panel p-3 flex flex-col">
+          <div class="relative w-full h-[460px] sm:h-[500px] rounded-xl overflow-hidden bg-slate-950 border border-slate-800/80" id="solar-scene-container">
+            
+            <!-- Active Flare HUD Chip -->
+            <div class="absolute top-4 left-4 z-10 flex flex-col gap-1.5 pointer-events-none">
+              <div class="flex items-center gap-2">
+                <span class="glass-pill px-3 py-1 text-xs font-mono font-bold"
+                      :class="selectedFlare?.letter === 'X' ? 'bg-rose-950/80 text-rose-300 border-rose-500/40' : (selectedFlare?.letter === 'M' ? 'bg-amber-950/80 text-amber-300 border-amber-500/40' : 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40')"
+                      x-text="`Flare Class: ${selectedFlare?.classType || 'M2.2'}`"></span>
+                <span class="glass-pill px-3 py-1 text-xs font-mono text-slate-300" x-text="`Location: ${selectedFlare?.location || 'N03W02'}`"></span>
+                <span class="glass-pill px-2.5 py-1 text-[11px] font-mono text-cyan-300" x-text="`Speed: ${selectedFlare?.cmeSpeed || 950} km/s`"></span>
+              </div>
+              <div class="text-[11px] text-slate-400 font-mono bg-slate-950/80 px-2.5 py-0.5 rounded border border-slate-800/80 inline-block w-fit">
+                Parker Spiral Connectivity: <strong :class="isParkerConnected ? 'text-amber-400' : 'text-slate-400'" x-text="isParkerConnected ? 'DIRECT MAGNETIC LINK (West Limb)' : 'Disconnected (Shielded)'"></strong>
+              </div>
+            </div>
+
+            <!-- Camera View Presets Bar -->
+            <div class="absolute top-4 right-4 z-10 flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800 text-xs pointer-events-auto">
+              <button @click="focusCamera('system')" class="px-2 py-1 rounded hover:bg-slate-800 text-slate-300 transition-colors">Overview</button>
+              <button @click="focusCamera('sun')" class="px-2 py-1 rounded hover:bg-slate-800 text-amber-400 transition-colors">Sun</button>
+              <button @click="focusCamera('earth')" class="px-2 py-1 rounded hover:bg-slate-800 text-cyan-400 transition-colors">Earth Shield</button>
+              <button @click="focusCamera('mars')" class="px-2 py-1 rounded hover:bg-slate-800 text-rose-400 transition-colors">Mars</button>
+            </div>
+
+            <!-- Live Event Replay Feed Overlay -->
+            <div class="absolute bottom-4 left-4 right-4 z-10 space-y-1.5 pointer-events-none">
+              <template x-for="ev in eventFeed" :key="ev.id">
+                <div class="glass-pill px-3.5 py-1.5 text-xs text-slate-200 bg-slate-950/90 border-slate-700 flex items-center gap-2 max-w-xl shadow-xl">
+                  <span class="font-mono text-amber-400 font-bold text-[11px]" x-text="ev.time"></span>
+                  <span x-text="ev.text"></span>
+                </div>
+              </template>
+            </div>
+
+            <!-- Storm Shelter Decision Modal (in game mode) -->
+            <div x-show="mode === 'game' && canDecide"
+                 class="absolute inset-0 z-20 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm"
+                 x-transition>
+              <div class="glass-panel p-6 max-w-md w-full text-center space-y-4 border-amber-500/50 shadow-2xl">
+                <i data-lucide="alert-triangle" class="w-10 h-10 text-amber-400 mx-auto animate-bounce"></i>
+                <div>
+                  <h3 class="text-lg font-bold text-white">X-Ray Alert Triggered!</h3>
+                  <p class="text-xs text-slate-300 mt-1">
+                    Solar energetic protons are inbound along the Parker spiral. As Flight Director for <span class="text-amber-400 font-bold" x-text="$store.app.currentPhase.name"></span>, order the crew to storm shelter or proceed with tasks?
+                  </p>
+                </div>
+                <div class="flex items-center justify-center gap-3">
+                  <button @click="makeShelterDecision('shelter')" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition-colors">
+                    Take Storm Shelter!
+                  </button>
+                  <button @click="makeShelterDecision('work')" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white transition-colors">
+                    Keep Working
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Replay Controls Bar -->
+          <div class="p-3 flex items-center justify-between gap-3 flex-wrap">
+            <div class="flex items-center gap-2">
+              <button @click="replayCurrentFlare()" class="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 hover:scale-105 transition-transform flex items-center gap-1.5 shadow-md shadow-amber-500/20">
+                <i data-lucide="play" class="w-4 h-4"></i>
+                <span>Replay Eruption (3D)</span>
+              </button>
+              <button @click="pickRandomFlare()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors flex items-center gap-1.5">
+                <i data-lucide="shuffle" class="w-3.5 h-3.5"></i>
+                <span>Random Real Flare</span>
+              </button>
+            </div>
+
+            <!-- Shelter Game Score Counter -->
+            <div x-show="mode === 'game'" class="flex items-center gap-2 text-xs font-mono text-slate-300">
+              <span>Correct Calls:</span>
+              <span class="text-amber-400 font-bold" x-text="`${shelterWins}/3`"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Space-Weather Impact & Habitat Risk Panel -->
+        <div class="space-y-4">
+          <!-- Overall Mission Risk Gauge -->
+          <div class="glass-panel p-5 text-center">
+            <span class="text-xs uppercase font-mono tracking-wider text-slate-400 block mb-2">Space-Weather Impact on <span class="text-amber-400" x-text="$store.app.currentPhase.name"></span></span>
+            
+            <div class="text-4xl font-extrabold text-white mono my-2" x-text="currentRiskScore"></div>
+            <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
+                  :class="currentRiskScore >= 70 ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : (currentRiskScore >= 45 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40')"
+                  x-text="currentRiskBand.label"></span>
+            <p class="text-xs text-slate-400 mt-3 leading-relaxed" x-text="currentRiskBand.advice"></p>
+          </div>
+
+          <!-- 3 Sub-Risk Vectors -->
+          <div class="glass-panel p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <span class="text-xs uppercase font-mono tracking-wider text-slate-400 font-bold">Physics Risk Vectors</span>
+              <span class="text-[10px] font-mono text-cyan-400" x-text="`Bz: ${selectedFlare?.bz || -8.5} nT`"></span>
+            </div>
+            
+            <!-- Crew Radiation -->
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-slate-300">Astronaut Radiation Dose</span>
+                <span class="font-mono text-white font-bold" x-text="`${currentRiskMetrics.radiation}%`"></span>
+              </div>
+              <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                <div class="bg-rose-500 h-2 rounded-full transition-all duration-500" :style="`width: ${currentRiskMetrics.radiation}%`"></div>
+              </div>
+              <p class="text-[10px] text-slate-500 mt-0.5">High-energy solar protons penetrate hull; water-wall shelter required above 45%.</p>
+            </div>
+
+            <!-- Electronics Single-Event Upsets (SEU) -->
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-slate-300">Electronics Glitches (SEU)</span>
+                <span class="font-mono text-white font-bold" x-text="`${currentRiskMetrics.electronics}%`"></span>
+              </div>
+              <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                <div class="bg-amber-500 h-2 rounded-full transition-all duration-500" :style="`width: ${currentRiskMetrics.electronics}%`"></div>
+              </div>
+              <p class="text-[10px] text-slate-500 mt-0.5">Bit flips, latch-up surges, and primary flight computer gate oxide breakdown.</p>
+            </div>
+
+            <!-- Electrical Ignition Hazard -->
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-slate-300">Electrical Arc Fire Hazard</span>
+                <span class="font-mono text-orange-400 font-bold" x-text="`${currentRiskMetrics.ignition}%`"></span>
+              </div>
+              <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                <div class="bg-orange-500 h-2 rounded-full transition-all duration-500" :style="`width: ${currentRiskMetrics.ignition}%`"></div>
+              </div>
+              <p class="text-[10px] text-slate-500 mt-0.5" x-text="`Wiring arcing amplified by ${$store.app.currentPhase.o2}% enriched O₂ in cabin.`"></p>
+            </div>
+
+            <!-- Magnetosphere Standoff Readout -->
+            <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono">
+              <span class="text-slate-400">Earth Magnetopause (Rmp):</span>
+              <strong :class="currentRiskMetrics.geoExposed ? 'text-rose-400 font-bold' : 'text-cyan-400'" 
+                      x-text="`${currentRiskMetrics.rmp} Re ${currentRiskMetrics.geoExposed ? '(GEO Exposed!)' : '(Safe)'}`"></strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mode 1: Interactive Solar Storm Simulation Studio -->
+      <section x-show="mode === 'simulation'" class="glass-panel p-6 space-y-5" x-transition>
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs uppercase font-mono tracking-widest text-amber-400 font-bold">Physics Studio</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30">Custom Eruption Sandbox</span>
+            </div>
+            <h3 class="text-xl font-bold text-white mt-1">Solar Storm Eruption Generator</h3>
+            <p class="text-xs text-slate-400">Configure eruption class, active sunspot longitude, and CME shock speed to test spacecraft survivability</p>
+          </div>
+
+          <button @click="triggerSimulatedBlast()" 
+                  class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white font-bold text-xs tracking-wider uppercase transition-all shadow-lg shadow-amber-500/25 flex items-center gap-2">
+            <i data-lucide="zap" class="w-4 h-4"></i>
+            <span>Blast Custom Solar Storm</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <!-- 1. Flare Class Preset -->
+          <div class="space-y-2">
+            <label class="text-xs font-medium text-slate-300 block">Eruption Magnitude:</label>
+            <div class="grid grid-cols-2 gap-1.5 text-xs font-mono">
+              <button @click="simConfig.classType = 'C5'" :class="simConfig.classType === 'C5' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="p-2 rounded-lg transition-colors">Class C5</button>
+              <button @click="simConfig.classType = 'M3'" :class="simConfig.classType === 'M3' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="p-2 rounded-lg transition-colors">Class M3</button>
+              <button @click="simConfig.classType = 'X1'" :class="simConfig.classType === 'X1' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="p-2 rounded-lg transition-colors">Class X1</button>
+              <button @click="simConfig.classType = 'X10'" :class="simConfig.classType === 'X10' ? 'bg-rose-500 text-white font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800'" class="p-2 rounded-lg transition-colors">Class X10</button>
+              <button @click="simConfig.classType = 'Carrington_X45'" :class="simConfig.classType === 'Carrington_X45' ? 'bg-rose-600 text-white font-bold' : 'bg-slate-900 text-slate-300 border border-slate-800 col-span-2'" class="p-2 rounded-lg transition-colors">Carrington Event (X45+)</button>
+            </div>
+          </div>
+
+          <!-- 2. Sunspot Longitude (Parker Spiral Alignment) -->
+          <div class="space-y-2">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-300">Sunspot Longitude:</span>
+              <span class="font-mono text-amber-400 font-bold" x-text="`${simConfig.lon > 0 ? simConfig.lon + '°W (Connected)' : (simConfig.lon < 0 ? Math.abs(simConfig.lon) + '°E' : '0° Center')}`"></span>
+            </div>
+            <input type="range" min="-80" max="80" step="5" x-model.number="simConfig.lon" class="range w-full">
+            <p class="text-[11px] text-slate-500">Flares between 20°W–60°W connect directly along curved interplanetary Parker spiral magnetic field lines.</p>
+          </div>
+
+          <!-- 3. CME Plasma Speed -->
+          <div class="space-y-2">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-300">CME Velocity:</span>
+              <span class="font-mono text-cyan-400 font-bold" x-text="`${simConfig.cmeSpeed} km/s`"></span>
+            </div>
+            <input type="range" min="400" max="3000" step="100" x-model.number="simConfig.cmeSpeed" class="range w-full">
+            <p class="text-[11px] text-slate-500">Extreme solar storm speeds (&gt;1,800 km/s) cause severe geomagnetic compressions and shorten transit warning time to ~18 hours.</p>
+          </div>
+
+          <!-- 4. Magnetic Orientation (Bz) -->
+          <div class="space-y-2">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-300">Interplanetary Bz:</span>
+              <span class="font-mono font-bold" :class="simConfig.bz < -10 ? 'text-rose-400' : 'text-emerald-400'" x-text="`${simConfig.bz} nT`"></span>
+            </div>
+            <input type="range" min="-40" max="15" step="1" x-model.number="simConfig.bz" class="range w-full">
+            <p class="text-[11px] text-slate-500">Southward Bz (&lt; 0 nT) breaches Earth's dayside magnetopause, driving severe geomagnetic storms and induced currents.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mode 2: Real NASA DONKI 30-Day Catalog & Timeline Chart -->
+      <section x-show="mode === 'real'" class="glass-panel p-6 space-y-4" x-transition>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+          <div>
+            <span class="text-xs uppercase font-mono tracking-wider text-amber-400 font-bold">NASA DONKI Catalog</span>
+            <h3 class="text-lg font-bold text-white mt-0.5">30 Days of Real Solar Flares</h3>
+            <p class="text-xs text-slate-400">Click any bar or catalog item to replay its actual recorded coronal eruption in 3D</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400 font-mono" x-text="`${flares.length} Flares Recorded`"></span>
+            <button @click="refreshLiveDonki()" class="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 transition-colors flex items-center gap-1">
+              <i data-lucide="refresh-cw" class="w-3 h-3 text-cyan-400"></i>
+              <span>Check NASA Feed</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Chart.js Timeline Bar -->
+        <div class="h-44 w-full">
+          <canvas id="flareTimelineChart"></canvas>
+        </div>
+
+        <!-- Real Flare Quick Select Table -->
+        <div class="overflow-x-auto max-h-56 custom-scroll">
+          <table class="w-full text-left text-xs font-mono">
+            <thead class="text-slate-400 border-b border-slate-800 bg-slate-900/60 sticky top-0">
+              <tr>
+                <th class="p-2">Class</th>
+                <th class="p-2">Peak Time (UTC)</th>
+                <th class="p-2">Location</th>
+                <th class="p-2">Active Region</th>
+                <th class="p-2">CME / SEP</th>
+                <th class="p-2">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60 text-slate-300">
+              <template x-for="f in flares" :key="f.id">
+                <tr class="hover:bg-slate-900/40 transition-colors" :class="selectedFlare?.id === f.id ? 'bg-amber-500/10' : ''">
+                  <td class="p-2 font-bold" :class="f.letter === 'X' ? 'text-rose-400' : (f.letter === 'M' ? 'text-amber-400' : 'text-emerald-400')" x-text="f.classType"></td>
+                  <td class="p-2 text-slate-400" x-text="f.peak.toISOString().replace('T', ' ').slice(0, 16) + 'Z'"></td>
+                  <td class="p-2" x-text="f.location"></td>
+                  <td class="p-2 text-slate-400" x-text="f.region || '—'"></td>
+                  <td class="p-2">
+                    <span x-show="f.hasCME" class="px-1.5 py-0.5 rounded bg-orange-950 text-orange-300 text-[10px] mr-1">CME</span>
+                    <span x-show="f.hasSEP" class="px-1.5 py-0.5 rounded bg-yellow-950 text-yellow-300 text-[10px]">SEP</span>
+                    <span x-show="!f.hasCME && !f.hasSEP" class="text-slate-500">—</span>
+                  </td>
+                  <td class="p-2">
+                    <button @click="selectRealFlare(f)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 text-[10px] font-bold">
+                      Replay 3D
+                    </button>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 8. Comprehensive Scientific Citations & Data Sources -->
+      <section class="glass-panel p-6 space-y-6 border border-slate-800" id="solar-citations">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-orange-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/25 shrink-0">
+              <i data-lucide="book-open" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs uppercase font-mono tracking-widest text-amber-400 font-bold">Scientific Basis & Provenance</span>
+                <span class="px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800/80 font-mono text-[10px]">NASA DONKI & NOAA</span>
+              </div>
+              <h2 class="text-lg md:text-xl font-bold text-white mt-0.5">Scientific Citations & Space Weather References</h2>
+              <p class="text-xs text-slate-400">Peer-reviewed space weather models, live solar satellite APIs, and mission radiation safety standards</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 text-xs font-mono text-slate-400 shrink-0">
+            <span class="px-3 py-1 rounded-lg bg-slate-900 border border-slate-800 flex items-center gap-1.5">
+              <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>Verified NASA Sources</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <!-- Source 1 -->
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+            <div class="flex items-start justify-between gap-2">
+              <strong class="text-white font-mono text-xs">NASA DONKI (Space Weather Database of Notifications, Knowledge, Information)</strong>
+              <a href="https://kauai.ccmc.gsfc.nasa.gov/DONKI/" target="_blank" rel="noopener" class="text-amber-400 hover:text-amber-300 shrink-0 flex items-center gap-1 font-mono text-[11px]">
+                <span>DONKI API</span>
+                <i data-lucide="external-link" class="w-3 h-3"></i>
+              </a>
+            </div>
+            <p class="text-slate-400 text-xs leading-relaxed">
+              Provides the real solar flare catalog, peak flux measurements ($W/m^2$), and active region source locations tracked by NASA GSFC and the Community Coordinated Modeling Center (CCMC).
+            </p>
+          </div>
+
+          <!-- Source 2 -->
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+            <div class="flex items-start justify-between gap-2">
+              <strong class="text-white font-mono text-xs">NOAA Space Weather Prediction Center (SWPC Scales R, S, G)</strong>
+              <a href="https://www.swpc.noaa.gov/noaa-scales-explanation" target="_blank" rel="noopener" class="text-amber-400 hover:text-amber-300 shrink-0 flex items-center gap-1 font-mono text-[11px]">
+                <span>NOAA SWPC</span>
+                <i data-lucide="external-link" class="w-3 h-3"></i>
+              </a>
+            </div>
+            <p class="text-slate-400 text-xs leading-relaxed">
+              Defines the quantitative thresholds for Radio Blackouts ($R1\text{--}R5$ based on GOES X-ray flux), Solar Radiation Storms ($S1\text{--}S5$ for proton flux &gt;10 MeV), and Geomagnetic Storms ($G1\text{--}G5$ Kp index).
+            </p>
+          </div>
+
+          <!-- Source 3 -->
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+            <div class="flex items-start justify-between gap-2">
+              <strong class="text-white font-mono text-xs">Parker Solar Probe & Parker Spiral Magnetic Field Model</strong>
+              <a href="https://parkersolarprobe.jhuapl.edu/" target="_blank" rel="noopener" class="text-amber-400 hover:text-amber-300 shrink-0 flex items-center gap-1 font-mono text-[11px]">
+                <span>Parker Mission</span>
+                <i data-lucide="external-link" class="w-3 h-3"></i>
+              </a>
+            </div>
+            <p class="text-slate-400 text-xs leading-relaxed">
+              Archimedean spiral magnetic topology created by solar rotation. Explains why solar flares on the Sun's western limb ($20^\circ\text{W}\text{--}60^\circ\text{W}$) funnel relativistic solar protons directly to Earth and lunar orbits.
+            </p>
+          </div>
+
+          <!-- Source 4 -->
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+            <div class="flex items-start justify-between gap-2">
+              <strong class="text-white font-mono text-xs">NASA NTRS 20130013897 & JSC-65995 (Astronaut Radiation Shielding)</strong>
+              <a href="https://ntrs.nasa.gov/citations/20130013897" target="_blank" rel="noopener" class="text-amber-400 hover:text-amber-300 shrink-0 flex items-center gap-1 font-mono text-[11px]">
+                <span>NASA NTRS</span>
+                <i data-lucide="external-link" class="w-3 h-3"></i>
+              </a>
+            </div>
+            <p class="text-slate-400 text-xs leading-relaxed">
+              Deep-space habitat radiation shelter baselines. Demonstrates that polyethylene and onboard water walls provide optimal shielding against solar particle events during transit and surface missions.
+            </p>
+          </div>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-400">
+          <div class="flex items-center gap-2">
+            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+            <span>All space-weather equations and 3D simulations execute client-side using deterministic astrophysic formulas.</span>
+          </div>
+          <a href="space-craft.html" class="text-cyan-400 hover:text-cyan-300 font-mono text-[11px] flex items-center gap-1 shrink-0 font-medium">
+            <span>Test Solar Storm on NSS Prometheus 3D Ship</span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+          </a>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Page Specific Logic (executes before deferred Alpine.js) -->
+  <script>
+    window.solarWatchPage = function() {
+      return {
+        flares: [],
+        selectedFlare: null,
+        solarSim: null,
+        chart: null,
+        isLive: false,
+        apiSource: 'NASA Verified Catalog',
+        mode: 'simulation', // 'simulation', 'real', 'game'
+        canDecide: false,
+        shelterWins: 0,
+        eventFeed: [],
+
+        // Simulation Studio Configuration
+        simConfig: {
+          classType: 'X1',
+          lon: 35, // 35° West (Parker spiral connected)
+          lat: 15,
+          cmeSpeed: 1450, // km/s
+          bz: -14.0 // Southward Bz
+        },
+
+        get isParkerConnected() {
+          if (!this.selectedFlare) return false;
+          return this.selectedFlare.lon >= 15 && this.selectedFlare.lon <= 90;
+        },
+
+        get currentRiskMetrics() {
+          if (!this.selectedFlare) return { score: 25, radiation: 20, electronics: 25, ignition: 18, rmp: 10.2, geoExposed: false, shouldShelter: false };
+          const p = Alpine.store('app').currentPhase;
+          return flareRisk(this.selectedFlare, p.id, p.o2);
+        },
+
+        get currentRiskScore() {
+          return this.currentRiskMetrics.score;
+        },
+
+        get currentRiskBand() {
+          return riskBand(this.currentRiskScore);
+        },
+
+        init() {
+          // Instant population from embedded real NASA catalog (guarantees immediate 0ms functionality)
+          const fallbackData = DonkiApi.EMBEDDED_DONKI_FLARES.map(normalizeFlare).sort((a, b) => b.flux - a.flux);
+          this.flares = fallbackData;
+          this.selectedFlare = fallbackData[0]; // Start with top flare (M2.2 or X1.1)
+
+          this.$nextTick(() => {
+            const container = document.getElementById('solar-scene-container');
+            if (container && typeof initSolarScene3D === 'function') {
+              this.solarSim = initSolarScene3D(container);
+            }
+            this.initTimeline();
+            this.replayCurrentFlare();
+            lucide.createIcons();
+          });
+
+          // Non-blocking background sync with live NASA DONKI
+          this.checkLiveFeed();
+        },
+
+        async checkLiveFeed() {
+          try {
+            const data = await fetchDonkiFlares(30);
+            if (data && data.flares && data.flares.length > 0) {
+              this.flares = data.flares;
+              this.isLive = data.live;
+              this.apiSource = data.source;
+              if (this.chart) this.updateTimelineChart();
+            }
+          } catch (e) {
+            // Smoothly remain on verified catalog
+          }
+        },
+
+        setMode(newMode) {
+          this.mode = newMode;
+          this.$nextTick(() => {
+            if (newMode === 'real') {
+              this.initTimeline();
+            }
+            lucide.createIcons();
+          });
+        },
+
+        focusCamera(viewName) {
+          if (this.solarSim && typeof this.solarSim.focusView === 'function') {
+            this.solarSim.focusView(viewName);
+          }
+        },
+
+        replayCurrentFlare() {
+          if (!this.solarSim || !this.selectedFlare) return;
+          this.eventFeed = [];
+          this.canDecide = false;
+
+          const f = this.selectedFlare;
+          this.solarSim.replay(f, {
+            onEvent: (name) => {
+              if (name === 'flash') {
+                this.eventFeed.unshift({ id: Date.now(), time: 'T+0', text: `Active Region ${f.region || 'AR-145'}: Magnetic loop reconnection! Erupted with a ${f.classType} flare!` });
+              } else if (name === 'xray') {
+                this.eventFeed.unshift({ id: Date.now() + 1, time: 'T+8 min', text: 'X-ray wavefront arrives at the speed of light. Solar-facing ionosphere ionization & HF radio fadeout.' });
+                if (this.mode === 'game') this.canDecide = true;
+              } else if (name === 'sep') {
+                this.eventFeed.unshift({ id: Date.now() + 2, time: 'T+20-40 min', text: `Solar Energetic Protons streaming down the Parker spiral! High radiation alert on ${Alpine.store('app').currentPhase.name}.` });
+              } else if (name === 'cme') {
+                this.eventFeed.unshift({ id: Date.now() + 3, time: 'T+1-3 days', text: `CME plasma shockwave expanding at ${f.cmeSpeed || 950} km/s through the interplanetary medium!` });
+              } else if (name === 'impact') {
+                this.eventFeed.unshift({ id: Date.now() + 4, time: 'IMPACT', text: `CME slams into Earth's dayside magnetopause! Stand-off distance compressed to ${this.currentRiskMetrics.rmp} Re.` });
+              }
+              if (this.eventFeed.length > 5) this.eventFeed.pop();
+            }
+          });
+        },
+
+        triggerSimulatedBlast() {
+          const simFlare = createSimulatedFlare({
+            classType: this.simConfig.classType,
+            lon: this.simConfig.lon,
+            lat: this.simConfig.lat,
+            cmeSpeed: this.simConfig.cmeSpeed,
+            bz: this.simConfig.bz
+          });
+
+          this.selectedFlare = simFlare;
+          this.replayCurrentFlare();
+          if (window.sfx && sfx.fanfare) sfx.fanfare();
+        },
+
+        selectRealFlare(f) {
+          this.selectedFlare = f;
+          this.replayCurrentFlare();
+          if (window.sfx && sfx.pop) sfx.pop();
+        },
+
+        pickRandomFlare() {
+          if (!this.flares || !this.flares.length) return;
+          const idx = Math.floor(Math.random() * this.flares.length);
+          this.selectedFlare = this.flares[idx];
+          this.replayCurrentFlare();
+          if (window.sfx && sfx.pop) sfx.pop();
+        },
+
+        makeShelterDecision(choice) {
+          this.canDecide = false;
+          const shouldShelter = this.currentRiskMetrics.shouldShelter;
+          const correct = (choice === 'shelter') === shouldShelter;
+
+          if (correct) {
+            this.shelterWins++;
+            Alpine.store('app').addXp(30, 'Superb Flight Director call! Crew safety secured.');
+            if (this.shelterWins >= 3) {
+              Alpine.store('app').unlockBadge('storm-watcher');
+            }
+            if (window.sfx && sfx.ding) sfx.ding();
+          } else {
+            Alpine.store('app').addXp(10, 'Review radiation vectors: lesson learned.');
+            if (window.sfx && sfx.oops) sfx.oops();
+          }
+        },
+
+        initTimeline() {
+          const ctx = document.getElementById('flareTimelineChart');
+          if (!ctx || this.chart) return;
+
+          this.chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: this.flares.map(f => f.classType),
+              datasets: [{
+                data: this.flares.map(f => f.level),
+                backgroundColor: this.flares.map(f => f.letter === 'X' ? '#f43f5e' : (f.letter === 'M' ? '#ffb23f' : '#34d399')),
+                borderRadius: 4
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { min: 1, max: 5, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { family: 'monospace' } } },
+                x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { family: 'monospace', size: 10 } } }
+              },
+              onClick: (evt, elements) => {
+                if (elements.length > 0) {
+                  const idx = elements[0].index;
+                  this.selectRealFlare(this.flares[idx]);
+                }
+              }
+            }
+          });
+        },
+
+        updateTimelineChart() {
+          if (!this.chart) return;
+          this.chart.data.labels = this.flares.map(f => f.classType);
+          this.chart.data.datasets[0].data = this.flares.map(f => f.level);
+          this.chart.data.datasets[0].backgroundColor = this.flares.map(f => f.letter === 'X' ? '#f43f5e' : (f.letter === 'M' ? '#ffb23f' : '#34d399'));
+          this.chart.update();
+        }
+      };
+    };
+
+    function registerSolarWatchComponents() {
+      if (typeof Alpine !== 'undefined' && typeof Alpine.data === 'function') {
+        Alpine.data('solarWatchPage', window.solarWatchPage);
+      }
+    }
+    document.addEventListener('alpine:init', registerSolarWatchComponents);
+    if (typeof Alpine !== 'undefined' && typeof Alpine.data === 'function') {
+      registerSolarWatchComponents();
+    }
+  </script>
+
+  <!-- Alpine.js CDN (Loaded at bottom with defer to guarantee everything is registered first) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en" data-kids>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlameAtlas — Solar Storm vs Earth | NASA Space Apps 2026</title>
+  <link rel="icon" type="image/svg+xml" href="../hii/src/assets/logo.svg">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- GSAP CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Application Core Scripts -->
+  <script src="js/models.js"></script>
+  <script src="js/shared.js"></script>
+  <script src="js/earth-scene-3d.js"></script>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body class="text-slate-100 flex min-h-screen" x-data="earthImpactPage()">
+  <div class="starfield" aria-hidden="true"></div>
+
+  <!-- Shared Sidebar Navigation -->
+  <aside class="w-64 border-r border-slate-800 bg-slate-950/80 backdrop-blur-md p-5 flex flex-col justify-between fixed top-0 bottom-0 left-0 z-30 hidden md:flex">
+    <div>
+      <a href="index.html" class="flex items-center gap-3 mb-8 group">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-400 p-0.5 shadow-lg shadow-orange-500/20 group-hover:scale-105 transition-transform flex items-center justify-center">
+          <i data-lucide="flame" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <span class="font-bold tracking-tight text-white block text-lg leading-tight">FlameAtlas</span>
+          <span class="text-xs text-slate-400 font-mono" x-text="$store.app.kids ? 'Fire Adventure' : 'Moon & Mars Safety'"></span>
+        </div>
+      </a>
+
+      <nav class="space-y-1 text-sm font-medium">
+        <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="gauge" class="w-4 h-4 text-orange-400"></i>
+          <span x-text="$store.app.kids ? 'Mission Map' : 'Mission Overview'"></span>
+        </a>
+        <a href="flame-lab.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="flask-conical" class="w-4 h-4 text-cyan-400"></i>
+          <span x-text="$store.app.kids ? 'Fire Lab 3D' : 'Flame Lab 3D'"></span>
+        </a>
+        <a href="solar-watch.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
+          <span x-text="$store.app.kids ? 'Sun Blasts' : 'Solar Flare Watch'"></span>
+        </a>
+        <a href="earth-impact.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold shadow-inner">
+          <i data-lucide="globe-2" class="w-4 h-4"></i>
+          <span x-text="$store.app.kids ? 'Storm vs Earth' : 'Solar Storm vs Earth'"></span>
+        </a>
+        <a href="material-ranker.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
+          <span x-text="$store.app.kids ? 'Burn Race' : 'Material Ranker'"></span>
+        </a>
+        <a href="gravity-gap.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="orbit" class="w-4 h-4 text-sky-400"></i>
+          <span x-text="$store.app.kids ? 'Gravity Guess' : 'Gravity Gap-Filler'"></span>
+        </a>
+        <a href="flame-radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="radar" class="w-4 h-4 text-indigo-400"></i>
+          <span x-text="$store.app.kids ? 'Ghost Flames' : 'Invisible Flame Radar'"></span>
+        </a>
+        <a href="fire-gpt.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="message-square-text" class="w-4 h-4 text-pink-400"></i>
+          <span x-text="$store.app.kids ? 'Quiz Time' : 'FireGPT AI'"></span>
+        </a>
+        <a href="gap-map.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="map" class="w-4 h-4 text-yellow-400"></i>
+          <span x-text="$store.app.kids ? 'Plan Tests' : 'Research Gap Map'"></span>
+        </a>
+        <a href="sources.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
+          <span x-text="$store.app.kids ? 'Space Cards' : 'Data Sources'"></span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="glass-pill p-3 border border-slate-800/80 text-xs text-slate-400 flex items-center gap-3">
+      <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
+      <div>
+        <p class="font-medium text-slate-200">Shue Magnetosphere</p>
+        <p class="text-[11px] text-slate-400">Burton Dst & Kp Model</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Shell -->
+  <div class="flex-1 md:ml-64 flex flex-col min-w-0">
+    <header class="sticky top-0 z-20 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 px-4 md:px-8 py-3 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none">
+        <span class="text-xs uppercase tracking-wider text-slate-400 font-mono hidden sm:inline">Presets:</span>
+        <template x-for="pre in presets" :key="pre.id">
+          <button @click="loadPreset(pre)"
+                  :class="selectedPresetId === pre.id 
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold shadow-md shadow-emerald-500/20' 
+                    : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800'"
+                  class="px-3 py-1.5 rounded-lg text-xs tracking-wide transition-all shrink-0 flex items-center gap-1.5"
+                  x-text="pre.name">
+          </button>
+        </template>
+      </div>
+
+      <div class="flex items-center gap-3 shrink-0">
+        <button @click="$store.app.toggleKids()" class="glass-pill px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 text-slate-300 hover:text-white hover:border-cyan-500/40 transition-colors">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span x-text="$store.app.kids ? 'Kids Mode' : 'Pro Mode'"></span>
+        </button>
+
+        <button @click="$store.app.toggleTrophy()" class="glass-pill px-3 py-1.5 text-xs font-semibold flex items-center gap-2 text-amber-300 hover:border-amber-500/40 transition-colors">
+          <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span class="mono font-bold" x-text="`Lv.${$store.app.currentLevel.level}`"></span>
+          <span class="bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] mono" x-text="`${$store.app.xp} XP`"></span>
+        </button>
+
+        <button @click="$store.app.toggleSound()" class="glass-pill p-2 text-slate-400 hover:text-white">
+          <i :data-lucide="$store.app.sound ? 'volume-2' : 'volume-x'" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </header>
+
+    <main class="flex-1 p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+      <!-- Section Header -->
+      <section class="glass-panel p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <span class="text-xs font-mono uppercase tracking-widest text-emerald-400 font-bold" x-text="$store.app.kids ? 'Earth Shield Simulator' : 'Magnetosphere & Space Weather What-If Engine'"></span>
+          <h1 class="text-2xl md:text-3xl font-extrabold text-white mt-1" x-text="$store.app.kids ? 'What happens when a Sun storm hits Earth?' : 'Solar Storm vs Earth'"></h1>
+          <p class="text-slate-400 text-xs md:text-sm mt-1 max-w-2xl">
+            Simulate how solar flares and coronal mass ejections squeeze Earth's magnetosphere, trigger auroras, blackout shortwave radios, and endanger satellites.
+          </p>
+        </div>
+      </section>
+
+      <!-- 3D Earth Simulation & Parameter Sliders -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 3D Earth Canvas -->
+        <div class="lg:col-span-2 glass-panel p-2 flex flex-col">
+          <div class="relative w-full h-[480px] rounded-xl overflow-hidden bg-slate-950" id="earth-scene-container">
+            <!-- NOAA R/S/G HUD Badge -->
+            <div class="absolute top-4 left-4 z-10 flex items-center gap-2">
+              <span class="glass-pill px-3 py-1 text-xs mono text-rose-300 font-bold" x-text="`Radio: R${impact.R}`"></span>
+              <span class="glass-pill px-3 py-1 text-xs mono text-amber-300 font-bold" x-text="`Proton: S${impact.S}`"></span>
+              <span class="glass-pill px-3 py-1 text-xs mono text-emerald-300 font-bold" x-text="`Geomag: G${impact.G}`"></span>
+            </div>
+
+            <!-- Stand-Off Warning -->
+            <div x-show="impact.geoExposed" class="absolute top-4 right-4 z-10 bg-rose-500/20 border border-rose-500/50 rounded-xl px-3 py-1 text-rose-300 text-xs font-bold animate-pulse">
+              ⚠️ GEO Orbit Exposed! (Shield &lt; 6.6 R_E)
+            </div>
+
+            <!-- Aurora Visibility Pill -->
+            <div class="absolute bottom-4 left-4 z-10 glass-pill px-4 py-2 text-xs flex items-center gap-2 border-emerald-500/40">
+              <i data-lucide="sparkles" class="w-4 h-4 text-emerald-400"></i>
+              <span>Aurora over <strong class="text-white" x-text="inputs.cityName"></strong>: </span>
+              <span class="font-bold uppercase tracking-wider font-mono"
+                    :class="impact.aurora === 'overhead' ? 'text-emerald-400' : (impact.aurora === 'horizon' ? 'text-amber-400' : 'text-slate-400')"
+                    x-text="impact.aurora === 'overhead' ? 'Directly Overhead!' : (impact.aurora === 'horizon' ? 'Visible on Horizon' : 'Not Visible')"></span>
+            </div>
+          </div>
+
+          <!-- Bottom Summary Metrics -->
+          <div class="p-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+            <div class="p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+              <span class="text-slate-400 block text-[11px]">Kp Index</span>
+              <span class="font-extrabold text-white text-base mono" x-text="impact.kp.toFixed(1)"></span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+              <span class="text-slate-400 block text-[11px]">Shield Stand-Off</span>
+              <span class="font-extrabold text-cyan-300 text-base mono" x-text="`${impact.rmp.toFixed(1)} R_E`"></span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+              <span class="text-slate-400 block text-[11px]">Aurora Equatorward Edge</span>
+              <span class="font-extrabold text-emerald-300 text-base mono" x-text="`${impact.auroraLat.toFixed(0)}°`"></span>
+            </div>
+            <div class="p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+              <span class="text-slate-400 block text-[11px]">CME Arrival Time</span>
+              <span class="font-extrabold text-amber-300 text-base mono" x-text="`${Math.round(impact.arrivalHours)} hours`"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Simulator Cockpit Sliders -->
+        <div class="space-y-4">
+          <div class="glass-panel p-5 space-y-4">
+            <span class="text-xs uppercase font-mono tracking-wider text-slate-400">Storm Parameters</span>
+
+            <!-- Flare Class Slider -->
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-slate-300">Flare Strength</span>
+                <span class="font-mono text-orange-400 font-bold" x-text="impact.classType"></span>
+              </div>
+              <input type="range" min="2" max="6" step="0.05" x-model.number="inputs.level" @input="updateStorm()" class="range">
+            </div>
+
+            <!-- CME Direction -->
+            <div>
+              <span class="text-xs text-slate-300 block mb-1">CME Direction</span>
+              <div class="grid grid-cols-3 gap-1.5">
+                <template x-for="d in ['direct', 'glancing', 'miss']" :key="d">
+                  <button @click="inputs.hit = d; updateStorm()"
+                          :class="inputs.hit === d ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300 font-bold' : 'border-slate-800 bg-slate-900/60 text-slate-300'"
+                          class="p-1.5 rounded-lg border text-xs capitalize text-center transition-colors"
+                          x-text="d">
+                  </button>
+                </template>
+              </div>
+            </div>
+
+            <!-- CME Speed -->
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-slate-300">CME Speed</span>
+                <span class="font-mono text-cyan-400 font-bold" x-text="`${inputs.speed} km/s`"></span>
+              </div>
+              <input type="range" min="300" max="3000" step="50" x-model.number="inputs.speed" @input="updateStorm()" class="range">
+            </div>
+
+            <!-- Magnetic Field Bz (Door Open/Closed) -->
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-slate-300">Magnetic Field Bz ("Door")</span>
+                <span class="font-mono text-purple-400 font-bold" x-text="`${inputs.bz} nT (${inputs.bz < 0 ? 'Door OPEN' : 'Door CLOSED'})`"></span>
+              </div>
+              <input type="range" min="-60" max="10" step="1" x-model.number="inputs.bz" @input="updateStorm()" class="range">
+            </div>
+
+            <!-- City Latitude -->
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-slate-300">Observer City</span>
+                <span class="font-mono text-white" x-text="`${inputs.cityName} (${inputs.cityLat}°)`"></span>
+              </div>
+              <select class="w-full p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-200"
+                      @change="selectCity($event.target.value)">
+                <template x-for="c in cities" :key="c.name">
+                  <option :value="c.name" :selected="c.name === inputs.cityName" x-text="`${c.name} (${c.lat}°)`"></option>
+                </template>
+              </select>
+            </div>
+          </div>
+
+          <!-- Impact Breakdown -->
+          <div class="glass-panel p-5 space-y-2.5">
+            <span class="text-xs uppercase font-mono tracking-wider text-slate-400">Earth Impact Breakdown</span>
+            <div class="space-y-2 text-xs">
+              <div class="flex justify-between items-center p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                <span class="text-slate-300">Radio Blackout</span>
+                <span class="font-mono text-rose-400" x-text="impact.impacts.radio.detail"></span>
+              </div>
+              <div class="flex justify-between items-center p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                <span class="text-slate-300">GPS Signal</span>
+                <span class="font-mono text-amber-400" x-text="impact.impacts.gps.detail"></span>
+              </div>
+              <div class="flex justify-between items-center p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                <span class="text-slate-300">Power Grids</span>
+                <span class="font-mono text-purple-400" x-text="impact.impacts.power.detail"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Sparky Robot Mascot Floating Assistant -->
+  <div class="sparky-widget" x-show="$store.app.sparkyVisible">
+    <div class="sparky-bubble" x-show="$store.app.sparkySpeechOpen" x-transition>
+      <div class="flex items-start justify-between gap-2">
+        <strong class="text-amber-400 font-bold text-xs uppercase tracking-wider">Sparky's Tip</strong>
+        <button @click="$store.app.toggleSparky()" class="text-slate-400 hover:text-white text-xs">✕</button>
+      </div>
+      <p class="text-slate-200 text-xs mt-1">
+        Try the "Carrington 1859" preset! Can you make the northern lights shine all the way down to Miami or Dhaka?
+      </p>
+    </div>
+    <div class="sparky-avatar" @click="$store.app.toggleSparky()" title="Click Sparky for tips!">
+      <div id="sparky-avatar-slot"></div>
+    </div>
+  </div>
+
+  <!-- Trophy Modal -->
+  <div x-show="$store.app.trophyOpen"
+       x-transition.opacity
+       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+       style="display: none;">
+    <div class="glass-panel w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden border border-slate-700" @click.outside="$store.app.trophyOpen = false">
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="trophy" class="w-5 h-5 text-amber-400"></i>
+          <h3 class="text-lg font-bold text-white">Trophy Room & Badges</h3>
+        </div>
+        <button @click="$store.app.trophyOpen = false" class="text-slate-400 hover:text-white p-1">✕</button>
+      </div>
+      <div class="p-6 overflow-y-auto space-y-6">
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+          <div class="flex justify-between items-center mb-2">
+            <div>
+              <span class="text-xs text-slate-400 uppercase font-mono">Current Rank</span>
+              <p class="text-lg font-extrabold text-amber-400" x-text="`Level ${$store.app.currentLevel.level} — ${$store.app.currentLevel.title}`"></p>
+            </div>
+            <span class="text-sm font-mono text-white" x-text="`${$store.app.xp} XP`"></span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+            <div class="bg-gradient-to-r from-amber-500 to-orange-500 h-2.5 rounded-full transition-all duration-500" :style="`width: ${$store.app.currentLevel.progress * 100}%`"></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <template x-for="b in $store.app.allBadges" :key="b.id">
+            <div :class="$store.app.badges.includes(b.id) ? 'border-amber-500/60 bg-amber-500/10' : 'border-slate-800 bg-slate-900/40 opacity-50'"
+                 class="p-3 rounded-xl border flex flex-col items-center text-center">
+              <i :data-lucide="b.icon || 'award'" class="w-6 h-6 text-amber-400 mb-1.5"></i>
+              <span class="text-xs font-bold text-white" x-text="b.name"></span>
+              <span class="text-[10px] text-slate-400 mt-1" x-text="b.desc"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container">
+    <template x-for="t in $store.app.toasts" :key="t.id">
+      <div class="toast-msg">
+        <i :data-lucide="t.kind === 'badge' ? 'award' : 'zap'" class="w-6 h-6 text-amber-400 shrink-0"></i>
+        <div>
+          <p class="font-bold text-xs text-white" x-text="t.title"></p>
+          <p class="text-[11px] text-slate-300" x-text="t.text"></p>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <!-- Page Specific Logic (executes before deferred Alpine.js) -->
+  <script>
+    if (document.getElementById('sparky-avatar-slot') && typeof renderSparkySvg === 'function') {
+      document.getElementById('sparky-avatar-slot').innerHTML = renderSparkySvg(70);
+    }
+
+    window.earthImpactPage = function() {
+      return {
+        presets: [],
+        cities: [],
+        selectedPresetId: 'm-flare',
+        inputs: {
+          level: 3.5,
+          hit: 'glancing',
+          speed: 800,
+          bz: -10,
+          density: 12,
+          cityLat: 23.8,
+          cityName: 'Dhaka'
+        },
+        impact: {
+          R: 0, S: 0, G: 0, kp: 1, rmp: 10.9, auroraLat: 66, aurora: 'no', arrivalHours: 48,
+          geoExposed: false, classType: 'M1.0', impacts: { radio: {}, gps: {}, power: {} }
+        },
+        earthSim: null,
+
+        async init() {
+          try {
+            const res = await fetch('./data/earth-presets.json');
+            if (res.ok) {
+              const data = await res.json();
+              this.presets = data.presets || [];
+              this.cities = data.cities || [];
+            }
+          } catch(e) {}
+
+          this.updateStorm();
+
+          this.$nextTick(() => {
+            const container = document.getElementById('earth-scene-container');
+            this.earthSim = initEarthScene3D(container);
+            this.earthSim.update(this.impact);
+            lucide.createIcons();
+          });
+        },
+
+        updateStorm() {
+          this.impact = earthImpact(this.inputs);
+          if (this.earthSim) {
+            this.earthSim.update(this.impact);
+          }
+
+          // Check Aurora Hunter Badge
+          if (Math.abs(this.inputs.cityLat) < 45 && (this.impact.aurora === 'overhead' || this.impact.aurora === 'horizon')) {
+            Alpine.store('app').unlockBadge('aurora-hunter');
+          }
+        },
+
+        loadPreset(pre) {
+          this.selectedPresetId = pre.id;
+          this.inputs.level = pre.level;
+          this.inputs.hit = pre.hit;
+          this.inputs.speed = pre.speed;
+          this.inputs.bz = pre.bz;
+          this.inputs.density = pre.density;
+          this.updateStorm();
+          Alpine.store('app').addXp(10, `Loaded scenario: ${pre.name}`);
+        },
+
+        selectCity(name) {
+          const c = this.cities.find(x => x.name === name);
+          if (!c) return;
+          this.inputs.cityName = c.name;
+          this.inputs.cityLat = c.lat;
+          this.updateStorm();
+        }
+      };
+    };
+
+    function registerEarthImpactComponents() {
+      if (typeof Alpine !== 'undefined' && typeof Alpine.data === 'function') {
+        Alpine.data('earthImpactPage', window.earthImpactPage);
+      }
+    }
+    document.addEventListener('alpine:init', registerEarthImpactComponents);
+    if (typeof Alpine !== 'undefined' && typeof Alpine.data === 'function') {
+      registerEarthImpactComponents();
+    }
+  </script>
+
+  <!-- Alpine.js CDN (Loaded at bottom with defer to guarantee everything is registered first) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</body>
+</html>

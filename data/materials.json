@@ -1,0 +1,12 @@
+[
+  { "id": "nomex", "name": "Nomex HT90-40", "type": "Fabric", "base": 0.34, "loi": 28, "source": "PSI-26 BASS" },
+  { "id": "kapton", "name": "Kapton film", "type": "Polyimide", "base": 0.22, "loi": 37, "source": "PSI-26 BASS" },
+  { "id": "pmma", "name": "PMMA (acrylic)", "type": "Thermoplastic", "base": 0.78, "loi": 17, "source": "PSI-26 BASS" },
+  { "id": "cotton", "name": "Cotton / fiberglass", "type": "Fabric blend", "base": 0.71, "loi": 19, "source": "PSI-26 BASS" },
+  { "id": "ptfe", "name": "PTFE (Teflon)", "type": "Fluoropolymer", "base": 0.08, "loi": 95, "source": "PSI-62" },
+  { "id": "silicone", "name": "Silicone rubber", "type": "Elastomer", "base": 0.41, "loi": 26, "source": "PSI-62" },
+  { "id": "nylon", "name": "Nylon 6,6 (Velcro)", "type": "Thermoplastic", "base": 0.63, "loi": 22, "source": "PSI-26 BASS" },
+  { "id": "delrin", "name": "Delrin (POM)", "type": "Thermoplastic", "base": 0.82, "loi": 15, "source": "PSI-26 BASS" },
+  { "id": "ultem", "name": "Ultem 9085", "type": "Polyetherimide", "base": 0.27, "loi": 47, "source": "PSI-62" },
+  { "id": "pe", "name": "Polyethylene bag", "type": "Polyolefin", "base": 0.86, "loi": 17, "source": "PSI-26 BASS" }
+]

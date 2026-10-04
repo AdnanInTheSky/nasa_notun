@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en" data-kids>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlameAtlas — Research Gap Map | NASA Space Apps 2026</title>
+  <link rel="icon" type="image/svg+xml" href="../hii/src/assets/logo.svg">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- GSAP CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Application Core Scripts -->
+  <script src="js/models.js"></script>
+  <script src="js/shared.js"></script>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body class="text-slate-100 flex min-h-screen" x-data="gapMapPage()">
+  <div class="starfield" aria-hidden="true"></div>
+
+  <!-- Shared Sidebar Navigation -->
+  <aside class="w-64 border-r border-slate-800 bg-slate-950/80 backdrop-blur-md p-5 flex flex-col justify-between fixed top-0 bottom-0 left-0 z-30 hidden md:flex">
+    <div>
+      <a href="index.html" class="flex items-center gap-3 mb-8 group">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-400 p-0.5 shadow-lg shadow-orange-500/20 group-hover:scale-105 transition-transform flex items-center justify-center">
+          <i data-lucide="flame" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <span class="font-bold tracking-tight text-white block text-lg leading-tight">FlameAtlas</span>
+          <span class="text-xs text-slate-400 font-mono" x-text="$store.app.kids ? 'Fire Adventure' : 'Moon & Mars Safety'"></span>
+        </div>
+      </a>
+
+      <nav class="space-y-1 text-sm font-medium">
+        <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="gauge" class="w-4 h-4 text-orange-400"></i>
+          <span x-text="$store.app.kids ? 'Mission Map' : 'Mission Overview'"></span>
+        </a>
+        <a href="flame-lab.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="flask-conical" class="w-4 h-4 text-cyan-400"></i>
+          <span x-text="$store.app.kids ? 'Fire Lab 3D' : 'Flame Lab 3D'"></span>
+        </a>
+        <a href="solar-watch.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
+          <span x-text="$store.app.kids ? 'Sun Blasts' : 'Solar Flare Watch'"></span>
+        </a>
+        <a href="earth-impact.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="globe-2" class="w-4 h-4 text-emerald-400"></i>
+          <span x-text="$store.app.kids ? 'Storm vs Earth' : 'Solar Storm vs Earth'"></span>
+        </a>
+        <a href="material-ranker.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
+          <span x-text="$store.app.kids ? 'Burn Race' : 'Material Ranker'"></span>
+        </a>
+        <a href="gravity-gap.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="orbit" class="w-4 h-4 text-sky-400"></i>
+          <span x-text="$store.app.kids ? 'Gravity Guess' : 'Gravity Gap-Filler'"></span>
+        </a>
+        <a href="flame-radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="radar" class="w-4 h-4 text-indigo-400"></i>
+          <span x-text="$store.app.kids ? 'Ghost Flames' : 'Invisible Flame Radar'"></span>
+        </a>
+        <a href="fire-gpt.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="message-square-text" class="w-4 h-4 text-pink-400"></i>
+          <span x-text="$store.app.kids ? 'Quiz Time' : 'FireGPT AI'"></span>
+        </a>
+        <a href="gap-map.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 font-semibold shadow-inner">
+          <i data-lucide="map" class="w-4 h-4"></i>
+          <span x-text="$store.app.kids ? 'Plan Tests' : 'Research Gap Map'"></span>
+        </a>
+        <a href="sources.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
+          <span x-text="$store.app.kids ? 'Space Cards' : 'Data Sources'"></span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="glass-pill p-3 border border-slate-800/80 text-xs text-slate-400 flex items-center gap-3">
+      <div class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></div>
+      <div>
+        <p class="font-medium text-slate-200">Active Learning</p>
+        <p class="text-[11px] text-slate-400">Information Gain Ranking</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Shell -->
+  <div class="flex-1 md:ml-64 flex flex-col min-w-0">
+    <header class="sticky top-0 z-20 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 px-4 md:px-8 py-3 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none">
+        <span class="text-xs uppercase tracking-wider text-slate-400 font-mono hidden sm:inline">Phase:</span>
+        <template x-for="p in $store.app.phases" :key="p.id">
+          <button @click="$store.app.setPhase(p.id)"
+                  :class="$store.app.currentPhaseId === p.id 
+                    ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-slate-950 font-bold shadow-md shadow-yellow-500/20' 
+                    : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800'"
+                  class="px-3 py-1.5 rounded-lg text-xs tracking-wide transition-all shrink-0 flex items-center gap-1.5"
+                  x-text="p.name">
+          </button>
+        </template>
+      </div>
+
+      <div class="flex items-center gap-3 shrink-0">
+        <button @click="$store.app.toggleKids()" class="glass-pill px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 text-slate-300 hover:text-white hover:border-cyan-500/40 transition-colors">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span x-text="$store.app.kids ? 'Kids Mode' : 'Pro Mode'"></span>
+        </button>
+
+        <button @click="$store.app.toggleTrophy()" class="glass-pill px-3 py-1.5 text-xs font-semibold flex items-center gap-2 text-amber-300 hover:border-amber-500/40 transition-colors">
+          <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span class="mono font-bold" x-text="`Lv.${$store.app.currentLevel.level}`"></span>
+          <span class="bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] mono" x-text="`${$store.app.xp} XP`"></span>
+        </button>
+
+        <button @click="$store.app.toggleSound()" class="glass-pill p-2 text-slate-400 hover:text-white">
+          <i :data-lucide="$store.app.sound ? 'volume-2' : 'volume-x'" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </header>
+
+    <main class="flex-1 p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+      <!-- Section Header -->
+      <section class="glass-panel p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <span class="text-xs font-mono uppercase tracking-widest text-yellow-400 font-bold" x-text="$store.app.kids ? 'Mission Test Planner' : 'Test Coverage Analysis · NASA PSI Repository'"></span>
+          <h1 class="text-2xl md:text-3xl font-extrabold text-white mt-1" x-text="$store.app.kids ? 'Be a NASA Scientist: Plan the next tests!' : 'Research Gap Map'"></h1>
+          <p class="text-slate-400 text-xs md:text-sm mt-1 max-w-2xl">
+            Each cell counts public microgravity fire experiments at that oxygen level and gravity. Striped empty zones represent untested regimes where NASA needs data!
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2 bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+          <button @click="mode = 'explore'" :class="mode === 'explore' ? 'bg-yellow-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'" class="px-3 py-1.5 rounded-lg text-xs transition-colors">
+            Coverage Heatmap
+          </button>
+          <button @click="mode = 'game'" :class="mode === 'game' ? 'bg-yellow-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'" class="px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-1.5">
+            <i data-lucide="flask-conical" class="w-3.5 h-3.5"></i>
+            <span>Gap Planner Game</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- VIEW 1: Coverage Heatmap & Next Priorities -->
+      <div x-show="mode === 'explore'" class="space-y-6">
+        <!-- Top Stats Banner -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="glass-panel p-4 text-center">
+            <span class="text-2xl font-extrabold text-white mono" x-text="totalTests"></span>
+            <p class="text-xs text-slate-400 mt-0.5">Total Tests Indexed</p>
+          </div>
+          <div class="glass-panel p-4 text-center">
+            <span class="text-2xl font-extrabold text-rose-400 mono" x-text="untestedCount"></span>
+            <p class="text-xs text-slate-400 mt-0.5" x-text="`of ${flatGrid.length} Zones Untested`"></p>
+          </div>
+          <div class="glass-panel p-4 text-center">
+            <span class="text-2xl font-extrabold text-emerald-400 mono" x-text="`${coveragePct}%`"></span>
+            <p class="text-xs text-slate-400 mt-0.5">Experimental Coverage</p>
+          </div>
+        </div>
+
+        <!-- Heatmap & Recommendation Columns -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- 2D Heatmap Grid -->
+          <div class="lg:col-span-2 glass-panel p-5 overflow-x-auto">
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-xs uppercase font-mono tracking-wider text-slate-400">Oxygen Concentration (%) vs Gravity Level</span>
+              <div class="flex items-center gap-3 text-xs">
+                <span class="flex items-center gap-1.5 text-rose-400"><span class="w-2.5 h-2.5 rounded bg-rose-500/20 border border-rose-500/50 inline-block"></span> Untested</span>
+                <span class="flex items-center gap-1.5 text-yellow-400"><span class="w-2.5 h-2.5 rounded bg-yellow-500/40 inline-block"></span> Thin</span>
+                <span class="flex items-center gap-1.5 text-emerald-400"><span class="w-2.5 h-2.5 rounded bg-emerald-500 inline-block"></span> Dense</span>
+              </div>
+            </div>
+
+            <!-- Heatmap Rows -->
+            <div class="space-y-1.5 min-w-[500px]">
+              <template x-for="(row, rIdx) in grid" :key="rIdx">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-20 text-right text-xs mono text-slate-400 pr-2 shrink-0" x-text="gLabels[gapG[rIdx]]"></span>
+                  <div class="grid grid-cols-8 gap-1.5 flex-1">
+                    <template x-for="(cell, cIdx) in row" :key="cIdx">
+                      <div @mouseenter="hoveredCell = cell"
+                           :class="[
+                             cell.n === 0 ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 font-bold' :
+                             (cell.n < 5 ? 'bg-yellow-500/20 border-yellow-500/40 text-yellow-300' : 
+                             (cell.n < 15 ? 'bg-emerald-500/40 border-emerald-500/60 text-emerald-200' : 'bg-emerald-500 border-emerald-400 text-slate-950 font-bold')),
+                             isCurrentPhaseCell(cell) ? 'ring-2 ring-orange-400 scale-105 z-10' : ''
+                           ]"
+                           class="h-9 rounded-lg border flex items-center justify-center text-xs mono cursor-pointer transition-all hover:scale-110">
+                        <span x-text="cell.n === 0 ? '—' : cell.n"></span>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </template>
+              <!-- X-Axis Labels -->
+              <div class="flex items-center gap-1.5 pt-2">
+                <span class="w-20 shrink-0"></span>
+                <div class="grid grid-cols-8 gap-1.5 flex-1 text-center text-xs mono text-slate-400">
+                  <template x-for="o2 in gapO2" :key="o2">
+                    <span x-text="`${o2}%`"></span>
+                  </template>
+                </div>
+              </div>
+            </div>
+
+            <p class="text-xs text-slate-400 mt-4 text-center font-mono">
+              <span x-show="hoveredCell" x-text="`${hoveredCell?.o2}% O₂ at ${hoveredCell?.g}g: ${hoveredCell?.n === 0 ? 'ZERO physical experiments tested' : `${hoveredCell?.n} NASA experiments`}!`"></span>
+              <span x-show="!hoveredCell" x-text="`Orange outline = Current Mission: ${$store.app.currentPhase.name} (${$store.app.currentPhase.o2}% O₂, ${$store.app.currentPhase.gravity}g)`"></span>
+            </p>
+          </div>
+
+          <!-- Ranked Test Next Recommendations -->
+          <div class="glass-panel p-5 space-y-4">
+            <div>
+              <span class="text-xs uppercase font-mono tracking-wider text-yellow-400">Active Learning</span>
+              <h3 class="text-base font-bold text-white mt-0.5">Ranked What NASA Should Test Next</h3>
+              <p class="text-xs text-slate-400 mt-0.5">Ranked by information gain to reduce model uncertainty:</p>
+            </div>
+
+            <div class="space-y-3">
+              <template x-for="(item, idx) in testNext" :key="idx">
+                <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1 hover:border-yellow-500/50 transition-colors">
+                  <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-white mono" x-text="item.cond"></span>
+                    <span class="text-[11px] font-mono text-yellow-400 font-bold" x-text="`Gain +${Math.round(item.gain * 100)}%`"></span>
+                  </div>
+                  <p class="text-xs text-slate-400 leading-snug" x-text="item.why"></p>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 2: Gap Planner Interactive Game -->
+      <div x-show="mode === 'game'" class="glass-panel p-6 max-w-3xl mx-auto space-y-6" x-data="gapPlannerGame()">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="text-xs uppercase font-mono tracking-wider text-yellow-400 font-bold">Research Budget Simulator</span>
+            <h2 class="text-xl font-bold text-white mt-0.5">NASA Experiment Planner</h2>
+            <p class="text-xs text-slate-400 mt-0.5">You have a budget for 3 physical flight tests. Pick the 3 gaps that will teach NASA the most!</p>
+          </div>
+          <div class="text-right">
+            <span class="text-xs font-mono text-yellow-400 block font-bold" x-text="`Budget Left: ${3 - fundedCells.length}/3`"></span>
+            <span class="text-xs font-mono text-emerald-400" x-text="`Total Gain: ${Math.round(totalGain * 100)} pts`"></span>
+          </div>
+        </div>
+
+        <!-- Interactive Budget Allocator Grid -->
+        <div class="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">
+          <p class="text-xs text-slate-300">Tap up to 3 untested or thin zones to allocate funding:</p>
+          
+          <div class="space-y-1.5 min-w-[480px] overflow-x-auto">
+            <template x-for="(row, rIdx) in grid" :key="rIdx">
+              <div class="flex items-center gap-1.5">
+                <span class="w-16 text-right text-[11px] mono text-slate-400 pr-1 shrink-0" x-text="`${gapG[rIdx]}g`"></span>
+                <div class="grid grid-cols-8 gap-1.5 flex-1">
+                  <template x-for="(cell, cIdx) in row" :key="cIdx">
+                    <button @click="toggleFund(cell)"
+                            :disabled="fundedCells.length >= 3 && !isFunded(cell)"
+                            :class="[
+                              isFunded(cell) ? 'bg-yellow-400 text-slate-950 font-bold scale-105 border-white shadow-lg shadow-yellow-400/30' :
+                              (cell.n === 0 ? 'bg-rose-500/10 border-rose-500/30 text-rose-300 hover:bg-rose-500/20' : 'bg-slate-900 border-slate-800 text-slate-600')
+                            ]"
+                            class="h-9 rounded-lg border flex items-center justify-center text-[11px] mono transition-all">
+                      <span x-text="isFunded(cell) ? 'FUND' : (cell.n === 0 ? '0' : cell.n)"></span>
+                    </button>
+                  </template>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Evaluation Results -->
+        <div x-show="fundedCells.length === 3" class="p-5 rounded-2xl bg-slate-900 border border-yellow-500/40 text-center space-y-3" x-transition>
+          <div class="text-3xl">🚀</div>
+          <h3 class="text-lg font-bold text-white">Research Portfolio Submitted!</h3>
+          <p class="text-xs text-slate-300" x-text="`You achieved a scientific knowledge gain of ${Math.round(totalGain * 100)} points!`"></p>
+          <button @click="resetPlanner()" class="px-5 py-2 rounded-xl text-xs font-bold bg-yellow-500 hover:bg-yellow-400 text-slate-950 transition-colors">
+            Reset Portfolio
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Sparky Robot Mascot Floating Assistant -->
+  <div class="sparky-widget" x-show="$store.app.sparkyVisible">
+    <div class="sparky-bubble" x-show="$store.app.sparkySpeechOpen" x-transition>
+      <div class="flex items-start justify-between gap-2">
+        <strong class="text-amber-400 font-bold text-xs uppercase tracking-wider">Sparky's Tip</strong>
+        <button @click="$store.app.toggleSparky()" class="text-slate-400 hover:text-white text-xs">✕</button>
+      </div>
+      <p class="text-slate-200 text-xs mt-1">
+        The Moon (0.16g) and Mars (0.38g) rows are super important because astronauts will live there! Target those first in your plan.
+      </p>
+    </div>
+    <div class="sparky-avatar" @click="$store.app.toggleSparky()" title="Click Sparky for tips!">
+      <div id="sparky-avatar-slot"></div>
+    </div>
+  </div>
+
+  <!-- Trophy Modal -->
+  <div x-show="$store.app.trophyOpen"
+       x-transition.opacity
+       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+       style="display: none;">
+    <div class="glass-panel w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden border border-slate-700" @click.outside="$store.app.trophyOpen = false">
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="trophy" class="w-5 h-5 text-amber-400"></i>
+          <h3 class="text-lg font-bold text-white">Trophy Room & Badges</h3>
+        </div>
+        <button @click="$store.app.trophyOpen = false" class="text-slate-400 hover:text-white p-1">✕</button>
+      </div>
+      <div class="p-6 overflow-y-auto space-y-6">
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+          <div class="flex justify-between items-center mb-2">
+            <div>
+              <span class="text-xs text-slate-400 uppercase font-mono">Current Rank</span>
+              <p class="text-lg font-extrabold text-amber-400" x-text="`Level ${$store.app.currentLevel.level} — ${$store.app.currentLevel.title}`"></p>
+            </div>
+            <span class="text-sm font-mono text-white" x-text="`${$store.app.xp} XP`"></span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+            <div class="bg-gradient-to-r from-amber-500 to-orange-500 h-2.5 rounded-full transition-all duration-500" :style="`width: ${$store.app.currentLevel.progress * 100}%`"></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <template x-for="b in $store.app.allBadges" :key="b.id">
+            <div :class="$store.app.badges.includes(b.id) ? 'border-amber-500/60 bg-amber-500/10' : 'border-slate-800 bg-slate-900/40 opacity-50'"
+                 class="p-3 rounded-xl border flex flex-col items-center text-center">
+              <i :data-lucide="b.icon || 'award'" class="w-6 h-6 text-amber-400 mb-1.5"></i>
+              <span class="text-xs font-bold text-white" x-text="b.name"></span>
+              <span class="text-[10px] text-slate-400 mt-1" x-text="b.desc"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container">
+    <template x-for="t in $store.app.toasts" :key="t.id">
+      <div class="toast-msg">
+        <i :data-lucide="t.kind === 'badge' ? 'award' : 'zap'" class="w-6 h-6 text-amber-400 shrink-0"></i>
+        <div>
+          <p class="font-bold text-xs text-white" x-text="t.title"></p>
+          <p class="text-[11px] text-slate-300" x-text="t.text"></p>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <!-- Page Specific Logic (executes before deferred Alpine.js) -->
+  <script>
+    if (document.getElementById('sparky-avatar-slot') && typeof renderSparkySvg === 'function') {
+      document.getElementById('sparky-avatar-slot').innerHTML = renderSparkySvg(70);
+    }
+
+    window.gapMapPage = function() {
+      return {
+        mode: 'explore',
+        gapO2: [15, 18, 21, 24, 27, 30, 34, 38],
+        gapG: [1, 0.75, 0.5, 0.38, 0.16, 0.05, 0],
+        gLabels: {
+          '1': 'Earth 1g', '0.75': '0.75g', '0.5': '0.5g',
+          '0.38': 'Mars .38g', '0.16': 'Moon .16g', '0.05': 'Flight .05g', '0': 'Orbit 0g'
+        },
+        testNext: [],
+        grid: [],
+        hoveredCell: null,
+
+        get flatGrid() {
+          return this.grid.flat();
+        },
+
+        get totalTests() {
+          return this.flatGrid.reduce((sum, c) => sum + c.n, 0);
+        },
+
+        get untestedCount() {
+          return this.flatGrid.filter(c => c.n === 0).length;
+        },
+
+        get coveragePct() {
+          if (!this.flatGrid.length) return 0;
+          return Math.round(((this.flatGrid.length - this.untestedCount) / this.flatGrid.length) * 100);
+        },
+
+        async init() {
+          try {
+            const res = await fetch('./data/gaps.json');
+            if (res.ok) {
+              const data = await res.json();
+              this.gapO2 = data.gapO2 || this.gapO2;
+              this.gapG = data.gapG || this.gapG;
+              this.gLabels = data.gLabels || this.gLabels;
+              this.testNext = data.testNext || [];
+            }
+          } catch(e) {}
+
+          this.grid = gapGrid(this.gapG, this.gapO2);
+          this.$nextTick(() => lucide.createIcons());
+        },
+
+        isCurrentPhaseCell(cell) {
+          const p = Alpine.store('app').currentPhase;
+          const nearestO2 = this.gapO2.reduce((b, x) => Math.abs(x - p.o2) < Math.abs(b - p.o2) ? x : b);
+          return cell.g === p.gravity && cell.o2 === nearestO2;
+        }
+      };
+    };
+
+    window.gapPlannerGame = function() {
+      return {
+        fundedCells: [],
+
+        get totalGain() {
+          return this.fundedCells.reduce((sum, c) => {
+            let gain = 0.5;
+            if (c.g === 0.16 || c.g === 0.38) gain += 0.35;
+            if (c.o2 >= 30) gain += 0.2;
+            if (c.n === 0) gain += 0.15;
+            return sum + gain;
+          }, 0);
+        },
+
+        isFunded(cell) {
+          return this.fundedCells.some(c => c.g === cell.g && c.o2 === cell.o2);
+        },
+
+        toggleFund(cell) {
+          if (this.isFunded(cell)) {
+            this.fundedCells = this.fundedCells.filter(c => !(c.g === cell.g && c.o2 === cell.o2));
+          } else if (this.fundedCells.length < 3) {
+            this.fundedCells.push(cell);
+            if (this.fundedCells.length === 3) {
+              Alpine.store('app').addXp(35, 'Completed NASA Test Plan!');
+              Alpine.store('app').unlockBadge('planner');
+            }
+          }
+        },
+
+        resetPlanner() {
+          this.fundedCells = [];
+        }
+      };
+    };
+
+    function registerGapMapComponents() {
+      if (typeof Alpine !== 'undefined' && typeof Alpine.data === 'function') {
+        Alpine.data('gapMapPage', window.gapMapPage);
+        Alpine.data('gapPlannerGame', window.gapPlannerGame);
+      }
+    }
+    document.addEventListener('alpine:init', registerGapMapComponents);
+    if (typeof Alpine !== 'undefined' && typeof Alpine.data === 'function') {
+      registerGapMapComponents();
+    }
+  </script>
+
+  <!-- Alpine.js CDN (Loaded at bottom with defer to guarantee everything is registered first) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</body>
+</html>

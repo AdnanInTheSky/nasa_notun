@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en" data-kids>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlameAtlas — Mission Overview | NASA Space Apps 2026</title>
+  <link rel="icon" type="image/svg+xml" href="../hii/src/assets/logo.svg">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- GSAP CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Application Core Scripts -->
+  <script src="js/models.js"></script>
+  <script src="js/shared.js"></script>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body class="text-slate-100 flex min-h-screen" x-data="overviewPage()"
+      @keydown.window.arrow-right="if (tutorialOpen) nextSlide()"
+      @keydown.window.arrow-left="if (tutorialOpen) prevSlide()"
+      @keydown.window.escape="if (tutorialOpen) finishTutorial()">
+  <div class="starfield" aria-hidden="true"></div>
+
+  <!-- Shared Sidebar Navigation -->
+  <aside class="w-64 border-r border-slate-800 bg-slate-950/80 backdrop-blur-md p-5 flex flex-col justify-between fixed top-0 bottom-0 left-0 z-30 hidden md:flex">
+    <div>
+      <!-- Brand Logo -->
+      <a href="index.html" class="flex items-center gap-3 mb-8 group">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-400 p-0.5 shadow-lg shadow-orange-500/20 group-hover:scale-105 transition-transform flex items-center justify-center">
+          <i data-lucide="flame" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <span class="font-bold tracking-tight text-white block text-lg leading-tight">FlameAtlas</span>
+          <span class="text-xs text-slate-400 font-mono" x-text="$store.app.kids ? 'Fire Adventure' : 'Moon & Mars Safety'"></span>
+        </div>
+      </a>
+
+      <!-- Navigation Links -->
+      <nav class="space-y-1 text-sm font-medium">
+        <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-orange-500/10 text-orange-400 border border-orange-500/20 font-semibold shadow-inner">
+          <i data-lucide="gauge" class="w-4 h-4"></i>
+          <span x-text="$store.app.kids ? 'Mission Map' : 'Mission Overview'"></span>
+        </a>
+        <a href="flame-lab.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="flask-conical" class="w-4 h-4 text-cyan-400"></i>
+          <span x-text="$store.app.kids ? 'Fire Lab 3D' : 'Flame Lab 3D'"></span>
+        </a>
+        <a href="space-craft.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="rocket" class="w-4 h-4 text-rose-400"></i>
+          <span x-text="$store.app.kids ? 'Spacecraft Fire Sim' : 'Spacecraft Simulation'"></span>
+        </a>
+        <a href="solar-watch.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
+          <span x-text="$store.app.kids ? 'Sun Blasts' : 'Solar Flare Watch'"></span>
+        </a>
+        <a href="earth-impact.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="globe-2" class="w-4 h-4 text-emerald-400"></i>
+          <span x-text="$store.app.kids ? 'Storm vs Earth' : 'Solar Storm vs Earth'"></span>
+        </a>
+        <a href="material-ranker.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
+          <span x-text="$store.app.kids ? 'Burn Race' : 'Material Ranker'"></span>
+        </a>
+        <a href="gravity-gap.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="orbit" class="w-4 h-4 text-sky-400"></i>
+          <span x-text="$store.app.kids ? 'Gravity Guess' : 'Gravity Gap-Filler'"></span>
+        </a>
+        <a href="flame-radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="radar" class="w-4 h-4 text-indigo-400"></i>
+          <span x-text="$store.app.kids ? 'Ghost Flames' : 'Invisible Flame Radar'"></span>
+        </a>
+        <a href="fire-gpt.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="message-square-text" class="w-4 h-4 text-pink-400"></i>
+          <span x-text="$store.app.kids ? 'Quiz Time' : 'FireGPT AI'"></span>
+        </a>
+        <a href="gap-map.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="map" class="w-4 h-4 text-yellow-400"></i>
+          <span x-text="$store.app.kids ? 'Plan Tests' : 'Research Gap Map'"></span>
+        </a>
+        <a href="sources.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
+          <span x-text="$store.app.kids ? 'Space Cards' : 'Data Sources'"></span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- Bottom Status Card -->
+    <div class="glass-pill p-3 border border-slate-800/80 text-xs text-slate-400 flex items-center gap-3">
+      <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></div>
+      <div>
+        <p class="font-medium text-slate-200" x-text="$store.app.kids ? 'Space Academy' : 'NASA Space Apps 2026'"></p>
+        <p class="text-[11px] text-slate-400" x-text="$store.app.kids ? 'Earn XP & collect cards' : 'Unified microgravity models'"></p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Shell -->
+  <div class="flex-1 md:ml-64 flex flex-col min-w-0">
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-20 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 px-4 md:px-8 py-3 flex items-center justify-between gap-4">
+      <!-- Mission Phase Selector -->
+      <div class="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none">
+        <span class="text-xs uppercase tracking-wider text-slate-400 font-mono hidden sm:inline">Phase:</span>
+        <template x-for="p in $store.app.phases" :key="p.id">
+          <button @click="$store.app.setPhase(p.id)"
+                  :class="$store.app.currentPhaseId === p.id 
+                    ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 font-bold shadow-md shadow-orange-500/20' 
+                    : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800'"
+                  class="px-3 py-1.5 rounded-lg text-xs tracking-wide transition-all shrink-0 flex items-center gap-1.5"
+                  x-text="p.name">
+          </button>
+        </template>
+      </div>
+
+      <!-- Right Header Actions -->
+      <div class="flex items-center gap-3 shrink-0">
+        <!-- Kids / Pro Mode Toggle -->
+        <button @click="$store.app.toggleKids()" class="glass-pill px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 text-slate-300 hover:text-white hover:border-cyan-500/40 transition-colors">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span x-text="$store.app.kids ? 'Kids Mode' : 'Pro Mode'"></span>
+        </button>
+
+        <!-- Trophy Room / XP Level Badge -->
+        <button @click="$store.app.toggleTrophy()" class="glass-pill px-3 py-1.5 text-xs font-semibold flex items-center gap-2 text-amber-300 hover:border-amber-500/40 transition-colors">
+          <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span class="mono font-bold" x-text="`Lv.${$store.app.currentLevel.level} ${$store.app.currentLevel.title}`"></span>
+          <span class="bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] mono" x-text="`${$store.app.xp} XP`"></span>
+        </button>
+
+        <!-- Sound Toggle -->
+        <button @click="$store.app.toggleSound()" class="glass-pill p-2 text-slate-400 hover:text-white" :title="$store.app.sound ? 'Mute SFX' : 'Enable SFX'">
+          <i :data-lucide="$store.app.sound ? 'volume-2' : 'volume-x'" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Page Body -->
+    <main class="flex-1 p-4 md:p-8 space-y-8 max-w-7xl mx-auto w-full">
+      <!-- Hero Section -->
+      <section class="glass-panel p-6 md:p-8 relative overflow-hidden">
+        <div class="absolute -right-16 -top-16 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <p class="text-xs uppercase tracking-widest text-orange-400 font-mono font-semibold mb-2" x-text="$store.app.kids ? 'Space Fire Adventure' : 'NASA Space Apps 2026 · Flame in Freefall'"></p>
+        <h1 class="text-2xl md:text-4xl font-extrabold tracking-tight text-white mb-3">
+          <span x-show="$store.app.kids">Can fire burn in space? Let’s find out on <span class="text-orange-400" x-text="$store.app.currentPhase.name"></span>!</span>
+          <span x-show="!$store.app.kids">Fire risk for <span class="text-orange-400" x-text="$store.app.currentPhase.name"></span>, ranked and explained.</span>
+        </h1>
+        <p class="text-slate-300 text-sm md:text-base max-w-3xl leading-relaxed" x-text="$store.app.currentPhase.note"></p>
+      </section>
+
+      <!-- Risk Gauge & Key Metrics Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Live Cabin Risk Card -->
+        <div class="glass-panel p-6 flex flex-col justify-between items-center text-center">
+          <div class="w-full text-left mb-2">
+            <span class="text-xs font-mono uppercase text-slate-400" x-text="$store.app.kids ? 'Fire Danger Meter' : 'Live Cabin Fire Risk'"></span>
+          </div>
+
+          <!-- Circular Risk Meter -->
+          <div class="relative w-48 h-48 flex items-center justify-center my-3">
+            <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="40" fill="transparent" stroke="#1e293b" stroke-width="10" stroke-linecap="round"></circle>
+              <circle cx="50" cy="50" r="40" fill="transparent"
+                      :stroke="riskScore > 65 ? '#f43f5e' : (riskScore > 35 ? '#facc15' : '#34d399')"
+                      stroke-width="10" stroke-linecap="round"
+                      :stroke-dasharray="251.2"
+                      :stroke-dashoffset="251.2 - (251.2 * riskScore) / 100"
+                      class="transition-all duration-1000 ease-out"></circle>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span class="text-4xl font-extrabold mono text-white" x-text="riskScore"></span>
+              <span class="text-xs text-slate-400 uppercase tracking-widest font-bold mt-1"
+                    :class="riskScore > 65 ? 'text-rose-400' : (riskScore > 35 ? 'text-amber-400' : 'text-emerald-400')"
+                    x-text="riskScore > 65 ? 'High Danger' : (riskScore > 35 ? 'Moderate' : 'Low Risk')"></span>
+            </div>
+          </div>
+
+          <!-- Top-Risk Materials List -->
+          <div class="w-full text-left mt-4 pt-4 border-t border-slate-800">
+            <p class="text-xs font-mono uppercase text-slate-400 mb-2" x-text="$store.app.kids ? 'Burns easiest here' : 'Top Risk Materials'"></p>
+            <div class="space-y-2">
+              <template x-for="m in topMaterials" :key="m.id">
+                <div class="flex items-center justify-between text-xs p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                  <span class="font-medium text-slate-200" x-text="m.name"></span>
+                  <span class="mono px-2 py-0.5 rounded text-[11px] font-bold"
+                        :class="m.risk > 0.6 ? 'bg-rose-500/20 text-rose-300' : 'bg-amber-500/20 text-amber-300'"
+                        x-text="`${Math.round(m.risk * 100)}%`"></span>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 Environment Metric Cards -->
+        <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Gravity Card -->
+          <div class="glass-panel p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between text-cyan-400 mb-2">
+              <span class="text-xs font-mono uppercase text-slate-400" x-text="$store.app.kids ? 'How heavy you feel' : 'Gravity'"></span>
+              <i data-lucide="arrow-down-to-line" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <p class="text-3xl font-extrabold text-white mono" x-text="$store.app.currentPhase.gravity === 0 ? 'Weightless' : `${$store.app.currentPhase.gravity}g`"></p>
+              <p class="text-xs text-slate-400 mt-1" x-text="$store.app.currentPhase.gravity === 0 ? 'Everything floats! No convection.' : ($store.app.currentPhase.gravity < 0.2 ? 'Lunar bouncy gravity' : 'Mars partial gravity')"></p>
+            </div>
+          </div>
+
+          <!-- Oxygen Card -->
+          <div class="glass-panel p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between text-orange-400 mb-2">
+              <span class="text-xs font-mono uppercase text-slate-400" x-text="$store.app.kids ? 'Oxygen in the air' : 'Cabin Oxygen'"></span>
+              <i data-lucide="wind" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <p class="text-3xl font-extrabold text-orange-400 mono" x-text="`${$store.app.currentPhase.o2}%`"></p>
+              <p class="text-xs text-slate-400 mt-1" x-text="$store.app.currentPhase.o2 > 21 ? 'Enriched O₂: materials ignite much faster!' : 'Normal Earth baseline concentration'"></p>
+            </div>
+          </div>
+
+          <!-- Pressure Card -->
+          <div class="glass-panel p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between text-purple-400 mb-2">
+              <span class="text-xs font-mono uppercase text-slate-400" x-text="$store.app.kids ? 'Air Squeeze' : 'Atmospheric Pressure'"></span>
+              <i data-lucide="gauge" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <p class="text-3xl font-extrabold text-purple-300 mono" x-text="`${$store.app.currentPhase.pressure} psi`"></p>
+              <p class="text-xs text-slate-400 mt-1" x-text="`${($store.app.currentPhase.pressure / 14.7).toFixed(2)} atm equivalent`"></p>
+            </div>
+          </div>
+
+          <!-- Comms Delay Card -->
+          <div class="glass-panel p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between text-pink-400 mb-2">
+              <span class="text-xs font-mono uppercase text-slate-400" x-text="$store.app.kids ? 'Message to Earth' : 'Earth Comm Delay'"></span>
+              <i data-lucide="radio-tower" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <p class="text-3xl font-extrabold text-pink-300 mono" x-text="$store.app.currentPhase.commDelay"></p>
+              <p class="text-xs text-slate-400 mt-1" x-text="$store.app.currentPhase.id === 'mars' ? 'Crew must handle fire emergency autonomously!' : 'Fast Mission Control assistance'"></p>
+            </div>
+          </div>
+
+          <!-- Comparison Bar Chart across phases (Pro mode) -->
+          <div class="sm:col-span-2 glass-panel p-5" x-show="!$store.app.kids">
+            <div class="flex justify-between items-center mb-3">
+              <span class="text-xs font-mono uppercase text-slate-400">Risk Across All Mission Phases</span>
+              <span class="text-xs text-slate-500 font-mono">0 - 100 Scale</span>
+            </div>
+            <div class="h-44 w-full">
+              <canvas id="phaseComparisonChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Featured Spacecraft Fire Simulator Banner -->
+      <section class="glass-panel p-6 border border-rose-500/30 bg-gradient-to-r from-rose-950/40 via-slate-900/60 to-slate-950/80">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-rose-500/25 shrink-0">
+              <i data-lucide="rocket" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <span class="text-xs uppercase font-mono tracking-widest text-rose-400 font-bold">New Interactive 3D Simulator</span>
+              <h2 class="text-lg md:text-xl font-bold text-white">Spacecraft Fire & Solar EMP Simulator</h2>
+              <p class="text-slate-400 text-xs md:text-sm mt-0.5">Experience compartment fire spread, material reactions, 0g vs 1g flame physics, electronics redundancy failovers, solar storm EMP blasts, and the AURA emergency AI chatbot.</p>
+            </div>
+          </div>
+          <a href="space-craft.html" class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs tracking-wider uppercase transition-all shadow-md shadow-rose-600/30 flex items-center gap-2 shrink-0">
+            <span>Launch Simulation</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </a>
+        </div>
+      </section>
+
+      <!-- Interactive Mission Journey Map Game -->
+      <section class="glass-panel p-6 md:p-8" x-data="missionMapGame()">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <span class="text-xs uppercase font-mono tracking-widest text-orange-400 font-bold" x-text="$store.app.kids ? 'Mission Rocket Game' : 'Mission Trajectory & Risk Reader'"></span>
+            <h2 class="text-xl md:text-2xl font-bold text-white mt-1">Journey Across the Solar System</h2>
+            <p class="text-slate-400 text-xs md:text-sm mt-0.5">Visit each stop with the rocket, or guess which destination poses the highest microgravity fire danger!</p>
+          </div>
+          <!-- Game actions -->
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-mono text-slate-300 bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800" x-text="`Stops Visited: ${visited.length}/5`"></span>
+          </div>
+        </div>
+
+        <!-- Trajectory Path -->
+        <div class="relative bg-slate-950/60 rounded-2xl p-6 border border-slate-800/80 my-4 overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-r from-blue-900/10 via-amber-900/10 to-red-900/10 pointer-events-none"></div>
+
+          <!-- Stops Grid -->
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 relative z-10">
+            <template x-for="p in $store.app.phases" :key="p.id">
+              <button @click="visitStop(p.id)"
+                      :class="currentStop === p.id 
+                        ? 'border-orange-500 bg-orange-500/20 shadow-lg shadow-orange-500/20 scale-105' 
+                        : (visited.includes(p.id) ? 'border-emerald-500/40 bg-slate-900/80' : 'border-slate-800 bg-slate-900/40 opacity-70 hover:opacity-100')"
+                      class="flex flex-col items-center text-center p-3 rounded-xl border transition-all duration-300 group">
+                <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <i :data-lucide="p.id === 'iss' ? 'satellite' : (p.id === 'gateway' ? 'orbit' : (p.id === 'moon' ? 'moon' : 'rocket'))"
+                     class="w-5 h-5 text-orange-400"></i>
+                </div>
+                <span class="font-bold text-xs text-white" x-text="p.name"></span>
+                <span class="text-[10px] text-slate-400 font-mono mt-0.5" x-text="`${p.o2}% O₂ · ${p.gravity}g`"></span>
+              </button>
+            </template>
+          </div>
+        </div>
+
+        <!-- Guess the Riskiest Phase Challenge -->
+        <div class="mt-6 p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div>
+            <p class="font-semibold text-sm text-white flex items-center gap-2">
+              <i data-lucide="target" class="w-4 h-4 text-orange-400"></i>
+              <span>Challenge: Which mission phase has the highest overall fire danger?</span>
+            </p>
+            <p class="text-xs text-slate-400 mt-1">Hint: Look for partial gravity that supplies buoyant airflow combined with extra enriched oxygen!</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <template x-for="p in $store.app.phases" :key="p.id">
+              <button @click="guessPhase(p.id)"
+                      :disabled="guessed"
+                      class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 disabled:opacity-50 transition-colors"
+                      x-text="p.name">
+              </button>
+            </template>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Sparky Robot Mascot Floating Assistant -->
+  <div class="sparky-widget" x-show="$store.app.sparkyVisible">
+    <div class="sparky-bubble" x-show="$store.app.sparkySpeechOpen" x-transition>
+      <div class="flex items-start justify-between gap-2">
+        <strong class="text-amber-400 font-bold text-xs uppercase tracking-wider">Sparky's Tip</strong>
+        <button @click="$store.app.toggleSparky()" class="text-slate-400 hover:text-white text-xs">✕</button>
+      </div>
+      <p class="text-slate-200 text-xs mt-1">
+        Tap the stops on the map to fly the rocket! Which place do you think is the most dangerous for fire?
+      </p>
+    </div>
+    <div class="sparky-avatar" @click="$store.app.toggleSparky()" title="Click Sparky for tips!">
+      <div id="sparky-avatar-slot"></div>
+    </div>
+  </div>
+
+  <!-- Badge Drawer / Trophy Modal -->
+  <div x-show="$store.app.trophyOpen"
+       x-transition.opacity
+       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+       style="display: none;">
+    <div class="glass-panel w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden border border-slate-700" @click.outside="$store.app.trophyOpen = false">
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="trophy" class="w-5 h-5 text-amber-400"></i>
+          <h3 class="text-lg font-bold text-white">Trophy Room & Badges</h3>
+        </div>
+        <button @click="$store.app.trophyOpen = false" class="text-slate-400 hover:text-white p-1">✕</button>
+      </div>
+      <div class="p-6 overflow-y-auto space-y-6">
+        <!-- Level Progress -->
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+          <div class="flex justify-between items-center mb-2">
+            <div>
+              <span class="text-xs text-slate-400 uppercase font-mono">Current Rank</span>
+              <p class="text-lg font-extrabold text-amber-400" x-text="`Level ${$store.app.currentLevel.level} — ${$store.app.currentLevel.title}`"></p>
+            </div>
+            <span class="text-sm font-mono text-white" x-text="`${$store.app.xp} XP`"></span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+            <div class="bg-gradient-to-r from-amber-500 to-orange-500 h-2.5 rounded-full transition-all duration-500" :style="`width: ${$store.app.currentLevel.progress * 100}%`"></div>
+          </div>
+        </div>
+
+        <!-- 16 Badges Grid -->
+        <div>
+          <h4 class="text-xs uppercase font-mono tracking-wider text-slate-400 mb-3">Badges (16 Total)</h4>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <template x-for="b in $store.app.allBadges" :key="b.id">
+              <div :class="$store.app.badges.includes(b.id) ? 'border-amber-500/60 bg-amber-500/10' : 'border-slate-800 bg-slate-900/40 opacity-50'"
+                   class="p-3 rounded-xl border flex flex-col items-center text-center">
+                <i :data-lucide="b.icon || 'award'" class="w-6 h-6 text-amber-400 mb-1.5"></i>
+                <span class="text-xs font-bold text-white" x-text="b.name"></span>
+                <span class="text-[10px] text-slate-400 mt-1" x-text="b.desc"></span>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications Container -->
+  <div id="toast-container">
+    <template x-for="t in $store.app.toasts" :key="t.id">
+      <div class="toast-msg">
+        <i :data-lucide="t.kind === 'badge' ? 'award' : (t.kind === 'level' ? 'sparkles' : 'zap')"
+           :class="t.kind === 'badge' ? 'text-amber-400' : 'text-cyan-400'" class="w-6 h-6 shrink-0"></i>
+        <div>
+          <p class="font-bold text-xs text-white" x-text="t.title"></p>
+          <p class="text-[11px] text-slate-300" x-text="t.text"></p>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <!-- Page Specific Logic (executes before deferred Alpine.js) -->
+  <script>
+    if (document.getElementById('sparky-avatar-slot') && typeof renderSparkySvg === 'function') {
+      document.getElementById('sparky-avatar-slot').innerHTML = renderSparkySvg(70);
+    }
+
+    window.overviewPage = function() {
+      return {
+        materials: [],
+        chart: null,
+        visitedPhases: [],
+
+        get currentConditions() {
+          const p = Alpine.store('app').currentPhase;
+          return { o2: p.o2, pressure: p.pressure, gravity: p.gravity };
+        },
+
+        get riskScore() {
+          if (!this.materials.length) return 68;
+          return cabinRisk(this.materials, this.currentConditions);
+        },
+
+        get topMaterials() {
+          if (!this.materials.length) return [];
+          return rankMaterials(this.materials, this.currentConditions).slice(0, 3);
+        },
+
+        async init() {
+          try {
+            const matRes = await fetch('./data/materials.json');
+            if (matRes.ok) this.materials = await matRes.json();
+          } catch(e) {}
+
+          this.$nextTick(() => {
+            this.initChart();
+            lucide.createIcons();
+          });
+
+          window.addEventListener('phase-changed', () => {
+            this.updateChartHighlight();
+          });
+        },
+
+        initChart() {
+          const ctx = document.getElementById('phaseComparisonChart');
+          if (!ctx) return;
+          const phases = Alpine.store('app').phases;
+          const labels = phases.map(p => p.name);
+          const data = phases.map(p => cabinRisk(this.materials, { o2: p.o2, pressure: p.pressure, gravity: p.gravity }));
+
+          this.chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels,
+              datasets: [{
+                data,
+                backgroundColor: phases.map(p => p.id === Alpine.store('app').currentPhaseId ? '#ff6a2b' : '#1e2944'),
+                borderRadius: 6
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.05)' } },
+                x: { grid: { display: false } }
+              }
+            }
+          });
+        },
+
+        updateChartHighlight() {
+          if (!this.chart) return;
+          const phases = Alpine.store('app').phases;
+          this.chart.data.datasets[0].backgroundColor = phases.map(p => 
+            p.id === Alpine.store('app').currentPhaseId ? '#ff6a2b' : '#1e2944'
+          );
+          this.chart.update();
+        }
+      };
+    };
+
+    window.missionMapGame = function() {
+      return {
+        visited: ['moon'],
+        currentStop: 'moon',
+        guessed: false,
+
+        visitStop(phaseId) {
+          this.currentStop = phaseId;
+          Alpine.store('app').setPhase(phaseId);
+          if (!this.visited.includes(phaseId)) {
+            this.visited.push(phaseId);
+            Alpine.store('app').addXp(15, `Visited ${phaseId.toUpperCase()}`);
+            if (this.visited.length >= 5) {
+              Alpine.store('app').unlockBadge('explorer');
+            }
+          }
+        },
+
+        guessPhase(phaseId) {
+          this.guessed = true;
+          if (phaseId === 'moon' || phaseId === 'mars') {
+            Alpine.store('app').addXp(30, 'Correct! Partial g + enriched oxygen = highest danger!');
+            Alpine.store('app').unlockBadge('risk-reader');
+          } else {
+            Alpine.store('app').addXp(10, 'Good try! Moon and Mars habitats have enriched O₂ + gravity!');
+          }
+        }
+      };
+    };
+
+    function registerIndexComponents() {
+      if (typeof Alpine !== 'undefined' && typeof Alpine.data === 'function') {
+        Alpine.data('overviewPage', window.overviewPage);
+        Alpine.data('missionMapGame', window.missionMapGame);
+      }
+    }
+    document.addEventListener('alpine:init', registerIndexComponents);
+    if (typeof Alpine !== 'undefined' && typeof Alpine.data === 'function') {
+      registerIndexComponents();
+    }
+  </script>
+
+  <!-- Alpine.js CDN (Loaded at bottom with defer to guarantee everything is registered first) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</body>
+</html>

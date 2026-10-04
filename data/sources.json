@@ -1,0 +1,11 @@
+[
+  { "id": "DONKI", "name": "NASA DONKI space weather (flares, CMEs, SEPs)", "use": "Live solar flare catalog for Solar Flare Watch", "url": "https://kauai.ccmc.gsfc.nasa.gov/DONKI/" },
+  { "id": "PSI-69", "name": "Flame Extinguishment Experiment (FLEX)", "use": "Burning limits, suppressants, cool flames", "url": "https://psi.ndc.nasa.gov/" },
+  { "id": "PSI-68", "name": "FLEX-2", "use": "0.5–3.0 atm, 10–40% O₂ conditions", "url": "https://psi.ndc.nasa.gov/" },
+  { "id": "PSI-26", "name": "Burning and Suppression of Solids (BASS)", "use": "Solid material flame spread", "url": "https://psi.ndc.nasa.gov/" },
+  { "id": "PSI-159", "name": "ACME Cool Flames Investigation (CFI-G)", "use": "Cool-flame conditions", "url": "https://psi.ndc.nasa.gov/" },
+  { "id": "PSI-117", "name": "FLEX cool-flame CFD analysis", "use": "Cool-flame model outputs", "url": "https://psi.ndc.nasa.gov/" },
+  { "id": "PSI-47", "name": "DAFT / DAFT-2", "use": "Smoke particle counts", "url": "https://psi.ndc.nasa.gov/" },
+  { "id": "NTRS 20150023456", "name": "FLEX detailed results (284 tests)", "use": "Tabulated test results", "url": "https://ntrs.nasa.gov/citations/20150023456" },
+  { "id": "NTRS 20240002981", "name": "Saffire VI results", "use": "Large-scale fire, CO and CO₂", "url": "https://ntrs.nasa.gov/citations/20240002981" }
+]

@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en" data-kids>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlameAtlas — Gravity Gap-Filler | NASA Space Apps 2026</title>
+  <link rel="icon" type="image/svg+xml" href="../hii/src/assets/logo.svg">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- GSAP CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Application Core Scripts -->
+  <script src="js/models.js"></script>
+  <script src="js/shared.js"></script>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body class="text-slate-100 flex min-h-screen" x-data="gravityGapPage()">
+  <div class="starfield" aria-hidden="true"></div>
+
+  <!-- Shared Sidebar Navigation -->
+  <aside class="w-64 border-r border-slate-800 bg-slate-950/80 backdrop-blur-md p-5 flex flex-col justify-between fixed top-0 bottom-0 left-0 z-30 hidden md:flex">
+    <div>
+      <a href="index.html" class="flex items-center gap-3 mb-8 group">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-400 p-0.5 shadow-lg shadow-orange-500/20 group-hover:scale-105 transition-transform flex items-center justify-center">
+          <i data-lucide="flame" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <span class="font-bold tracking-tight text-white block text-lg leading-tight">FlameAtlas</span>
+          <span class="text-xs text-slate-400 font-mono" x-text="$store.app.kids ? 'Fire Adventure' : 'Moon & Mars Safety'"></span>
+        </div>
+      </a>
+
+      <nav class="space-y-1 text-sm font-medium">
+        <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="gauge" class="w-4 h-4 text-orange-400"></i>
+          <span x-text="$store.app.kids ? 'Mission Map' : 'Mission Overview'"></span>
+        </a>
+        <a href="flame-lab.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="flask-conical" class="w-4 h-4 text-cyan-400"></i>
+          <span x-text="$store.app.kids ? 'Fire Lab 3D' : 'Flame Lab 3D'"></span>
+        </a>
+        <a href="solar-watch.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
+          <span x-text="$store.app.kids ? 'Sun Blasts' : 'Solar Flare Watch'"></span>
+        </a>
+        <a href="earth-impact.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="globe-2" class="w-4 h-4 text-emerald-400"></i>
+          <span x-text="$store.app.kids ? 'Storm vs Earth' : 'Solar Storm vs Earth'"></span>
+        </a>
+        <a href="material-ranker.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
+          <span x-text="$store.app.kids ? 'Burn Race' : 'Material Ranker'"></span>
+        </a>
+        <a href="gravity-gap.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 font-semibold shadow-inner">
+          <i data-lucide="orbit" class="w-4 h-4"></i>
+          <span x-text="$store.app.kids ? 'Gravity Guess' : 'Gravity Gap-Filler'"></span>
+        </a>
+        <a href="flame-radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="radar" class="w-4 h-4 text-indigo-400"></i>
+          <span x-text="$store.app.kids ? 'Ghost Flames' : 'Invisible Flame Radar'"></span>
+        </a>
+        <a href="fire-gpt.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="message-square-text" class="w-4 h-4 text-pink-400"></i>
+          <span x-text="$store.app.kids ? 'Quiz Time' : 'FireGPT AI'"></span>
+        </a>
+        <a href="gap-map.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="map" class="w-4 h-4 text-yellow-400"></i>
+          <span x-text="$store.app.kids ? 'Plan Tests' : 'Research Gap Map'"></span>
+        </a>
+        <a href="sources.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
+          <span x-text="$store.app.kids ? 'Space Cards' : 'Data Sources'"></span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="glass-pill p-3 border border-slate-800/80 text-xs text-slate-400 flex items-center gap-3">
+      <div class="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse"></div>
+      <div>
+        <p class="font-medium text-slate-200">Gaussian Process</p>
+        <p class="text-[11px] text-slate-400">95% Uncertainty Estimation</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Shell -->
+  <div class="flex-1 md:ml-64 flex flex-col min-w-0">
+    <header class="sticky top-0 z-20 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 px-4 md:px-8 py-3 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none">
+        <span class="text-xs uppercase tracking-wider text-slate-400 font-mono hidden sm:inline">Phase:</span>
+        <template x-for="p in $store.app.phases" :key="p.id">
+          <button @click="$store.app.setPhase(p.id); g = p.gravity; updateCurve()"
+                  :class="$store.app.currentPhaseId === p.id 
+                    ? 'bg-gradient-to-r from-sky-500 to-blue-500 text-slate-950 font-bold shadow-md shadow-sky-500/20' 
+                    : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800'"
+                  class="px-3 py-1.5 rounded-lg text-xs tracking-wide transition-all shrink-0 flex items-center gap-1.5"
+                  x-text="p.name">
+          </button>
+        </template>
+      </div>
+
+      <div class="flex items-center gap-3 shrink-0">
+        <button @click="$store.app.toggleKids()" class="glass-pill px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 text-slate-300 hover:text-white hover:border-cyan-500/40 transition-colors">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span x-text="$store.app.kids ? 'Kids Mode' : 'Pro Mode'"></span>
+        </button>
+
+        <button @click="$store.app.toggleTrophy()" class="glass-pill px-3 py-1.5 text-xs font-semibold flex items-center gap-2 text-amber-300 hover:border-amber-500/40 transition-colors">
+          <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span class="mono font-bold" x-text="`Lv.${$store.app.currentLevel.level}`"></span>
+          <span class="bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] mono" x-text="`${$store.app.xp} XP`"></span>
+        </button>
+
+        <button @click="$store.app.toggleSound()" class="glass-pill p-2 text-slate-400 hover:text-white">
+          <i :data-lucide="$store.app.sound ? 'volume-2' : 'volume-x'" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </header>
+
+    <main class="flex-1 p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+      <!-- Section Header -->
+      <section class="glass-panel p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <span class="text-xs font-mono uppercase tracking-widest text-sky-400 font-bold" x-text="$store.app.kids ? 'Gravity Guessing Game' : 'Gaussian Process · Uncertainty Quantification'"></span>
+          <h1 class="text-2xl md:text-3xl font-extrabold text-white mt-1" x-text="$store.app.kids ? 'Gravity Guess: Fire on Moon & Mars' : 'Gravity Gap-Filler'"></h1>
+          <p class="text-slate-400 text-xs md:text-sm mt-1 max-w-2xl">
+            NASA has test data at 0g (orbit) and 1g (Earth), but almost zero solid flammability tests at 0.16g (Moon) or 0.38g (Mars). Our Gaussian Process models the gap.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2 bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+          <button @click="mode = 'explore'" :class="mode === 'explore' ? 'bg-sky-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'" class="px-3 py-1.5 rounded-lg text-xs transition-colors">
+            GP Regression Curve
+          </button>
+          <button @click="mode = 'game'" :class="mode === 'game' ? 'bg-sky-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'" class="px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-1.5">
+            <i data-lucide="target" class="w-3.5 h-3.5"></i>
+            <span>Gravity Guess Game</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- VIEW 1: GP Curve & Uncertainty Analysis -->
+      <div x-show="mode === 'explore'" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Curve Chart Panel -->
+        <div class="lg:col-span-2 glass-panel p-5 flex flex-col">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+            <div>
+              <span class="text-xs uppercase font-mono tracking-wider text-slate-400">Gaussian Process Mean + 95% Confidence Band</span>
+              <h3 class="text-base font-bold text-white mt-0.5" x-text="`Flame Spread Rate: ${selectedMaterial?.name}`"></h3>
+            </div>
+            <!-- Material Selector -->
+            <select class="p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-200"
+                    @change="selectMaterial($event.target.value)">
+              <template x-for="m in materials" :key="m.id">
+                <option :value="m.id" :selected="m.id === selectedMaterial?.id" x-text="m.name"></option>
+              </template>
+            </select>
+          </div>
+
+          <div class="h-64 sm:h-80 w-full relative">
+            <canvas id="gpCurveChart"></canvas>
+          </div>
+
+          <!-- Bottom Curve Summary -->
+          <div class="grid grid-cols-3 gap-3 text-center text-xs mt-4 pt-4 border-t border-slate-800">
+            <div class="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+              <span class="text-slate-400 block text-[11px]">Selected Gravity</span>
+              <span class="font-extrabold text-white text-base mono" x-text="`${g.toFixed(2)}g`"></span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+              <span class="text-slate-400 block text-[11px]">Predicted Spread</span>
+              <span class="font-extrabold text-sky-400 text-base mono" x-text="`${currentPrediction.mean} mm/s`"></span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+              <span class="text-slate-400 block text-[11px]">Model Confidence</span>
+              <span class="font-extrabold text-base mono" :class="confidenceScore > 75 ? 'text-emerald-400' : 'text-amber-400'" x-text="`${confidenceScore}%`"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gravity Slider Cockpit -->
+        <div class="space-y-4">
+          <div class="glass-panel p-5 space-y-4">
+            <span class="text-xs uppercase font-mono tracking-wider text-slate-400">Gravity Level</span>
+
+            <!-- Gravity Slider -->
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-slate-300">Continuous Level</span>
+                <span class="font-mono text-sky-400 font-bold" x-text="`${g.toFixed(2)}g`"></span>
+              </div>
+              <input type="range" min="0" max="1" step="0.01" x-model.number="g" @input="updateCurve()" class="range">
+            </div>
+
+            <!-- Gravity Presets -->
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <template x-for="pre in presets" :key="pre.label">
+                <button @click="g = pre.g; updateCurve()"
+                        :class="Math.abs(g - pre.g) < 0.01 ? 'border-sky-500 bg-sky-500/20 text-sky-300 font-bold' : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:text-white'"
+                        class="p-2.5 rounded-xl border text-xs text-left transition-colors">
+                  <div class="font-semibold" x-text="pre.label"></div>
+                  <div class="text-[10px] text-slate-400 font-mono mt-0.5" x-text="`${pre.g}g`"></div>
+                </button>
+              </template>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] text-slate-300 leading-relaxed">
+              🔍 Notice the shaded blue band is narrowest near 0g (orbit flight tests) and 1g (Earth ground test bench), and spreads widest at partial gravities!
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 2: Gravity Guess Game -->
+      <div x-show="mode === 'game'" class="glass-panel p-6 max-w-3xl mx-auto space-y-6">
+        <div>
+          <span class="text-xs uppercase font-mono tracking-wider text-sky-400 font-bold">Scientific Intuition Challenge</span>
+          <h2 class="text-xl font-bold text-white mt-1">Gravity Guess: Predict Partial-g Flame Spread</h2>
+          <p class="text-xs text-slate-400 mt-1">Use the anchor points from microgravity (0g) and Earth (1g) to predict flame spread at Moon (0.16g) or Mars (0.38g).</p>
+        </div>
+
+        <!-- Target Target Selector -->
+        <div class="flex items-center gap-3">
+          <span class="text-xs text-slate-300">Target Planet:</span>
+          <button @click="targetG = 0.16; targetName = 'Moon'; resetGuess()"
+                  :class="targetG === 0.16 ? 'bg-sky-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'"
+                  class="px-3 py-1.5 rounded-lg text-xs transition-colors">
+            Moon (0.16g)
+          </button>
+          <button @click="targetG = 0.38; targetName = 'Mars'; resetGuess()"
+                  :class="targetG === 0.38 ? 'bg-sky-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'"
+                  class="px-3 py-1.5 rounded-lg text-xs transition-colors">
+            Mars (0.38g)
+          </button>
+        </div>
+
+        <!-- Anchor Points Display -->
+        <div class="grid grid-cols-2 gap-4">
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+            <span class="text-xs font-mono text-cyan-400">Anchor 1: Orbit 0g Data</span>
+            <p class="text-lg font-bold text-white mt-1" x-text="`${zeroGValue.toFixed(2)} mm/s`"></p>
+            <span class="text-[11px] text-slate-400">From NASA BASS flight experiment</span>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+            <span class="text-xs font-mono text-emerald-400">Anchor 2: Earth 1g Data</span>
+            <p class="text-lg font-bold text-white mt-1" x-text="`${oneGValue.toFixed(2)} mm/s`"></p>
+            <span class="text-[11px] text-slate-400">From Glenn Research Center ground rig</span>
+          </div>
+        </div>
+
+        <!-- Guess Slider -->
+        <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-4">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-bold text-white" x-text="`Your Guess for ${targetName} (${targetG}g):`"></span>
+            <span class="text-xl font-extrabold text-sky-400 mono" x-text="`${guessValue.toFixed(2)} mm/s`"></span>
+          </div>
+          <input type="range" :min="zeroGValue * 0.7" :max="Math.max(zeroGValue, oneGValue) * 1.5" step="0.05" x-model.number="guessValue" class="range">
+
+          <button @click="submitGuess()" :disabled="guessed"
+                  class="w-full py-3 rounded-xl text-xs font-bold bg-gradient-to-r from-sky-500 to-blue-500 text-slate-950 disabled:opacity-40 hover:scale-102 transition-transform shadow-lg shadow-sky-500/20">
+            Submit My Prediction
+          </button>
+        </div>
+
+        <!-- Result Box -->
+        <div x-show="guessed" class="p-5 rounded-2xl bg-slate-900 border border-sky-500/40 space-y-3" x-transition>
+          <div class="flex items-center justify-between">
+            <h4 class="text-base font-bold text-white">Evaluation Results</h4>
+            <div class="flex items-center gap-1 text-amber-400 text-lg">
+              <template x-for="i in earnedStars" :key="i"><span>⭐</span></template>
+            </div>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed" x-text="guessFeedback"></p>
+          <button @click="resetGuess()" class="px-4 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-white transition-colors">
+            Try Another Guess
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Sparky Robot Mascot Floating Assistant -->
+  <div class="sparky-widget" x-show="$store.app.sparkyVisible">
+    <div class="sparky-bubble" x-show="$store.app.sparkySpeechOpen" x-transition>
+      <div class="flex items-start justify-between gap-2">
+        <strong class="text-amber-400 font-bold text-xs uppercase tracking-wider">Sparky's Tip</strong>
+        <button @click="$store.app.toggleSparky()" class="text-slate-400 hover:text-white text-xs">✕</button>
+      </div>
+      <p class="text-slate-200 text-xs mt-1">
+        Look at the yellow dots on the left (0g space) and right (1g Earth). Your guess goes in the middle!
+      </p>
+    </div>
+    <div class="sparky-avatar" @click="$store.app.toggleSparky()" title="Click Sparky for tips!">
+      <div id="sparky-avatar-slot"></div>
+    </div>
+  </div>
+
+  <!-- Trophy Modal -->
+  <div x-show="$store.app.trophyOpen"
+       x-transition.opacity
+       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+       style="display: none;">
+    <div class="glass-panel w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden border border-slate-700" @click.outside="$store.app.trophyOpen = false">
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="trophy" class="w-5 h-5 text-amber-400"></i>
+          <h3 class="text-lg font-bold text-white">Trophy Room & Badges</h3>
+        </div>
+        <button @click="$store.app.trophyOpen = false" class="text-slate-400 hover:text-white p-1">✕</button>
+      </div>
+      <div class="p-6 overflow-y-auto space-y-6">
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+          <div class="flex justify-between items-center mb-2">
+            <div>
+              <span class="text-xs text-slate-400 uppercase font-mono">Current Rank</span>
+              <p class="text-lg font-extrabold text-amber-400" x-text="`Level ${$store.app.currentLevel.level} — ${$store.app.currentLevel.title}`"></p>
+            </div>
+            <span class="text-sm font-mono text-white" x-text="`${$store.app.xp} XP`"></span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+            <div class="bg-gradient-to-r from-amber-500 to-orange-500 h-2.5 rounded-full transition-all duration-500" :style="`width: ${$store.app.currentLevel.progress * 100}%`"></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <template x-for="b in $store.app.allBadges" :key="b.id">
+            <div :class="$store.app.badges.includes(b.id) ? 'border-amber-500/60 bg-amber-500/10' : 'border-slate-800 bg-slate-900/40 opacity-50'"
+                 class="p-3 rounded-xl border flex flex-col items-center text-center">
+              <i :data-lucide="b.icon || 'award'" class="w-6 h-6 text-amber-400 mb-1.5"></i>
+              <span class="text-xs font-bold text-white" x-text="b.name"></span>
+              <span class="text-[10px] text-slate-400 mt-1" x-text="b.desc"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container">
+    <template x-for="t in $store.app.toasts" :key="t.id">
+      <div class="toast-msg">
+        <i :data-lucide="t.kind === 'badge' ? 'award' : 'zap'" class="w-6 h-6 text-amber-400 shrink-0"></i>
+        <div>
+          <p class="font-bold text-xs text-white" x-text="t.title"></p>
+          <p class="text-[11px] text-slate-300" x-text="t.text"></p>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <!-- Page Specific Logic (executes before deferred Alpine.js) -->
+  <script>
+    if (document.getElementById('sparky-avatar-slot') && typeof renderSparkySvg === 'function') {
+      document.getElementById('sparky-avatar-slot').innerHTML = renderSparkySvg(70);
+    }
+
+    window.gravityGapPage = function() {
+      return {
+        mode: 'explore',
+        materials: [],
+        selectedMaterial: null,
+        g: 0.16,
+        presets: [
+          { label: 'Orbit', g: 0 },
+          { label: 'Moon', g: 0.16 },
+          { label: 'Mars', g: 0.38 },
+          { label: 'Earth', g: 1 }
+        ],
+        chart: null,
+
+        // Guess Game State
+        targetG: 0.16,
+        targetName: 'Moon',
+        guessValue: 1.2,
+        guessed: false,
+        earnedStars: 0,
+        guessFeedback: '',
+
+        get currentPrediction() {
+          if (!this.selectedMaterial) return { mean: 1.0, band: [0.8, 1.2] };
+          return predictAt(this.selectedMaterial, this.g);
+        },
+
+        get confidenceScore() {
+          const pred = this.currentPrediction;
+          const halfBand = (pred.band[1] - pred.band[0]) / 2;
+          return Math.max(0, Math.round(100 - (halfBand / pred.mean) * 100));
+        },
+
+        get zeroGValue() {
+          if (!this.selectedMaterial) return 0.8;
+          return predictAt(this.selectedMaterial, 0).mean;
+        },
+
+        get oneGValue() {
+          if (!this.selectedMaterial) return 1.5;
+          return predictAt(this.selectedMaterial, 1).mean;
+        },
+
+        async init() {
+          try {
+            const res = await fetch('./data/materials.json');
+            if (res.ok) {
+              this.materials = await res.json();
+              this.selectedMaterial = this.materials[0];
+            }
+          } catch(e) {}
+
+          this.$nextTick(() => {
+            this.initChart();
+            lucide.createIcons();
+          });
+        },
+
+        selectMaterial(id) {
+          this.selectedMaterial = this.materials.find(m => m.id === id);
+          this.updateCurve();
+        },
+
+        updateCurve() {
+          if (!this.chart || !this.selectedMaterial) return;
+          const curve = gravityCurve(this.selectedMaterial);
+          this.chart.data.labels = curve.map(c => c.g);
+          this.chart.data.datasets[0].data = curve.map(c => c.mean);
+          this.chart.data.datasets[1].data = curve.map(c => c.band[1]);
+          this.chart.data.datasets[2].data = curve.map(c => c.band[0]);
+          this.chart.update();
+        },
+
+        initChart() {
+          const ctx = document.getElementById('gpCurveChart');
+          if (!ctx || !this.selectedMaterial) return;
+
+          const curve = gravityCurve(this.selectedMaterial);
+
+          this.chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: curve.map(c => c.g),
+              datasets: [
+                {
+                  label: 'GP Mean (mm/s)',
+                  data: curve.map(c => c.mean),
+                  borderColor: '#38bdf8',
+                  borderWidth: 3,
+                  pointRadius: 0
+                },
+                {
+                  label: 'Upper 95% Band',
+                  data: curve.map(c => c.band[1]),
+                  borderColor: 'rgba(56, 189, 248, 0.25)',
+                  backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                  fill: '+1',
+                  borderWidth: 1,
+                  pointRadius: 0
+                },
+                {
+                  label: 'Lower 95% Band',
+                  data: curve.map(c => c.band[0]),
+                  borderColor: 'rgba(56, 189, 248, 0.25)',
+                  borderWidth: 1,
+                  pointRadius: 0
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { grid: { color: 'rgba(255,255,255,0.05)' } },
+                x: {
+                  grid: { display: false },
+                  ticks: { maxTicksLimit: 6 }
+                }
+              }
+            }
+          });
+        },
+
+        submitGuess() {
+          this.guessed = true;
+          const truePred = predictAt(this.selectedMaterial, this.targetG).mean;
+          const diff = Math.abs(this.guessValue - truePred);
+          const relErr = diff / truePred;
+
+          if (relErr < 0.12) {
+            this.earnedStars = 3;
+            this.guessFeedback = `Incredible precision! True GP model estimate is ${truePred.toFixed(2)} mm/s. Your guess was off by only ${(diff).toFixed(2)} mm/s!`;
+            Alpine.store('app').addXp(35, '3 Stars on Gravity Guess!');
+            Alpine.store('app').unlockBadge('gap-filler');
+          } else if (relErr < 0.25) {
+            this.earnedStars = 2;
+            this.guessFeedback = `Solid guess! True GP estimate is ${truePred.toFixed(2)} mm/s. Partial gravity brings buoyant oxygen flow without heavy cooling.`;
+            Alpine.store('app').addXp(20, '2 Stars on Gravity Guess');
+          } else {
+            this.earnedStars = 1;
+            this.guessFeedback = `Good effort! True GP estimate is ${truePred.toFixed(2)} mm/s. In partial gravity, flame spread can actually exceed 0g and rival 1g!`;
+            Alpine.store('app').addXp(10, '1 Star on Gravity Guess');
+          }
+        },
+
+        resetGuess() {
+          this.guessed = false;
+          this.earnedStars = 0;
+          this.guessValue = ((this.zeroGValue + this.oneGValue) / 2);
+        }
+      };
+    };
+
+    function registerGravityGapComponents() {
+      if (typeof Alpine !== 'undefined' && typeof Alpine.data === 'function') {
+        Alpine.data('gravityGapPage', window.gravityGapPage);
+      }
+    }
+    document.addEventListener('alpine:init', registerGravityGapComponents);
+    if (typeof Alpine !== 'undefined' && typeof Alpine.data === 'function') {
+      registerGravityGapComponents();
+    }
+  </script>
+
+  <!-- Alpine.js CDN (Loaded at bottom with defer to guarantee everything is registered first) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</body>
+</html>

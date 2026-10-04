@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en" data-kids>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlameAtlas — NASA Data Sources | NASA Space Apps 2026</title>
+  <link rel="icon" type="image/svg+xml" href="../hii/src/assets/logo.svg">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- GSAP CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Application Core Scripts -->
+  <script src="js/models.js"></script>
+  <script src="js/shared.js"></script>
+  <link rel="stylesheet" href="styles/main.css">
+  <style>
+    .card-perspective {
+      perspective: 1000px;
+    }
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 190px;
+      transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+      transform-style: preserve-3d;
+    }
+    .card-flipped {
+      transform: rotateY(180deg);
+    }
+    .card-face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      border-radius: var(--radius);
+    }
+    .card-back {
+      transform: rotateY(180deg);
+    }
+  </style>
+</head>
+<body class="text-slate-100 flex min-h-screen" x-data="sourcesPage()">
+  <div class="starfield" aria-hidden="true"></div>
+
+  <!-- Shared Sidebar Navigation -->
+  <aside class="w-64 border-r border-slate-800 bg-slate-950/80 backdrop-blur-md p-5 flex flex-col justify-between fixed top-0 bottom-0 left-0 z-30 hidden md:flex">
+    <div>
+      <a href="index.html" class="flex items-center gap-3 mb-8 group">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-400 p-0.5 shadow-lg shadow-orange-500/20 group-hover:scale-105 transition-transform flex items-center justify-center">
+          <i data-lucide="flame" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <span class="font-bold tracking-tight text-white block text-lg leading-tight">FlameAtlas</span>
+          <span class="text-xs text-slate-400 font-mono" x-text="$store.app.kids ? 'Fire Adventure' : 'Moon & Mars Safety'"></span>
+        </div>
+      </a>
+
+      <nav class="space-y-1 text-sm font-medium">
+        <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="gauge" class="w-4 h-4 text-orange-400"></i>
+          <span x-text="$store.app.kids ? 'Mission Map' : 'Mission Overview'"></span>
+        </a>
+        <a href="flame-lab.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="flask-conical" class="w-4 h-4 text-cyan-400"></i>
+          <span x-text="$store.app.kids ? 'Fire Lab 3D' : 'Flame Lab 3D'"></span>
+        </a>
+        <a href="solar-watch.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
+          <span x-text="$store.app.kids ? 'Sun Blasts' : 'Solar Flare Watch'"></span>
+        </a>
+        <a href="earth-impact.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="globe-2" class="w-4 h-4 text-emerald-400"></i>
+          <span x-text="$store.app.kids ? 'Storm vs Earth' : 'Solar Storm vs Earth'"></span>
+        </a>
+        <a href="material-ranker.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
+          <span x-text="$store.app.kids ? 'Burn Race' : 'Material Ranker'"></span>
+        </a>
+        <a href="gravity-gap.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="orbit" class="w-4 h-4 text-sky-400"></i>
+          <span x-text="$store.app.kids ? 'Gravity Guess' : 'Gravity Gap-Filler'"></span>
+        </a>
+        <a href="flame-radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="radar" class="w-4 h-4 text-indigo-400"></i>
+          <span x-text="$store.app.kids ? 'Ghost Flames' : 'Invisible Flame Radar'"></span>
+        </a>
+        <a href="fire-gpt.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="message-square-text" class="w-4 h-4 text-pink-400"></i>
+          <span x-text="$store.app.kids ? 'Quiz Time' : 'FireGPT AI'"></span>
+        </a>
+        <a href="gap-map.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="map" class="w-4 h-4 text-yellow-400"></i>
+          <span x-text="$store.app.kids ? 'Plan Tests' : 'Research Gap Map'"></span>
+        </a>
+        <a href="sources.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 font-semibold shadow-inner">
+          <i data-lucide="database" class="w-4 h-4"></i>
+          <span x-text="$store.app.kids ? 'Space Cards' : 'Data Sources'"></span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="glass-pill p-3 border border-slate-800/80 text-xs text-slate-400 flex items-center gap-3">
+      <div class="w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse"></div>
+      <div>
+        <p class="font-medium text-slate-200">NASA Open Science</p>
+        <p class="text-[11px] text-slate-400">PSI & NTRS Publications</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Shell -->
+  <div class="flex-1 md:ml-64 flex flex-col min-w-0">
+    <header class="sticky top-0 z-20 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 px-4 md:px-8 py-3 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none">
+        <span class="text-xs uppercase tracking-wider text-slate-400 font-mono hidden sm:inline">Phase:</span>
+        <template x-for="p in $store.app.phases" :key="p.id">
+          <button @click="$store.app.setPhase(p.id)"
+                  :class="$store.app.currentPhaseId === p.id 
+                    ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-slate-950 font-bold shadow-md shadow-blue-500/20' 
+                    : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800'"
+                  class="px-3 py-1.5 rounded-lg text-xs tracking-wide transition-all shrink-0 flex items-center gap-1.5"
+                  x-text="p.name">
+          </button>
+        </template>
+      </div>
+
+      <div class="flex items-center gap-3 shrink-0">
+        <button @click="$store.app.toggleKids()" class="glass-pill px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 text-slate-300 hover:text-white hover:border-cyan-500/40 transition-colors">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span x-text="$store.app.kids ? 'Kids Mode' : 'Pro Mode'"></span>
+        </button>
+
+        <button @click="$store.app.toggleTrophy()" class="glass-pill px-3 py-1.5 text-xs font-semibold flex items-center gap-2 text-amber-300 hover:border-amber-500/40 transition-colors">
+          <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span class="mono font-bold" x-text="`Lv.${$store.app.currentLevel.level}`"></span>
+          <span class="bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] mono" x-text="`${$store.app.xp} XP`"></span>
+        </button>
+
+        <button @click="$store.app.toggleSound()" class="glass-pill p-2 text-slate-400 hover:text-white">
+          <i :data-lucide="$store.app.sound ? 'volume-2' : 'volume-x'" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </header>
+
+    <main class="flex-1 p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+      <!-- Section Header -->
+      <section class="glass-panel p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <span class="text-xs font-mono uppercase tracking-widest text-blue-400 font-bold" x-text="$store.app.kids ? 'Space Card Collection' : 'Unified Dataset · NASA Open Science Repository'"></span>
+          <h1 class="text-2xl md:text-3xl font-extrabold text-white mt-1" x-text="$store.app.kids ? 'Your Space Card Collection' : 'NASA Data Sources & Citations'"></h1>
+          <p class="text-slate-400 text-xs md:text-sm mt-1 max-w-2xl">
+            Every calculation on this dashboard comes from public NASA experiments. Earn badges across each section to flip open and collect real NASA science data cards!
+          </p>
+        </div>
+
+        <div class="glass-pill px-4 py-2 border border-blue-500/30 flex items-center gap-2 text-xs">
+          <i data-lucide="award" class="w-4 h-4 text-blue-400"></i>
+          <span>Cards Collected: </span>
+          <span class="font-extrabold text-blue-300 font-mono text-sm" x-text="`${unlockedCount}/${sources.length}`"></span>
+        </div>
+      </section>
+
+      <!-- 3D Flipping Space Cards Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <template x-for="s in sources" :key="s.id">
+          <div class="card-perspective">
+            <div class="card-inner" :class="isUnlocked(s.id) ? 'card-flipped' : ''">
+              <!-- LOCKED BACK OF CARD (Visible when locked) -->
+              <div class="card-face glass-panel p-5 border border-slate-800 bg-slate-950/90 flex flex-col justify-between items-center text-center">
+                <div class="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 my-auto">
+                  <i data-lucide="lock" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <span class="text-xs font-mono text-slate-400 uppercase font-bold block" x-text="s.id"></span>
+                  <p class="text-[11px] text-slate-500 mt-1" x-text="`Earn linked badge to unlock this card`"></p>
+                </div>
+                <div class="w-full text-center py-1 bg-slate-900/40 rounded-lg text-[10px] text-slate-400 font-mono">
+                  LOCKED DATASET
+                </div>
+              </div>
+
+              <!-- UNLOCKED FRONT OF CARD (Visible when flipped) -->
+              <div class="card-face card-back glass-panel p-5 border border-blue-500/40 bg-slate-900/90 flex flex-col justify-between shadow-lg shadow-blue-500/10">
+                <div>
+                  <div class="flex justify-between items-start mb-2">
+                    <span class="text-xs font-mono font-bold text-blue-400" x-text="s.id"></span>
+                    <a :href="s.url" target="_blank" rel="noopener noreferrer"
+                       class="text-slate-400 hover:text-white transition-colors" title="View NASA Public Source">
+                      <i data-lucide="external-link" class="w-4 h-4"></i>
+                    </a>
+                  </div>
+                  <h3 class="text-sm font-bold text-white leading-tight" x-text="s.name"></h3>
+                  <p class="text-xs text-slate-300 mt-2 leading-relaxed" x-text="s.use"></p>
+                </div>
+
+                <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                  <span class="text-emerald-400 font-medium flex items-center gap-1">
+                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                    <span>Collected</span>
+                  </span>
+                  <a :href="s.url" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline">
+                    Access Repository →
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </main>
+  </div>
+
+  <!-- Sparky Robot Mascot Floating Assistant -->
+  <div class="sparky-widget" x-show="$store.app.sparkyVisible">
+    <div class="sparky-bubble" x-show="$store.app.sparkySpeechOpen" x-transition>
+      <div class="flex items-start justify-between gap-2">
+        <strong class="text-amber-400 font-bold text-xs uppercase tracking-wider">Sparky's Tip</strong>
+        <button @click="$store.app.toggleSparky()" class="text-slate-400 hover:text-white text-xs">✕</button>
+      </div>
+      <p class="text-slate-200 text-xs mt-1">
+        Every badge you earn flips open a real NASA science card. Open your Trophy room (top right) to see which badges you still need to collect all 9 cards!
+      </p>
+    </div>
+    <div class="sparky-avatar" @click="$store.app.toggleSparky()" title="Click Sparky for tips!">
+      <div id="sparky-avatar-slot"></div>
+    </div>
+  </div>
+
+  <!-- Trophy Modal -->
+  <div x-show="$store.app.trophyOpen"
+       x-transition.opacity
+       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+       style="display: none;">
+    <div class="glass-panel w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden border border-slate-700" @click.outside="$store.app.trophyOpen = false">
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="trophy" class="w-5 h-5 text-amber-400"></i>
+          <h3 class="text-lg font-bold text-white">Trophy Room & Badges</h3>
+        </div>
+        <button @click="$store.app.trophyOpen = false" class="text-slate-400 hover:text-white p-1">✕</button>
+      </div>
+      <div class="p-6 overflow-y-auto space-y-6">
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+          <div class="flex justify-between items-center mb-2">
+            <div>
+              <span class="text-xs text-slate-400 uppercase font-mono">Current Rank</span>
+              <p class="text-lg font-extrabold text-amber-400" x-text="`Level ${$store.app.currentLevel.level} — ${$store.app.currentLevel.title}`"></p>
+            </div>
+            <span class="text-sm font-mono text-white" x-text="`${$store.app.xp} XP`"></span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+            <div class="bg-gradient-to-r from-amber-500 to-orange-500 h-2.5 rounded-full transition-all duration-500" :style="`width: ${$store.app.currentLevel.progress * 100}%`"></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <template x-for="b in $store.app.allBadges" :key="b.id">
+            <div :class="$store.app.badges.includes(b.id) ? 'border-amber-500/60 bg-amber-500/10' : 'border-slate-800 bg-slate-900/40 opacity-50'"
+                 class="p-3 rounded-xl border flex flex-col items-center text-center">
+              <i :data-lucide="b.icon || 'award'" class="w-6 h-6 text-amber-400 mb-1.5"></i>
+              <span class="text-xs font-bold text-white" x-text="b.name"></span>
+              <span class="text-[10px] text-slate-400 mt-1" x-text="b.desc"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container">
+    <template x-for="t in $store.app.toasts" :key="t.id">
+      <div class="toast-msg">
+        <i :data-lucide="t.kind === 'badge' ? 'award' : 'zap'" class="w-6 h-6 text-amber-400 shrink-0"></i>
+        <div>
+          <p class="font-bold text-xs text-white" x-text="t.title"></p>
+          <p class="text-[11px] text-slate-300" x-text="t.text"></p>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <!-- Page Specific Logic (executes before deferred Alpine.js) -->
+  <script>
+    if (document.getElementById('sparky-avatar-slot') && typeof renderSparkySvg === 'function') {
+      document.getElementById('sparky-avatar-slot').innerHTML = renderSparkySvg(70);
+    }
+
+    window.sourcesPage = function() {
+      return {
+        sources: [],
+
+        async init() {
+          try {
+            const res = await fetch('./data/sources.json');
+            if (res.ok) {
+              this.sources = await res.json();
+            }
+          } catch(e) {}
+          this.$nextTick(() => lucide.createIcons());
+        },
+
+        isUnlocked(sourceId) {
+          const allBadges = Alpine.store('app').allBadges;
+          const userBadges = Alpine.store('app').badges;
+          const linkedBadges = allBadges.filter(b => b.source === sourceId);
+          return linkedBadges.some(b => userBadges.includes(b.id));
+        },
+
+        get unlockedCount() {
+          return this.sources.filter(s => this.isUnlocked(s.id)).length;
+        }
+      };
+    };
+
+    function registerSourcesComponents() {
+      if (typeof Alpine !== 'undefined' && typeof Alpine.data === 'function') {
+        Alpine.data('sourcesPage', window.sourcesPage);
+      }
+    }
+    document.addEventListener('alpine:init', registerSourcesComponents);
+    if (typeof Alpine !== 'undefined' && typeof Alpine.data === 'function') {
+      registerSourcesComponents();
+    }
+  </script>
+
+  <!-- Alpine.js CDN (Loaded at bottom with defer to guarantee everything is registered first) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</body>
+</html>

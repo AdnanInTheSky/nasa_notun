@@ -1,0 +1,177 @@
+[
+  {
+    "flrID": "2026-08-26T06:29:00-FLR-001",
+    "classType": "M2.2",
+    "beginTime": "2026-08-26T06:29Z",
+    "peakTime": "2026-08-26T06:34Z",
+    "endTime": "2026-08-26T06:38Z",
+    "sourceLocation": "N03W02",
+    "activeRegionNum": 14513,
+    "linkedEvents": ["2026-08-26T07:38:00-CME-001"]
+  },
+  {
+    "flrID": "2026-08-26T12:06:00-FLR-001",
+    "classType": "M1.0",
+    "beginTime": "2026-08-26T12:06Z",
+    "peakTime": "2026-08-26T12:14Z",
+    "endTime": "2026-08-26T12:22Z",
+    "sourceLocation": "N04W05",
+    "activeRegionNum": 14513,
+    "linkedEvents": null
+  },
+  {
+    "flrID": "2026-08-26T21:29:00-FLR-001",
+    "classType": "C3.4",
+    "beginTime": "2026-08-26T21:29Z",
+    "peakTime": "2026-08-26T21:40Z",
+    "endTime": "2026-08-26T21:45Z",
+    "sourceLocation": "N07E45",
+    "activeRegionNum": 14518,
+    "linkedEvents": ["2026-08-26T22:24:00-CME-001"]
+  },
+  {
+    "flrID": "2026-08-30T01:10:00-FLR-001",
+    "classType": "C3.0",
+    "beginTime": "2026-08-30T01:10Z",
+    "peakTime": "2026-08-30T01:20Z",
+    "endTime": "2026-08-30T01:25Z",
+    "sourceLocation": "N12E90",
+    "activeRegionNum": 14521,
+    "linkedEvents": ["2026-08-30T01:48:00-CME-001"]
+  },
+  {
+    "flrID": "2026-08-31T03:31:00-FLR-001",
+    "classType": "C1.0",
+    "beginTime": "2026-08-31T03:31Z",
+    "peakTime": "2026-08-31T03:33Z",
+    "endTime": "2026-08-31T03:35Z",
+    "sourceLocation": "N12E80",
+    "activeRegionNum": 14521,
+    "linkedEvents": ["2026-08-31T04:12:00-CME-001"]
+  },
+  {
+    "flrID": "2026-09-01T21:04:00-FLR-001",
+    "classType": "C5.7",
+    "beginTime": "2026-09-01T21:04Z",
+    "peakTime": "2026-09-01T21:10Z",
+    "endTime": "2026-09-01T21:12Z",
+    "sourceLocation": "N15E90",
+    "activeRegionNum": 14524,
+    "linkedEvents": ["2026-09-01T23:00:00-CME-001"]
+  },
+  {
+    "flrID": "2026-09-02T18:57:00-FLR-001",
+    "classType": "M3.0",
+    "beginTime": "2026-09-02T18:57Z",
+    "peakTime": "2026-09-02T19:20Z",
+    "endTime": "2026-09-02T19:48Z",
+    "sourceLocation": "N12E90",
+    "activeRegionNum": 14524,
+    "linkedEvents": ["2026-09-02T19:36:00-CME-001"]
+  },
+  {
+    "flrID": "2026-09-03T09:35:00-FLR-001",
+    "classType": "C2.2",
+    "beginTime": "2026-09-03T09:35Z",
+    "peakTime": "2026-09-03T09:42Z",
+    "endTime": "2026-09-03T09:48Z",
+    "sourceLocation": "N11E44",
+    "activeRegionNum": 14523,
+    "linkedEvents": ["2026-09-03T11:01:00-CME-001"]
+  },
+  {
+    "flrID": "2026-09-04T07:45:00-FLR-001",
+    "classType": "M1.2",
+    "beginTime": "2026-09-04T07:45Z",
+    "peakTime": "2026-09-04T07:53Z",
+    "endTime": "2026-09-04T08:00Z",
+    "sourceLocation": "N14E71",
+    "activeRegionNum": 14524,
+    "linkedEvents": null
+  },
+  {
+    "flrID": "2026-09-04T19:02:00-FLR-001",
+    "classType": "C6.7",
+    "beginTime": "2026-09-04T19:02Z",
+    "peakTime": "2026-09-04T19:30Z",
+    "endTime": "2026-09-04T19:41Z",
+    "sourceLocation": "N12E55",
+    "activeRegionNum": 14524,
+    "linkedEvents": ["2026-09-04T20:15:00-CME-001"]
+  },
+  {
+    "flrID": "2026-09-05T10:24:00-FLR-001",
+    "classType": "C6.4",
+    "beginTime": "2026-09-05T10:24Z",
+    "peakTime": "2026-09-05T10:45Z",
+    "endTime": "2026-09-05T10:56Z",
+    "sourceLocation": "N12E45",
+    "activeRegionNum": 14524,
+    "linkedEvents": ["2026-09-05T11:09:00-CME-001"]
+  },
+  {
+    "flrID": "2026-09-05T15:04:00-FLR-001",
+    "classType": "M1.0",
+    "beginTime": "2026-09-05T15:04Z",
+    "peakTime": "2026-09-05T15:18Z",
+    "endTime": "2026-09-05T15:27Z",
+    "sourceLocation": "S12W68",
+    "activeRegionNum": 14520,
+    "linkedEvents": [
+      "2026-09-05T15:36:00-CME-001",
+      "2026-09-05T15:45:00-SEP-001",
+      "2026-09-05T16:15:00-SEP-001",
+      "2026-09-05T16:30:00-SEP-001"
+    ]
+  },
+  {
+    "flrID": "2026-09-05T17:32:00-FLR-001",
+    "classType": "C8.5",
+    "beginTime": "2026-09-05T17:32Z",
+    "peakTime": "2026-09-05T17:46Z",
+    "endTime": "2026-09-05T17:53Z",
+    "sourceLocation": "N12E42",
+    "activeRegionNum": 14524,
+    "linkedEvents": ["2026-09-05T18:09:00-CME-001"]
+  },
+  {
+    "flrID": "2026-09-06T10:31:00-FLR-001",
+    "classType": "C5.0",
+    "beginTime": "2026-09-06T10:31Z",
+    "peakTime": "2026-09-06T10:42Z",
+    "endTime": "2026-09-06T10:48Z",
+    "sourceLocation": "N12E32",
+    "activeRegionNum": 14524,
+    "linkedEvents": ["2026-09-06T10:53:00-CME-001"]
+  },
+  {
+    "flrID": "2026-09-08T12:19:00-FLR-001",
+    "classType": "C2.4",
+    "beginTime": "2026-09-08T12:19Z",
+    "peakTime": "2026-09-08T12:24Z",
+    "endTime": "2026-09-08T12:27Z",
+    "sourceLocation": "N10W35",
+    "activeRegionNum": 14521,
+    "linkedEvents": ["2026-09-08T13:59:00-CME-001"]
+  },
+  {
+    "flrID": "2026-09-09T08:48:00-FLR-001",
+    "classType": "C3.4",
+    "beginTime": "2026-09-09T08:48Z",
+    "peakTime": "2026-09-09T09:08Z",
+    "endTime": "2026-09-09T09:23Z",
+    "sourceLocation": "N15W05",
+    "activeRegionNum": 14524,
+    "linkedEvents": ["2026-09-09T10:23:00-CME-001"]
+  },
+  {
+    "flrID": "2026-09-19T17:57:00-FLR-001",
+    "classType": "C3.3",
+    "beginTime": "2026-09-19T17:57Z",
+    "peakTime": "2026-09-19T18:17Z",
+    "endTime": "2026-09-19T18:32Z",
+    "sourceLocation": "N14E90",
+    "activeRegionNum": 14535,
+    "linkedEvents": ["2026-09-19T18:48:00-CME-001"]
+  }
+]

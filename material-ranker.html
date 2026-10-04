@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en" data-kids>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlameAtlas — Material Risk Ranker | NASA Space Apps 2026</title>
+  <link rel="icon" type="image/svg+xml" href="../hii/src/assets/logo.svg">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- GSAP CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Application Core Scripts -->
+  <script src="js/models.js"></script>
+  <script src="js/shared.js"></script>
+  <script src="js/burn-race-3d.js"></script>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body class="text-slate-100 flex min-h-screen" x-data="materialRankerPage()">
+  <div class="starfield" aria-hidden="true"></div>
+
+  <!-- Shared Sidebar Navigation -->
+  <aside class="w-64 border-r border-slate-800 bg-slate-950/80 backdrop-blur-md p-5 flex flex-col justify-between fixed top-0 bottom-0 left-0 z-30 hidden md:flex">
+    <div>
+      <a href="index.html" class="flex items-center gap-3 mb-8 group">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-400 p-0.5 shadow-lg shadow-orange-500/20 group-hover:scale-105 transition-transform flex items-center justify-center">
+          <i data-lucide="flame" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <span class="font-bold tracking-tight text-white block text-lg leading-tight">FlameAtlas</span>
+          <span class="text-xs text-slate-400 font-mono" x-text="$store.app.kids ? 'Fire Adventure' : 'Moon & Mars Safety'"></span>
+        </div>
+      </a>
+
+      <nav class="space-y-1 text-sm font-medium">
+        <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="gauge" class="w-4 h-4 text-orange-400"></i>
+          <span x-text="$store.app.kids ? 'Mission Map' : 'Mission Overview'"></span>
+        </a>
+        <a href="flame-lab.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="flask-conical" class="w-4 h-4 text-cyan-400"></i>
+          <span x-text="$store.app.kids ? 'Fire Lab 3D' : 'Flame Lab 3D'"></span>
+        </a>
+        <a href="solar-watch.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
+          <span x-text="$store.app.kids ? 'Sun Blasts' : 'Solar Flare Watch'"></span>
+        </a>
+        <a href="earth-impact.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="globe-2" class="w-4 h-4 text-emerald-400"></i>
+          <span x-text="$store.app.kids ? 'Storm vs Earth' : 'Solar Storm vs Earth'"></span>
+        </a>
+        <a href="material-ranker.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 font-semibold shadow-inner">
+          <i data-lucide="layers" class="w-4 h-4"></i>
+          <span x-text="$store.app.kids ? 'Burn Race' : 'Material Ranker'"></span>
+        </a>
+        <a href="gravity-gap.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="orbit" class="w-4 h-4 text-sky-400"></i>
+          <span x-text="$store.app.kids ? 'Gravity Guess' : 'Gravity Gap-Filler'"></span>
+        </a>
+        <a href="flame-radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="radar" class="w-4 h-4 text-indigo-400"></i>
+          <span x-text="$store.app.kids ? 'Ghost Flames' : 'Invisible Flame Radar'"></span>
+        </a>
+        <a href="fire-gpt.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="message-square-text" class="w-4 h-4 text-pink-400"></i>
+          <span x-text="$store.app.kids ? 'Quiz Time' : 'FireGPT AI'"></span>
+        </a>
+        <a href="gap-map.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="map" class="w-4 h-4 text-yellow-400"></i>
+          <span x-text="$store.app.kids ? 'Plan Tests' : 'Research Gap Map'"></span>
+        </a>
+        <a href="sources.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
+          <span x-text="$store.app.kids ? 'Space Cards' : 'Data Sources'"></span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="glass-pill p-3 border border-slate-800/80 text-xs text-slate-400 flex items-center gap-3">
+      <div class="w-2.5 h-2.5 rounded-full bg-purple-400 animate-pulse"></div>
+      <div>
+        <p class="font-medium text-slate-200">XGBoost & SHAP</p>
+        <p class="text-[11px] text-slate-400">PSI-26 BASS Solid Fuel Data</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Shell -->
+  <div class="flex-1 md:ml-64 flex flex-col min-w-0">
+    <header class="sticky top-0 z-20 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 px-4 md:px-8 py-3 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none">
+        <span class="text-xs uppercase tracking-wider text-slate-400 font-mono hidden sm:inline">Phase:</span>
+        <template x-for="p in $store.app.phases" :key="p.id">
+          <button @click="$store.app.setPhase(p.id)"
+                  :class="$store.app.currentPhaseId === p.id 
+                    ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-slate-950 font-bold shadow-md shadow-purple-500/20' 
+                    : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800'"
+                  class="px-3 py-1.5 rounded-lg text-xs tracking-wide transition-all shrink-0 flex items-center gap-1.5"
+                  x-text="p.name">
+          </button>
+        </template>
+      </div>
+
+      <div class="flex items-center gap-3 shrink-0">
+        <button @click="$store.app.toggleKids()" class="glass-pill px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 text-slate-300 hover:text-white hover:border-cyan-500/40 transition-colors">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span x-text="$store.app.kids ? 'Kids Mode' : 'Pro Mode'"></span>
+        </button>
+
+        <button @click="$store.app.toggleTrophy()" class="glass-pill px-3 py-1.5 text-xs font-semibold flex items-center gap-2 text-amber-300 hover:border-amber-500/40 transition-colors">
+          <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span class="mono font-bold" x-text="`Lv.${$store.app.currentLevel.level}`"></span>
+          <span class="bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] mono" x-text="`${$store.app.xp} XP`"></span>
+        </button>
+
+        <button @click="$store.app.toggleSound()" class="glass-pill p-2 text-slate-400 hover:text-white">
+          <i :data-lucide="$store.app.sound ? 'volume-2' : 'volume-x'" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </header>
+
+    <main class="flex-1 p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+      <!-- Section Header -->
+      <section class="glass-panel p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <span class="text-xs font-mono uppercase tracking-widest text-purple-400 font-bold" x-text="$store.app.kids ? 'Burn Race Game' : 'XGBoost Flammability & Explainable AI'"></span>
+          <h1 class="text-2xl md:text-3xl font-extrabold text-white mt-1" x-text="$store.app.kids ? 'Burn Race: Which one burns faster?' : 'Material Risk Ranker'"></h1>
+          <p class="text-slate-400 text-xs md:text-sm mt-1 max-w-2xl">
+            Rank cabin materials by predicted flammability under your active mission atmosphere, or test them head-to-head in the 3D Burn Race bench!
+          </p>
+        </div>
+
+        <!-- Mode switcher: Explore Table vs Burn Race 3D Game -->
+        <div class="flex items-center gap-2 bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+          <button @click="mode = 'explore'" :class="mode === 'explore' ? 'bg-purple-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'" class="px-3 py-1.5 rounded-lg text-xs transition-colors">
+            Ranked Table
+          </button>
+          <button @click="mode = 'game'" :class="mode === 'game' ? 'bg-purple-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'" class="px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-1.5">
+            <i data-lucide="flag" class="w-3.5 h-3.5"></i>
+            <span>Burn Race 3D</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- VIEW 1: Material Ranker Table & SHAP Explainability -->
+      <div x-show="mode === 'explore'" class="space-y-6">
+        <!-- Material Select Toggles -->
+        <div class="glass-panel p-4 flex flex-wrap items-center gap-2">
+          <span class="text-xs font-mono text-slate-400 mr-2">Toggle Materials:</span>
+          <template x-for="m in materials" :key="m.id">
+            <button @click="toggleMaterial(m.id)"
+                    :class="selectedIds.includes(m.id) ? 'bg-purple-500/20 text-purple-300 border-purple-500/40' : 'bg-slate-900/60 text-slate-400 border-slate-800'"
+                    class="px-2.5 py-1 rounded-lg border text-xs flex items-center gap-1.5 transition-colors">
+              <span x-show="selectedIds.includes(m.id)">✓</span>
+              <span x-text="m.name"></span>
+            </button>
+          </template>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Sortable Table -->
+          <div class="lg:col-span-2 glass-panel p-5 overflow-x-auto">
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-xs uppercase font-mono tracking-wider text-slate-400">Ranked by Flammability</span>
+              <div class="flex items-center gap-2 text-xs">
+                <span class="text-slate-400">Sort by:</span>
+                <button @click="sortKey = 'risk'" :class="sortKey === 'risk' ? 'text-purple-400 font-bold' : 'text-slate-400 hover:text-white'">Risk</button>
+                <span>·</span>
+                <button @click="sortKey = 'loi'" :class="sortKey === 'loi' ? 'text-purple-400 font-bold' : 'text-slate-400 hover:text-white'">LOI</button>
+                <span>·</span>
+                <button @click="sortKey = 'name'" :class="sortKey === 'name' ? 'text-purple-400 font-bold' : 'text-slate-400 hover:text-white'">Name</button>
+              </div>
+            </div>
+
+            <table class="w-full text-left text-xs">
+              <thead class="text-slate-400 uppercase font-mono border-b border-slate-800">
+                <tr>
+                  <th class="py-2.5 px-3">#</th>
+                  <th class="py-2.5 px-3">Material</th>
+                  <th class="py-2.5 px-3">Type</th>
+                  <th class="py-2.5 px-3">Burns Above</th>
+                  <th class="py-2.5 px-3">Predicted Risk</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60">
+                <template x-for="(m, idx) in sortedRanked" :key="m.id">
+                  <tr @click="focusedMaterial = m; renderShapChart()"
+                      :class="focusedMaterial?.id === m.id ? 'bg-purple-500/10' : 'hover:bg-slate-900/40'"
+                      class="cursor-pointer transition-colors">
+                    <td class="py-2.5 px-3 font-mono font-bold text-slate-400" x-text="idx + 1"></td>
+                    <td class="py-2.5 px-3 font-bold text-white" x-text="m.name"></td>
+                    <td class="py-2.5 px-3 text-slate-400" x-text="m.type"></td>
+                    <td class="py-2.5 px-3 font-mono" x-text="`${m.burnsAbove}% O₂`"></td>
+                    <td class="py-2.5 px-3">
+                      <span class="mono px-2 py-0.5 rounded font-bold"
+                            :class="m.risk > 0.65 ? 'bg-rose-500/20 text-rose-300' : (m.risk > 0.4 ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300')"
+                            x-text="`${Math.round(m.risk * 100)}%`"></span>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- SHAP Feature Contributions Panel -->
+          <div class="glass-panel p-5 space-y-4">
+            <div>
+              <span class="text-xs uppercase font-mono tracking-wider text-purple-400">SHAP Explainability</span>
+              <h3 class="text-base font-bold text-white mt-1" x-text="`Why this rank for ${focusedMaterial?.name}?`"></h3>
+              <p class="text-xs text-slate-400 mt-1">Feature impact on overall predicted flammability under cabin atmospheric conditions.</p>
+            </div>
+
+            <!-- SHAP Bars -->
+            <div class="space-y-3 pt-2">
+              <template x-for="f in shapFactors" :key="f.feature">
+                <div>
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="text-slate-300" x-text="f.feature"></span>
+                    <span class="mono font-bold" :class="f.value >= 0 ? 'text-rose-400' : 'text-emerald-400'" x-text="`${f.value >= 0 ? '+' : ''}${f.value}`"></span>
+                  </div>
+                  <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden flex">
+                    <div :class="f.value >= 0 ? 'bg-rose-500 ml-auto' : 'bg-emerald-500 mr-auto'"
+                         class="h-2 rounded-full transition-all duration-300"
+                         :style="`width: ${Math.min(100, Math.abs(f.value) * 300)}%`"></div>
+                  </div>
+                </div>
+              </template>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] text-slate-400">
+              💡 Positive values (red) increase flammability risk; negative values (green) reduce fire propagation.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 2: 3D Burn Race Bench Game -->
+      <div x-show="mode === 'game'" class="space-y-6">
+        <div class="glass-panel p-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <div>
+              <span class="text-xs uppercase font-mono tracking-wider text-purple-400 font-bold">Head-to-Head Combustion Bench</span>
+              <h2 class="text-xl font-bold text-white mt-0.5">3D Burn Race Test</h2>
+              <p class="text-slate-400 text-xs mt-0.5">Predict which sample will burn faster or self-extinguish before the finish line!</p>
+            </div>
+            <!-- Wins tracker -->
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono text-slate-300 bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800" x-text="`Detective Wins: ${raceWins}/3`"></span>
+            </div>
+          </div>
+
+          <!-- 3D Race Bench Viewport -->
+          <div class="relative w-full h-[360px] rounded-xl overflow-hidden bg-slate-950 my-3" id="burn-race-container">
+            <!-- Countdown Overlay -->
+            <div x-show="raceStage === 'countdown'"
+                 class="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm pointer-events-none">
+              <span class="text-7xl font-extrabold text-amber-400 mono animate-ping" x-text="countdownCount"></span>
+            </div>
+
+            <!-- Race Result Overlay -->
+            <div x-show="raceStage === 'done'"
+                 class="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4"
+                 x-transition>
+              <div class="glass-panel p-6 max-w-sm w-full text-center space-y-3 border-purple-500/50 shadow-2xl">
+                <div class="text-3xl" x-text="userPick === winningLane ? '🎉' : '⏱️'"></div>
+                <h3 class="text-lg font-bold text-white" x-text="userPick === winningLane ? 'Correct Prediction!' : 'Race Finished!'"></h3>
+                <p class="text-xs text-slate-300" x-text="`Lane ${winningLane === 0 ? 'A' : 'B'} (${pairMaterials[winningLane]?.name}) was faster.`"></p>
+                <button @click="resetRacePair()" class="px-5 py-2 rounded-xl text-xs font-bold bg-purple-500 hover:bg-purple-400 text-slate-950 transition-colors">
+                  Next Race Pair →
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Material Selection & Betting Cockpit -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+            <!-- Lane A -->
+            <div class="p-4 rounded-xl border transition-all"
+                 :class="userPick === 0 ? 'border-amber-400 bg-amber-500/10' : 'border-slate-800 bg-slate-900/60'">
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-xs font-mono font-bold text-amber-400">LANE A</span>
+                <span class="text-xs mono text-slate-400" x-text="`LOI: ${pairMaterials[0]?.loi}%`"></span>
+              </div>
+              <h4 class="text-base font-bold text-white" x-text="pairMaterials[0]?.name"></h4>
+              <p class="text-xs text-slate-400 mt-1" x-text="pairMaterials[0]?.type"></p>
+              <button @click="userPick = 0" :disabled="raceStage !== 'setup'"
+                      class="mt-3 w-full py-2 rounded-lg text-xs font-bold transition-colors"
+                      :class="userPick === 0 ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 hover:bg-slate-700 text-slate-200'">
+                Vote Lane A Wins
+              </button>
+            </div>
+
+            <!-- Lane B -->
+            <div class="p-4 rounded-xl border transition-all"
+                 :class="userPick === 1 ? 'border-cyan-400 bg-cyan-500/10' : 'border-slate-800 bg-slate-900/60'">
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-xs font-mono font-bold text-cyan-400">LANE B</span>
+                <span class="text-xs mono text-slate-400" x-text="`LOI: ${pairMaterials[1]?.loi}%`"></span>
+              </div>
+              <h4 class="text-base font-bold text-white" x-text="pairMaterials[1]?.name"></h4>
+              <p class="text-xs text-slate-400 mt-1" x-text="pairMaterials[1]?.type"></p>
+              <button @click="userPick = 1" :disabled="raceStage !== 'setup'"
+                      class="mt-3 w-full py-2 rounded-lg text-xs font-bold transition-colors"
+                      :class="userPick === 1 ? 'bg-cyan-400 text-slate-950' : 'bg-slate-800 hover:bg-slate-700 text-slate-200'">
+                Vote Lane B Wins
+              </button>
+            </div>
+          </div>
+
+          <!-- Launch Race Button -->
+          <div class="mt-4 flex justify-center">
+            <button @click="startRace()" :disabled="raceStage !== 'setup' || userPick === null"
+                    class="px-8 py-3 rounded-xl text-sm font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white disabled:opacity-40 hover:scale-105 transition-transform shadow-lg shadow-purple-500/25 flex items-center gap-2">
+              <i data-lucide="play" class="w-4 h-4"></i>
+              <span>Start 3-2-1 Burn Race!</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Sparky Robot Mascot Floating Assistant -->
+  <div class="sparky-widget" x-show="$store.app.sparkyVisible">
+    <div class="sparky-bubble" x-show="$store.app.sparkySpeechOpen" x-transition>
+      <div class="flex items-start justify-between gap-2">
+        <strong class="text-amber-400 font-bold text-xs uppercase tracking-wider">Sparky's Tip</strong>
+        <button @click="$store.app.toggleSparky()" class="text-slate-400 hover:text-white text-xs">✕</button>
+      </div>
+      <p class="text-slate-200 text-xs mt-1">
+        Tip: Teflon and Nomex fabric are very fire-safe. Guess right 3 times in Burn Race to become a Fire Detective!
+      </p>
+    </div>
+    <div class="sparky-avatar" @click="$store.app.toggleSparky()" title="Click Sparky for tips!">
+      <div id="sparky-avatar-slot"></div>
+    </div>
+  </div>
+
+  <!-- Trophy Modal -->
+  <div x-show="$store.app.trophyOpen"
+       x-transition.opacity
+       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+       style="display: none;">
+    <div class="glass-panel w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden border border-slate-700" @click.outside="$store.app.trophyOpen = false">
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="trophy" class="w-5 h-5 text-amber-400"></i>
+          <h3 class="text-lg font-bold text-white">Trophy Room & Badges</h3>
+        </div>
+        <button @click="$store.app.trophyOpen = false" class="text-slate-400 hover:text-white p-1">✕</button>
+      </div>
+      <div class="p-6 overflow-y-auto space-y-6">
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+          <div class="flex justify-between items-center mb-2">
+            <div>
+              <span class="text-xs text-slate-400 uppercase font-mono">Current Rank</span>
+              <p class="text-lg font-extrabold text-amber-400" x-text="`Level ${$store.app.currentLevel.level} — ${$store.app.currentLevel.title}`"></p>
+            </div>
+            <span class="text-sm font-mono text-white" x-text="`${$store.app.xp} XP`"></span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+            <div class="bg-gradient-to-r from-amber-500 to-orange-500 h-2.5 rounded-full transition-all duration-500" :style="`width: ${$store.app.currentLevel.progress * 100}%`"></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <template x-for="b in $store.app.allBadges" :key="b.id">
+            <div :class="$store.app.badges.includes(b.id) ? 'border-amber-500/60 bg-amber-500/10' : 'border-slate-800 bg-slate-900/40 opacity-50'"
+                 class="p-3 rounded-xl border flex flex-col items-center text-center">
+              <i :data-lucide="b.icon || 'award'" class="w-6 h-6 text-amber-400 mb-1.5"></i>
+              <span class="text-xs font-bold text-white" x-text="b.name"></span>
+              <span class="text-[10px] text-slate-400 mt-1" x-text="b.desc"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container">
+    <template x-for="t in $store.app.toasts" :key="t.id">
+      <div class="toast-msg">
+        <i :data-lucide="t.kind === 'badge' ? 'award' : 'zap'" class="w-6 h-6 text-amber-400 shrink-0"></i>
+        <div>
+          <p class="font-bold text-xs text-white" x-text="t.title"></p>
+          <p class="text-[11px] text-slate-300" x-text="t.text"></p>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <!-- Page Specific Logic (executes before deferred Alpine.js) -->
+  <script>
+    if (document.getElementById('sparky-avatar-slot') && typeof renderSparkySvg === 'function') {
+      document.getElementById('sparky-avatar-slot').innerHTML = renderSparkySvg(70);
+    }
+
+    window.materialRankerPage = function() {
+      return {
+        mode: 'explore',
+        materials: [],
+        selectedIds: [],
+        sortKey: 'risk',
+        focusedMaterial: null,
+
+        // Burn Race Game State
+        raceSim: null,
+        raceStage: 'setup', // setup | countdown | racing | done
+        countdownCount: 3,
+        pairMaterials: [],
+        userPick: null,
+        winningLane: 0,
+        raceWins: 0,
+
+        get currentConditions() {
+          const p = Alpine.store('app').currentPhase;
+          return { o2: p.o2, pressure: p.pressure, gravity: p.gravity };
+        },
+
+        get sortedRanked() {
+          const list = rankMaterials(this.materials, this.currentConditions, this.selectedIds);
+          if (this.sortKey === 'loi') return [...list].sort((a,b) => a.loi - b.loi);
+          if (this.sortKey === 'name') return [...list].sort((a,b) => a.name.localeCompare(b.name));
+          return list; // default by risk
+        },
+
+        get shapFactors() {
+          if (!this.focusedMaterial) return [];
+          return shapFor(this.focusedMaterial, this.currentConditions);
+        },
+
+        async init() {
+          try {
+            const res = await fetch('./data/materials.json');
+            if (res.ok) {
+              this.materials = await res.json();
+              this.selectedIds = this.materials.map(m => m.id);
+              this.focusedMaterial = this.materials[0];
+            }
+          } catch(e) {}
+
+          this.resetRacePair();
+
+          this.$nextTick(() => {
+            const container = document.getElementById('burn-race-container');
+            this.raceSim = initBurnRace3D(container);
+            lucide.createIcons();
+          });
+        },
+
+        toggleMaterial(id) {
+          if (this.selectedIds.includes(id)) {
+            if (this.selectedIds.length > 2) {
+              this.selectedIds = this.selectedIds.filter(x => x !== id);
+            }
+          } else {
+            this.selectedIds.push(id);
+          }
+        },
+
+        resetRacePair() {
+          if (!this.materials.length) return;
+          const a = Math.floor(Math.random() * this.materials.length);
+          let b = Math.floor(Math.random() * this.materials.length);
+          while (b === a) b = Math.floor(Math.random() * this.materials.length);
+          this.pairMaterials = [this.materials[a], this.materials[b]];
+          this.userPick = null;
+          this.raceStage = 'setup';
+          if (this.raceSim) this.raceSim.reset();
+        },
+
+        startRace() {
+          this.raceStage = 'countdown';
+          this.countdownCount = 3;
+
+          const cd = setInterval(() => {
+            this.countdownCount--;
+            if (this.countdownCount === 0) {
+              clearInterval(cd);
+              this.runRaceAnimation();
+            }
+          }, 600);
+        },
+
+        runRaceAnimation() {
+          this.raceStage = 'racing';
+          const [matA, matB] = this.pairMaterials;
+          const ranked = rankMaterials([matA, matB], this.currentConditions);
+          const riskA = ranked.find(m => m.id === matA.id).risk;
+          const riskB = ranked.find(m => m.id === matB.id).risk;
+
+          // Faster flammability wins race
+          this.winningLane = riskA >= riskB ? 0 : 1;
+
+          let progA = 0;
+          let progB = 0;
+          const speedA = 0.15 + riskA * 0.25;
+          const speedB = 0.15 + riskB * 0.25;
+
+          const interval = setInterval(() => {
+            progA = Math.min(1, progA + speedA * 0.04);
+            progB = Math.min(1, progB + speedB * 0.04);
+
+            if (this.raceSim) {
+              this.raceSim.update(progA, progA < 1, progB, progB < 1);
+            }
+
+            if (progA >= 1 || progB >= 1) {
+              clearInterval(interval);
+              this.raceStage = 'done';
+
+              if (this.userPick === this.winningLane) {
+                this.raceWins++;
+                Alpine.store('app').addXp(25, 'Great burn race prediction!');
+                if (this.raceWins >= 3) {
+                  Alpine.store('app').unlockBadge('detective');
+                }
+              } else {
+                Alpine.store('app').addXp(5, 'Race completed');
+              }
+            }
+          }, 40);
+        }
+      };
+    };
+
+    function registerMaterialRankerComponents() {
+      if (typeof Alpine !== 'undefined' && typeof Alpine.data === 'function') {
+        Alpine.data('materialRankerPage', window.materialRankerPage);
+      }
+    }
+    document.addEventListener('alpine:init', registerMaterialRankerComponents);
+    if (typeof Alpine !== 'undefined' && typeof Alpine.data === 'function') {
+      registerMaterialRankerComponents();
+    }
+  </script>
+
+  <!-- Alpine.js CDN (Loaded at bottom with defer to guarantee everything is registered first) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en" data-kids>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlameAtlas — Flame Lab 3D | NASA Space Apps 2026</title>
+  <link rel="icon" type="image/svg+xml" href="../hii/src/assets/logo.svg">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- GSAP CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Application Core Scripts -->
+  <script src="js/models.js"></script>
+  <script src="js/shared.js"></script>
+  <script src="js/flame-lab-3d.js"></script>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body class="text-slate-100 flex min-h-screen" x-data="flameLabPage()">
+  <div class="starfield" aria-hidden="true"></div>
+
+  <!-- Shared Sidebar Navigation -->
+  <aside class="w-64 border-r border-slate-800 bg-slate-950/80 backdrop-blur-md p-5 flex flex-col justify-between fixed top-0 bottom-0 left-0 z-30 hidden md:flex">
+    <div>
+      <a href="index.html" class="flex items-center gap-3 mb-8 group">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-400 p-0.5 shadow-lg shadow-orange-500/20 group-hover:scale-105 transition-transform flex items-center justify-center">
+          <i data-lucide="flame" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <span class="font-bold tracking-tight text-white block text-lg leading-tight">FlameAtlas</span>
+          <span class="text-xs text-slate-400 font-mono" x-text="$store.app.kids ? 'Fire Adventure' : 'Moon & Mars Safety'"></span>
+        </div>
+      </a>
+
+      <nav class="space-y-1 text-sm font-medium">
+        <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="gauge" class="w-4 h-4 text-orange-400"></i>
+          <span x-text="$store.app.kids ? 'Mission Map' : 'Mission Overview'"></span>
+        </a>
+        <a href="flame-lab.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-semibold shadow-inner">
+          <i data-lucide="flask-conical" class="w-4 h-4"></i>
+          <span x-text="$store.app.kids ? 'Fire Lab 3D' : 'Flame Lab 3D'"></span>
+        </a>
+        <a href="space-craft.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="rocket" class="w-4 h-4 text-rose-400"></i>
+          <span x-text="$store.app.kids ? 'Spacecraft Fire Sim' : 'Spacecraft Simulation'"></span>
+        </a>
+        <a href="solar-watch.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
+          <span x-text="$store.app.kids ? 'Sun Blasts' : 'Solar Flare Watch'"></span>
+        </a>
+        <a href="earth-impact.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="globe-2" class="w-4 h-4 text-emerald-400"></i>
+          <span x-text="$store.app.kids ? 'Storm vs Earth' : 'Solar Storm vs Earth'"></span>
+        </a>
+        <a href="material-ranker.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
+          <span x-text="$store.app.kids ? 'Burn Race' : 'Material Ranker'"></span>
+        </a>
+        <a href="gravity-gap.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="orbit" class="w-4 h-4 text-sky-400"></i>
+          <span x-text="$store.app.kids ? 'Gravity Guess' : 'Gravity Gap-Filler'"></span>
+        </a>
+        <a href="flame-radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="radar" class="w-4 h-4 text-indigo-400"></i>
+          <span x-text="$store.app.kids ? 'Ghost Flames' : 'Invisible Flame Radar'"></span>
+        </a>
+        <a href="fire-gpt.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="message-square-text" class="w-4 h-4 text-pink-400"></i>
+          <span x-text="$store.app.kids ? 'Quiz Time' : 'FireGPT AI'"></span>
+        </a>
+        <a href="gap-map.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="map" class="w-4 h-4 text-yellow-400"></i>
+          <span x-text="$store.app.kids ? 'Plan Tests' : 'Research Gap Map'"></span>
+        </a>
+        <a href="sources.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
+          <span x-text="$store.app.kids ? 'Space Cards' : 'Data Sources'"></span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="glass-pill p-3 border border-slate-800/80 text-xs text-slate-400 flex items-center gap-3">
+      <div class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></div>
+      <div>
+        <p class="font-medium text-slate-200">3D Flame Simulator</p>
+        <p class="text-[11px] text-slate-400">GLSL Microgravity Flame</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Shell -->
+  <div class="flex-1 md:ml-64 flex flex-col min-w-0">
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-20 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 px-4 md:px-8 py-3 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none">
+        <span class="text-xs uppercase tracking-wider text-slate-400 font-mono hidden sm:inline">Phase:</span>
+        <template x-for="p in $store.app.phases" :key="p.id">
+          <button @click="$store.app.setPhase(p.id); syncWithPhase(p)"
+                  :class="$store.app.currentPhaseId === p.id 
+                    ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 font-bold shadow-md shadow-cyan-500/20' 
+                    : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800'"
+                  class="px-3 py-1.5 rounded-lg text-xs tracking-wide transition-all shrink-0 flex items-center gap-1.5"
+                  x-text="p.name">
+          </button>
+        </template>
+      </div>
+
+      <div class="flex items-center gap-3 shrink-0">
+        <button @click="$store.app.toggleKids()" class="glass-pill px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 text-slate-300 hover:text-white hover:border-cyan-500/40 transition-colors">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span x-text="$store.app.kids ? 'Kids Mode' : 'Pro Mode'"></span>
+        </button>
+
+        <button @click="$store.app.toggleTrophy()" class="glass-pill px-3 py-1.5 text-xs font-semibold flex items-center gap-2 text-amber-300 hover:border-amber-500/40 transition-colors">
+          <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span class="mono font-bold" x-text="`Lv.${$store.app.currentLevel.level}`"></span>
+          <span class="bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] mono" x-text="`${$store.app.xp} XP`"></span>
+        </button>
+
+        <button @click="$store.app.toggleSound()" class="glass-pill p-2 text-slate-400 hover:text-white">
+          <i :data-lucide="$store.app.sound ? 'volume-2' : 'volume-x'" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Page Body -->
+    <main class="flex-1 p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+      <!-- Section Header -->
+      <section class="glass-panel p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <span class="text-xs font-mono uppercase tracking-widest text-cyan-400 font-bold" x-text="$store.app.kids ? 'Space Fire Lab' : 'GLSL Microgravity Combustion Simulation'"></span>
+          <h1 class="text-2xl md:text-3xl font-extrabold text-white mt-1" x-text="$store.app.kids ? 'Fire Lab: Light a fire in space!' : 'Flame Lab 3D'"></h1>
+          <p class="text-slate-400 text-xs md:text-sm mt-1 max-w-2xl">
+            Watch fire morph from a yellow buoyant teardrop on Earth to a spherical blue cool ball in zero-gravity. Click sample to ignite or use the extinguisher!
+          </p>
+        </div>
+        <!-- Mode switcher (Explore vs Lessons) -->
+        <div class="flex items-center gap-2 bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+          <button @click="tab = 'explore'" :class="tab === 'explore' ? 'bg-cyan-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'" class="px-3 py-1.5 rounded-lg text-xs transition-colors">
+            Free Lab
+          </button>
+          <button @click="tab = 'lessons'" :class="tab === 'lessons' ? 'bg-cyan-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'" class="px-3 py-1.5 rounded-lg text-xs transition-colors">
+            Guided Lessons
+          </button>
+        </div>
+      </section>
+
+      <!-- 3D Canvas Stage & Interactive Cockpit -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 3D Canvas Viewport -->
+        <div class="lg:col-span-2 glass-panel p-2 flex flex-col">
+          <div class="relative w-full h-[460px] rounded-xl overflow-hidden bg-slate-950" id="flame-lab-container">
+            <!-- Overlay Badges / HUD -->
+            <div class="absolute top-4 left-4 z-10 flex items-center gap-2">
+              <span class="glass-pill px-3 py-1 text-xs mono text-cyan-300 font-semibold" x-text="`${currentPlace.name} (${gravity.toFixed(2)}g)`"></span>
+              <span class="glass-pill px-3 py-1 text-xs mono text-orange-300 font-semibold" x-text="`${o2}% O₂`"></span>
+            </div>
+
+            <!-- Heat Vision / Infrared Active Banner -->
+            <div x-show="heatVision" class="absolute top-4 right-4 z-10 glass-pill px-3 py-1 text-xs font-mono text-cyan-400 border-cyan-500/50 flex items-center gap-1.5 animate-pulse">
+              <i data-lucide="scan-eye" class="w-3.5 h-3.5"></i>
+              <span>INFRARED HEAT VISION</span>
+            </div>
+
+            <!-- Smoke Alarm Warning Banner -->
+            <div x-show="alarmTriggered" class="absolute bottom-4 left-4 z-10 bg-rose-500/20 border border-rose-500/50 rounded-xl px-4 py-2 text-rose-300 text-xs font-bold flex items-center gap-2 animate-bounce">
+              <i data-lucide="bell-ring" class="w-4 h-4 text-rose-400"></i>
+              <span>CEILING SMOKE ALARM RINGING!</span>
+            </div>
+
+            <!-- Click to light overlay when not burning -->
+            <div x-show="!burning && fuelLeft > 0" class="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div class="glass-pill px-4 py-2 text-xs font-semibold text-slate-300 bg-slate-950/70 border-slate-700 pointer-events-auto cursor-pointer hover:border-orange-500 hover:text-white"
+                   @click="ignite()">
+                🔥 Click to Light Sample!
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Action Buttons Below Viewport -->
+          <div class="flex items-center justify-between p-3 gap-2 flex-wrap">
+            <div class="flex items-center gap-2">
+              <button @click="ignite()" :disabled="burning || fuelLeft <= 0"
+                      class="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 disabled:opacity-40 hover:scale-105 transition-transform flex items-center gap-1.5">
+                <i data-lucide="flame" class="w-4 h-4"></i>
+                <span>Light it!</span>
+              </button>
+              <button @click="extinguish()" :disabled="!burning"
+                      class="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white disabled:opacity-40 hover:scale-105 transition-transform flex items-center gap-1.5">
+                <i data-lucide="spray-can" class="w-4 h-4"></i>
+                <span>Spray CO₂</span>
+              </button>
+              <button @click="resetFuel()"
+                      class="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors flex items-center gap-1.5">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                <span>Reset</span>
+              </button>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button @click="toggleHeatVision()"
+                      :class="heatVision ? 'bg-cyan-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:text-white'"
+                      class="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                <i data-lucide="scan-eye" class="w-3.5 h-3.5"></i>
+                <span>Heat Vision</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cockpit Controls & Live Readouts -->
+        <div class="space-y-4">
+          <!-- Live Flame Readouts -->
+          <div class="glass-panel p-5 space-y-4">
+            <span class="text-xs uppercase font-mono tracking-wider text-slate-400">Flame Readouts</span>
+            
+            <div class="grid grid-cols-2 gap-3 text-xs">
+              <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+                <span class="text-slate-400 text-[11px] block">Flame Shape</span>
+                <span class="font-bold text-white mt-1 block" x-text="gravity < 0.05 ? 'Round Ball' : (gravity < 0.5 ? 'Short & Wide' : 'Tall Teardrop')"></span>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+                <span class="text-slate-400 text-[11px] block">Flame Color</span>
+                <span class="font-bold text-white mt-1 block" x-text="gravity < 0.05 ? 'Blue & Dim' : (gravity < 0.5 ? 'Orange Blue base' : 'Bright Yellow')"></span>
+              </div>
+            </div>
+
+            <!-- Fuel Remaining Bar -->
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-slate-400">Fuel Remaining</span>
+                <span class="font-mono text-white" x-text="`${Math.round(fuelLeft)}%`"></span>
+              </div>
+              <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                <div class="bg-gradient-to-r from-orange-500 to-amber-400 h-2 rounded-full transition-all duration-300" :style="`width: ${fuelLeft}%`"></div>
+              </div>
+            </div>
+
+            <!-- Explanation Card -->
+            <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs">
+              <p class="font-bold text-amber-300 mb-1" x-text="currentExplanation.title"></p>
+              <p class="text-slate-300 leading-relaxed" x-text="currentExplanation.text"></p>
+            </div>
+          </div>
+
+          <!-- Environment Preset Buttons -->
+          <div class="glass-panel p-5 space-y-4">
+            <span class="text-xs uppercase font-mono tracking-wider text-slate-400">Place & Gravity</span>
+            <div class="grid grid-cols-2 gap-2">
+              <template x-for="p in places" :key="p.id">
+                <button @click="selectPlace(p)"
+                        :class="currentPlace.id === p.id ? 'border-cyan-500 bg-cyan-500/20 text-cyan-300 font-bold' : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:text-white'"
+                        class="p-2.5 rounded-xl border text-xs text-left transition-colors">
+                  <div class="font-semibold" x-text="p.name"></div>
+                  <div class="text-[10px] text-slate-400 font-mono mt-0.5" x-text="`${p.gravity}g · ${p.o2}% O₂`"></div>
+                </button>
+              </template>
+            </div>
+
+            <!-- Custom Gravity & Oxygen Sliders -->
+            <div class="space-y-3 pt-2">
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-slate-400">Gravity Level</span>
+                  <span class="font-mono text-cyan-400" x-text="`${gravity.toFixed(2)}g`"></span>
+                </div>
+                <input type="range" min="0" max="1" step="0.01" x-model.number="gravity" @input="updateSim()" class="range">
+              </div>
+
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-slate-400">Oxygen Level</span>
+                  <span class="font-mono text-orange-400" x-text="`${o2}%`"></span>
+                </div>
+                <input type="range" min="10" max="40" step="1" x-model.number="o2" @input="updateSim()" class="range">
+              </div>
+            </div>
+
+            <!-- Material Picker -->
+            <div class="pt-2">
+              <span class="text-xs text-slate-400 block mb-2">Material to Burn:</span>
+              <div class="grid grid-cols-3 gap-1.5">
+                <template x-for="m in materials" :key="m.id">
+                  <button @click="selectMaterial(m)"
+                          :class="selectedMaterial.id === m.id ? 'border-orange-500 bg-orange-500/20 text-orange-300 font-bold' : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:text-white'"
+                          class="p-2 rounded-lg border text-[11px] text-center transition-colors truncate"
+                          x-text="m.name">
+                  </button>
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Guided Lessons Drawer (when active) -->
+      <section x-show="tab === 'lessons'" class="glass-panel p-6 border-cyan-500/30">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <span class="text-xs uppercase font-mono tracking-wider text-cyan-400">Interactive Curriculum</span>
+            <h3 class="text-lg font-bold text-white mt-0.5">6 Step Microgravity Masterclass</h3>
+          </div>
+          <span class="text-xs mono font-bold text-cyan-400" x-text="`Step ${lessonIdx + 1} of ${lessons.length}`"></span>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3">
+          <h4 class="text-base font-bold text-white" x-text="lessons[lessonIdx]?.title"></h4>
+          <p class="text-sm text-slate-300 leading-relaxed" x-text="lessons[lessonIdx]?.text"></p>
+          <div class="flex items-center gap-3 pt-2">
+            <button @click="runLesson(lessonIdx)" class="px-4 py-2 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950 transition-colors">
+              Load & Run This Lesson
+            </button>
+            <button @click="nextLesson()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-white transition-colors" x-show="lessonIdx < lessons.length - 1">
+              Next Lesson →
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Sparky Robot Mascot Floating Assistant -->
+  <div class="sparky-widget" x-show="$store.app.sparkyVisible">
+    <div class="sparky-bubble" x-show="$store.app.sparkySpeechOpen" x-transition>
+      <div class="flex items-start justify-between gap-2">
+        <strong class="text-amber-400 font-bold text-xs uppercase tracking-wider">Sparky's Tip</strong>
+        <button @click="$store.app.toggleSparky()" class="text-slate-400 hover:text-white text-xs">✕</button>
+      </div>
+      <p class="text-slate-200 text-xs mt-1">
+        Light a fire in 0g space, then put it out with the extinguisher. Switch on Heat Vision to find the hidden cool flame!
+      </p>
+    </div>
+    <div class="sparky-avatar" @click="$store.app.toggleSparky()" title="Click Sparky for tips!">
+      <div id="sparky-avatar-slot"></div>
+    </div>
+  </div>
+
+  <!-- Badge Drawer / Trophy Modal -->
+  <div x-show="$store.app.trophyOpen"
+       x-transition.opacity
+       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+       style="display: none;">
+    <div class="glass-panel w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden border border-slate-700" @click.outside="$store.app.trophyOpen = false">
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="trophy" class="w-5 h-5 text-amber-400"></i>
+          <h3 class="text-lg font-bold text-white">Trophy Room & Badges</h3>
+        </div>
+        <button @click="$store.app.trophyOpen = false" class="text-slate-400 hover:text-white p-1">✕</button>
+      </div>
+      <div class="p-6 overflow-y-auto space-y-6">
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+          <div class="flex justify-between items-center mb-2">
+            <div>
+              <span class="text-xs text-slate-400 uppercase font-mono">Current Rank</span>
+              <p class="text-lg font-extrabold text-amber-400" x-text="`Level ${$store.app.currentLevel.level} — ${$store.app.currentLevel.title}`"></p>
+            </div>
+            <span class="text-sm font-mono text-white" x-text="`${$store.app.xp} XP`"></span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+            <div class="bg-gradient-to-r from-amber-500 to-orange-500 h-2.5 rounded-full transition-all duration-500" :style="`width: ${$store.app.currentLevel.progress * 100}%`"></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <template x-for="b in $store.app.allBadges" :key="b.id">
+            <div :class="$store.app.badges.includes(b.id) ? 'border-amber-500/60 bg-amber-500/10' : 'border-slate-800 bg-slate-900/40 opacity-50'"
+                 class="p-3 rounded-xl border flex flex-col items-center text-center">
+              <i :data-lucide="b.icon || 'award'" class="w-6 h-6 text-amber-400 mb-1.5"></i>
+              <span class="text-xs font-bold text-white" x-text="b.name"></span>
+              <span class="text-[10px] text-slate-400 mt-1" x-text="b.desc"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container">
+    <template x-for="t in $store.app.toasts" :key="t.id">
+      <div class="toast-msg">
+        <i :data-lucide="t.kind === 'badge' ? 'award' : 'zap'" class="w-6 h-6 text-amber-400 shrink-0"></i>
+        <div>
+          <p class="font-bold text-xs text-white" x-text="t.title"></p>
+          <p class="text-[11px] text-slate-300" x-text="t.text"></p>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <!-- Page Specific Logic (executes before deferred Alpine.js) -->
+  <script>
+    if (document.getElementById('sparky-avatar-slot') && typeof renderSparkySvg === 'function') {
+      document.getElementById('sparky-avatar-slot').innerHTML = renderSparkySvg(70);
+    }
+
+    window.flameLabPage = function() {
+      return {
+        tab: 'explore',
+        places: [],
+        materials: [],
+        lessons: [],
+        lessonIdx: 0,
+        currentPlace: { id: 'moon', name: 'Moon base', gravity: 0.16, o2: 34 },
+        gravity: 0.16,
+        o2: 34,
+        selectedMaterial: { id: 'paper', name: 'Paper', loi: 18, flam: 1 },
+        burning: false,
+        heatVision: false,
+        fuelLeft: 100,
+        alarmTriggered: false,
+        labSim: null,
+
+        get currentExplanation() {
+          const flame = computeFlame({ gravity: this.gravity, o2: this.o2, material: this.selectedMaterial });
+          return explain({
+            status: this.burning ? 'burning' : 'out',
+            gravity: this.gravity,
+            o2: this.o2,
+            coolFlame: this.labSim?.getState().coolFlame || false,
+            heatVision: this.heatVision,
+            fizzled: this.o2 < this.selectedMaterial.loi,
+            burnedOut: this.fuelLeft <= 0
+          }, flame);
+        },
+
+        async init() {
+          try {
+            const res = await fetch('./data/lab.json');
+            if (res.ok) {
+              const data = await res.json();
+              this.places = data.places || [];
+              this.materials = data.labMaterials || [];
+              this.lessons = data.lessons || [];
+              if (this.materials.length) this.selectedMaterial = this.materials[0];
+            }
+          } catch(e) {}
+
+          this.$nextTick(() => {
+            const container = document.getElementById('flame-lab-container');
+            this.labSim = initFlameLab3D(container, {
+              gravity: this.gravity,
+              o2: this.o2,
+              material: this.selectedMaterial
+            });
+            lucide.createIcons();
+
+            // Track fuel consumption
+            setInterval(() => {
+              if (this.labSim) {
+                const st = this.labSim.getState();
+                this.fuelLeft = st.fuelLeft;
+                this.burning = st.burning;
+                if (st.alarm && !this.alarmTriggered) {
+                  this.alarmTriggered = true;
+                  Alpine.store('app').unlockBadge('alarm-raiser');
+                }
+              }
+            }, 200);
+          });
+        },
+
+        ignite() {
+          if (!this.labSim) return;
+          this.burning = true;
+          this.labSim.ignite();
+          Alpine.store('app').addXp(10, 'Fire ignited in lab');
+          Alpine.store('app').unlockBadge('first-light');
+
+          if (this.gravity < 0.05) {
+            Alpine.store('app').unlockBadge('space-ball');
+          }
+          if (this.currentPlace.id === 'moon' && this.selectedMaterial.id === 'nomex') {
+            Alpine.store('app').unlockBadge('moon-fire');
+          }
+        },
+
+        extinguish() {
+          if (!this.labSim) return;
+          this.labSim.extinguish();
+          this.burning = false;
+          Alpine.store('app').addXp(15, 'Fire suppressed with CO₂');
+          Alpine.store('app').unlockBadge('firefighter');
+        },
+
+        resetFuel() {
+          if (!this.labSim) return;
+          this.labSim.resetFuel();
+          this.fuelLeft = 100;
+          this.burning = false;
+          this.alarmTriggered = false;
+        },
+
+        toggleHeatVision() {
+          this.heatVision = !this.heatVision;
+          if (this.labSim) this.labSim.setHeatVision(this.heatVision);
+          if (this.heatVision && this.labSim?.getState().coolFlame) {
+            Alpine.store('app').unlockBadge('ghost-buster');
+            Alpine.store('app').addXp(30, 'Revealed hidden cool flame!');
+          }
+        },
+
+        selectPlace(place) {
+          this.currentPlace = place;
+          this.gravity = place.gravity;
+          this.o2 = place.o2;
+          this.updateSim();
+        },
+
+        selectMaterial(mat) {
+          this.selectedMaterial = mat;
+          this.updateSim();
+        },
+
+        updateSim() {
+          if (this.labSim) {
+            this.labSim.updateEnvironment({
+              gravity: this.gravity,
+              o2: this.o2,
+              material: this.selectedMaterial
+            });
+          }
+          if (this.o2 < this.selectedMaterial.loi && this.burning) {
+            Alpine.store('app').unlockBadge('starver');
+          }
+        },
+
+        syncWithPhase(p) {
+          this.gravity = p.gravity;
+          this.o2 = p.o2;
+          this.updateSim();
+        },
+
+        runLesson(idx) {
+          const l = this.lessons[idx];
+          if (!l) return;
+          if (l.setup.placeId) {
+            const p = this.places.find(x => x.id === l.setup.placeId);
+            if (p) this.selectPlace(p);
+          }
+          if (l.setup.materialId) {
+            const m = this.materials.find(x => x.id === l.setup.materialId);
+            if (m) this.selectMaterial(m);
+          }
+          this.resetFuel();
+          setTimeout(() => {
+            if (l.action === 'ignite') this.ignite();
+            if (l.action === 'ignite-then-spray') {
+              this.ignite();
+              setTimeout(() => this.extinguish(), 1500);
+            }
+          }, 300);
+        },
+
+        nextLesson() {
+          if (this.lessonIdx < this.lessons.length - 1) {
+            this.lessonIdx++;
+            this.runLesson(this.lessonIdx);
+          }
+        }
+      };
+    };
+
+    function registerFlameLabComponents() {
+      if (typeof Alpine !== 'undefined' && typeof Alpine.data === 'function') {
+        Alpine.data('flameLabPage', window.flameLabPage);
+      }
+    }
+    document.addEventListener('alpine:init', registerFlameLabComponents);
+    if (typeof Alpine !== 'undefined' && typeof Alpine.data === 'function') {
+      registerFlameLabComponents();
+    }
+  </script>
+
+  <!-- Alpine.js CDN (Loaded at bottom with defer to guarantee everything is registered first) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+{
+  "levels": [
+    { "level": 1, "title": "Cadet", "xp": 0 },
+    { "level": 2, "title": "Spark Spotter", "xp": 60 },
+    { "level": 3, "title": "Flame Tracker", "xp": 150 },
+    { "level": 4, "title": "Fire Scientist", "xp": 280 },
+    { "level": 5, "title": "Habitat Guardian", "xp": 450 },
+    { "level": 6, "title": "Mission Fire Chief", "xp": 680 }
+  ],
+  "badges": [
+    { "id": "explorer", "name": "Solar Explorer", "desc": "Visit all 5 mission phases", "section": "overview", "icon": "rocket", "source": "PSI-68" },
+    { "id": "risk-reader", "name": "Risk Reader", "desc": "Guess the riskiest mission phase", "section": "overview", "icon": "gauge", "source": "PSI-68" },
+    { "id": "first-light", "name": "First Light", "desc": "Light your first fire in the Flame Lab", "section": "lab", "icon": "flame", "source": "PSI-26" },
+    { "id": "space-ball", "name": "Space Ball", "desc": "Make a round flame in microgravity", "section": "lab", "icon": "orbit", "source": "PSI-69" },
+    { "id": "alarm-raiser", "name": "Alarm Raiser", "desc": "Set off the ceiling smoke alarm", "section": "lab", "icon": "bell-ring", "source": "PSI-47" },
+    { "id": "firefighter", "name": "Firefighter", "desc": "Put out a fire with the extinguisher", "section": "lab", "icon": "spray-can", "source": "NTRS 20240002981" },
+    { "id": "ghost-buster", "name": "Ghost Buster", "desc": "Reveal a hidden cool flame with heat vision", "section": "lab", "icon": "scan-eye", "source": "PSI-117" },
+    { "id": "starver", "name": "Oxygen Starver", "desc": "Make a fire go out by lowering oxygen", "section": "lab", "icon": "wind", "source": "PSI-68" },
+    { "id": "moon-fire", "name": "Moon Fire", "desc": "Burn fire-safe fabric at a Moon base", "section": "lab", "icon": "moon", "source": "PSI-26" },
+    { "id": "storm-watcher", "name": "Storm Watcher", "desc": "Make 3 correct shelter calls in Solar Flare Watch", "section": "solar", "icon": "sun", "source": "DONKI" },
+    { "id": "aurora-hunter", "name": "Aurora Hunter", "desc": "Make the aurora visible from a city below 45° latitude", "section": "earth", "icon": "sparkles", "source": "DONKI" },
+    { "id": "detective", "name": "Fire Detective", "desc": "Win 3 Burn Race predictions", "section": "ranker", "icon": "search", "source": "PSI-26" },
+    { "id": "gap-filler", "name": "Gap Filler", "desc": "Score 3 stars in Gravity Guess", "section": "gravity", "icon": "target", "source": "PSI-69" },
+    { "id": "ghost-hunter", "name": "Ghost Flame Hunter", "desc": "Find 5 cool flames in the radar hunt", "section": "radar", "icon": "radar", "source": "PSI-159" },
+    { "id": "scholar", "name": "Space Scholar", "desc": "Score 5+ in the FireGPT quiz", "section": "firegpt", "icon": "graduation-cap", "source": "NTRS 20150023456" },
+    { "id": "planner", "name": "Mission Planner", "desc": "Earn 3 stars planning NASA’s next tests", "section": "gaps", "icon": "map", "source": "PSI-47" }
+  ],
+  "missions": [
+    { "id": "m1", "title": "Liftoff", "desc": "Earn your first 3 badges", "need": 3 },
+    { "id": "m2", "title": "Lab rat", "desc": "Collect all 7 Flame Lab badges", "lab": true },
+    { "id": "m3", "title": "All-rounder", "desc": "Earn a badge in every section", "everySection": true },
+    { "id": "m4", "title": "Fire Chief", "desc": "Unlock every badge", "need": 16 }
+  ],
+  "quiz": [
+    {
+      "q": "What shape is a candle flame on the space station?",
+      "options": ["A tall teardrop", "A round ball", "A flat square", "It cannot burn"],
+      "answer": 1,
+      "why": "Without gravity, hot gas does not rise, so the flame spreads evenly into a ball.",
+      "cite": "PSI-69 FLEX"
+    },
+    {
+      "q": "Why are space flames often blue?",
+      "options": ["Space is cold", "Less soot is made, so less yellow glow", "Astronauts add dye", "Oxygen is blue"],
+      "answer": 1,
+      "why": "Yellow comes from glowing soot. Slow-moving 0g flames make much less soot.",
+      "cite": "PSI-26 BASS"
+    },
+    {
+      "q": "A proposed Moon habitat has about how much oxygen?",
+      "options": ["10%", "21% like Earth", "34%", "80%"],
+      "answer": 2,
+      "why": "Artemis designs use about 34% O₂ at 8.2 psi, so materials burn more easily.",
+      "cite": "PSI-68 FLEX-2"
+    },
+    {
+      "q": "What is a \"cool flame\"?",
+      "options": ["A flame in a fridge", "A nearly invisible low-temperature flame", "A blue candle", "Smoke"],
+      "answer": 1,
+      "why": "Cool flames burn around 500–800 K and give off almost no light.",
+      "cite": "PSI-159 CFI-G"
+    },
+    {
+      "q": "Why can ceiling smoke alarms struggle in space?",
+      "options": ["No batteries", "Smoke does not rise to the ceiling", "Too much noise", "They melt"],
+      "answer": 1,
+      "why": "With no buoyancy, smoke drifts slowly in every direction instead of rising.",
+      "cite": "PSI-47 DAFT"
+    },
+    {
+      "q": "How long can a message to Earth take from Mars?",
+      "options": ["1 second", "1 minute", "Up to about 20 minutes", "1 week"],
+      "answer": 2,
+      "why": "Mars can be up to ~20 light-minutes away, so crews must act on their own.",
+      "cite": "NTRS API"
+    },
+    {
+      "q": "Which gravity level has the LEAST fire test data?",
+      "options": ["Earth (1g)", "Space station (0g)", "Mars (0.38g)", "They are equal"],
+      "answer": 2,
+      "why": "Almost no experiments exist at Moon or Mars gravity. That is the research gap.",
+      "cite": "PSI-26 BASS"
+    }
+  ],
+  "kidSections": {
+    "overview": {
+      "nav": "Mission Map",
+      "title": "Can fire burn in space?",
+      "tip": "Tap the stops on the map to fly the rocket! Which place do you think is the most dangerous for fire?"
+    },
+    "lab": {
+      "nav": "Fire Lab",
+      "title": "Fire Lab: light a fire in space!",
+      "desc": "Pick a place, pick something to burn, and press Light it! Watch how the flame changes on Earth, in space, on the Moon and on Mars.",
+      "tip": "Press \"Start\" to learn with me, step by step. Then try to finish all 7 lab challenges!"
+    },
+    "solar": {
+      "nav": "Sun Blasts",
+      "title": "Sun Blasts! (real NASA data)",
+      "desc": "Sometimes the Sun blasts out light and tiny fast particles. These are called solar flares. Pick a real one from NASA and watch it fly to the astronauts!",
+      "tip": "Play \"Storm Shelter\": when the alarm rings, decide fast! Should the astronauts hide or keep working?"
+    },
+    "earth": {
+      "nav": "Storm vs Earth",
+      "title": "What happens when a Sun storm hits Earth?",
+      "desc": "Make your own Sun storm! Pick how big it is, then press Launch and watch Earth’s invisible shield, the northern lights and the satellites.",
+      "tip": "Try the \"Carrington 1859\" storm. Can you make the northern lights shine over your city?"
+    },
+    "ranker": {
+      "nav": "Burn Race",
+      "title": "Burn Race: which one burns faster?",
+      "desc": "Some things burn fast and some hardly burn at all. Pick two, guess the winner, and watch the race!",
+      "tip": "Tip: fire-safe fabric and Teflon are very hard to burn. Guess right 3 times to become a Fire Detective!"
+    },
+    "gravity": {
+      "nav": "Gravity Guess",
+      "title": "Gravity Guess: fire on the Moon and Mars",
+      "desc": "Scientists tested fire in space and on Earth, but never on the Moon or Mars! Can you guess what happens there?",
+      "tip": "Look at the yellow dots on the left (space) and right (Earth). Your guess goes in the middle!"
+    },
+    "radar": {
+      "nav": "Ghost Flames",
+      "title": "Ghost Flame Hunt",
+      "desc": "Some flames are invisible! They are called cool flames. Use your radar to find them before your scans run out.",
+      "tip": "Ghost flames hide between the \"no fire\" squares and the \"hot flame\" squares. Look at the edges!"
+    },
+    "firegpt": {
+      "nav": "Quiz Time",
+      "title": "Quiz Time with FireGPT",
+      "desc": "Answer fun questions about fire in space. You can also ask FireGPT anything!",
+      "tip": "Get 3 right in a row for a streak bonus! 5 or more earns the Space Scholar badge."
+    },
+    "gaps": {
+      "nav": "Plan Tests",
+      "title": "Be a NASA scientist: plan the next tests",
+      "desc": "The red striped squares are places nobody has tested yet. You can pay for 3 experiments. Which ones will teach NASA the most?",
+      "tip": "The Moon and Mars rows are super important, because astronauts will live there!"
+    },
+    "sources": {
+      "nav": "Space Cards",
+      "title": "Your Space Card collection",
+      "desc": "Every badge you earn flips a real NASA science card. Can you collect them all?",
+      "tip": "Open the trophy (top right) to see which badges you still need!"
+    }
+  },
+  "welcomeSteps": [
+    { "title": "Hi, I’m Sparky!", "text": "I’m a robot firefighter. Fire acts super weird in space, and I need your help to learn about it!" },
+    { "title": "Play and explore", "text": "Every part of this page is a game. Light fires, race materials, hunt invisible flames and launch Sun storms!" },
+    { "title": "Earn badges", "text": "Play to win stars, XP and badges. Collect all the Space Cards to become Mission Fire Chief!" }
+  ]
+}

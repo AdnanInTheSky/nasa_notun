@@ -1,0 +1,70 @@
+{
+  "presets": [
+    { "id": "quiet", "name": "Quiet day", "level": 2.3, "hit": "miss", "speed": 400, "bz": 2, "density": 5, "blurb": "A small C-flare and a calm solar wind." },
+    {
+      "id": "m-flare",
+      "name": "Strong M-flare",
+      "level": 3.5,
+      "hit": "glancing",
+      "speed": 800,
+      "bz": -16,
+      "density": 12,
+      "blurb": "A common storm that happens a few times a year."
+    },
+    {
+      "id": "gannon",
+      "name": "May 2024 storm",
+      "level": 4.9,
+      "hit": "direct",
+      "speed": 1300,
+      "bz": -45,
+      "density": 35,
+      "blurb": "The \"Gannon storm\": auroras seen as far south as Mexico and India."
+    },
+    {
+      "id": "halloween",
+      "name": "Halloween 2003",
+      "level": 5.45,
+      "hit": "direct",
+      "speed": 2000,
+      "bz": -30,
+      "density": 20,
+      "blurb": "An X28 flare, one of the biggest ever measured. Satellites were damaged."
+    },
+    {
+      "id": "carrington",
+      "name": "Carrington 1859",
+      "level": 5.65,
+      "hit": "direct",
+      "speed": 2400,
+      "bz": -60,
+      "density": 50,
+      "blurb": "The biggest storm on record. Telegraph wires sparked and auroras reached Cuba."
+    }
+  ],
+  "cities": [
+    { "name": "Dhaka", "lat": 23.8 },
+    { "name": "Miami", "lat": 25.8 },
+    { "name": "Cairo", "lat": 30 },
+    { "name": "Tokyo", "lat": 35.7 },
+    { "name": "New York", "lat": 40.7 },
+    { "name": "London", "lat": 51.5 },
+    { "name": "Oslo", "lat": 59.9 },
+    { "name": "Reykjavík", "lat": 64.1 },
+    { "name": "Sydney", "lat": -33.9 }
+  ],
+  "defaultInputs": {
+    "level": 3.5,
+    "hit": "glancing",
+    "speed": 800,
+    "bz": -10,
+    "density": 12,
+    "cityLat": 23.8,
+    "cityName": "Dhaka"
+  },
+  "scaleText": {
+    "R": ["None", "Minor", "Moderate", "Strong", "Severe", "Extreme"],
+    "S": ["None", "Minor", "Moderate", "Strong", "Severe", "Extreme"],
+    "G": ["None", "Minor", "Moderate", "Strong", "Severe", "Extreme"]
+  }
+}

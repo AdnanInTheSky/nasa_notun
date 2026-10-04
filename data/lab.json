@@ -1,0 +1,61 @@
+{
+  "places": [
+    { "id": "earth", "name": "Earth", "gravity": 1, "o2": 21, "blurb": "Strong gravity. Hot air rises fast." },
+    { "id": "orbit", "name": "Space station", "gravity": 0, "o2": 21, "blurb": "Everything floats. There is no \"up\"." },
+    { "id": "moon", "name": "Moon base", "gravity": 0.16, "o2": 34, "blurb": "1/6 of Earth gravity, extra oxygen." },
+    { "id": "mars", "name": "Mars base", "gravity": 0.38, "o2": 34, "blurb": "About 1/3 of Earth gravity." }
+  ],
+  "phaseToPlace": {
+    "iss": "orbit",
+    "gateway": "orbit",
+    "transit": "orbit",
+    "moon": "moon",
+    "mars": "mars"
+  },
+  "labMaterials": [
+    { "id": "paper", "name": "Paper", "loi": 18, "flam": 1, "color": "#efe3c4", "kind": "solid", "fact": "Paper is made of wood fibers, so it catches fire very easily." },
+    { "id": "cotton", "name": "Cotton shirt", "loi": 19, "flam": 0.85, "color": "#8fb8ff", "kind": "solid", "fact": "Cotton comes from a plant. It burns easily, so astronauts wear special fabrics." },
+    { "id": "acrylic", "name": "Plastic (acrylic)", "loi": 17, "flam": 0.9, "color": "#b9ecff", "kind": "solid", "fact": "Astronauts burned acrylic on the space station in the BASS experiment to watch flames spread." },
+    { "id": "nomex", "name": "Fire-safe fabric", "loi": 28, "flam": 0.6, "color": "#e6bf45", "kind": "solid", "fact": "Nomex is used in firefighter and astronaut suits. In normal air it puts itself out!" },
+    { "id": "teflon", "name": "Teflon", "loi": 95, "flam": 0.05, "color": "#f3f3f3", "kind": "solid", "fact": "Teflon almost never burns, even with lots of extra oxygen." },
+    { "id": "droplet", "name": "Fuel droplet", "loi": 14, "flam": 0.8, "color": "#ffcf6b", "kind": "droplet", "fact": "NASA's FLEX experiment burned tiny fuel drops held on a thin thread to study space flames." }
+  ],
+  "lessons": [
+    {
+      "title": "Fire needs three friends",
+      "text": "Every fire needs FUEL (something to burn), HEAT (a spark) and OXYGEN (from the air). Find all three labels in the lab. The little blue pairs are oxygen molecules!",
+      "setup": { "placeId": "earth", "materialId": "paper", "labels": true, "heatVision": false },
+      "action": "ignite"
+    },
+    {
+      "title": "Hot air rises",
+      "text": "Watch the grey smoke float straight up and set off the smoke alarm on the ceiling. Gravity lets hot, light air rise, and that pulls the flame into a teardrop.",
+      "setup": { "placeId": "earth", "materialId": "paper", "labels": true, "heatVision": false },
+      "action": "ignite"
+    },
+    {
+      "title": "Fire in space",
+      "text": "Now we are on the space station. Nothing is \"up\" anymore, so the flame turns into a blue ball and the smoke spreads slowly. Does the smoke alarm beep this time?",
+      "setup": { "placeId": "orbit", "materialId": "droplet", "labels": true, "heatVision": false },
+      "action": "ignite"
+    },
+    {
+      "title": "Moon base: extra oxygen",
+      "text": "On Earth, fire-safe fabric puts itself out. A Moon base may have 34% oxygen, and now it burns! This is why NASA tests materials in the real air astronauts will breathe.",
+      "setup": { "placeId": "moon", "materialId": "nomex", "labels": true, "heatVision": false },
+      "action": "ignite"
+    },
+    {
+      "title": "Sneaky invisible flames",
+      "text": "Let us put out this space fire with the red extinguisher. Watch closely… then switch on Heat vision. Is it really out?",
+      "setup": { "placeId": "orbit", "materialId": "droplet", "labels": false, "heatVision": false },
+      "action": "ignite-then-spray"
+    },
+    {
+      "title": "Your turn, fire scientist!",
+      "text": "Try Mars with plastic, or lower the oxygen until the fire goes out by itself. Can you find the material that never burns?",
+      "setup": { "labels": true },
+      "action": null
+    }
+  ]
+}

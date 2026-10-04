@@ -1,0 +1,15 @@
+{
+  "fuels": [
+    { "id": "heptane", "name": "n-Heptane", "source": "PSI-69 FLEX" },
+    { "id": "decane", "name": "n-Decane", "source": "PSI-68 FLEX-2" },
+    { "id": "dodecane", "name": "n-Dodecane", "source": "PSI-159 CFI-G" },
+    { "id": "methanol", "name": "Methanol", "source": "PSI-69 FLEX" }
+  ],
+  "diluents": [
+    { "id": "n2", "name": "N₂ (air-like)" },
+    { "id": "co2", "name": "CO₂ added" },
+    { "id": "he", "name": "He diluent" }
+  ],
+  "o2Axis": [10, 13, 16, 19, 22, 25, 28, 31, 34, 37, 40],
+  "atmAxis": [3.0, 2.5, 2.0, 1.5, 1.0, 0.75, 0.5]
+}
