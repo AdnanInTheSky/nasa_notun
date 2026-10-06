@@ -35,6 +35,10 @@
   --radius-lg: 20px;
 }
 
+html {
+  background-color: #060911;
+}
+
 html[data-kids] {
   --font-sans: 'Fredoka', 'Space Grotesk', system-ui, sans-serif;
   --radius: 18px;
@@ -48,6 +52,7 @@ body {
   font-size: 16px;
   line-height: 1.5;
   color: var(--text);
+  background-color: #060911;
   background: radial-gradient(1200px 600px at 85% -10%, rgba(255, 106, 43, 0.12), transparent 60%),
     radial-gradient(900px 500px at -10% 20%, rgba(63, 212, 255, 0.08), transparent 60%), var(--bg);
   background-attachment: fixed;

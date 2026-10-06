@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FlameAtlas — Mission Overview | NASA Space Apps 2026</title>
-  <link rel="icon" type="image/svg+xml" href="../hii/src/assets/logo.svg">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js CDN -->
@@ -21,10 +21,7 @@
   <script src="js/unified-assistant.js"></script>
   <link rel="stylesheet" href="styles/main.css">
 </head>
-<body class="text-slate-100 flex min-h-screen" x-data="overviewPage()"
-      @keydown.window.arrow-right="if (tutorialOpen) nextSlide()"
-      @keydown.window.arrow-left="if (tutorialOpen) prevSlide()"
-      @keydown.window.escape="if (tutorialOpen) finishTutorial()">
+<body class="text-slate-100 flex min-h-screen bg-[#060911]" x-data="overviewPage()">
   <div class="starfield" aria-hidden="true"></div>
 
   <!-- Shared Sidebar Navigation -->
@@ -432,7 +429,8 @@
         visitedPhases: [],
 
         get currentConditions() {
-          const p = Alpine.store('app').currentPhase;
+          const app = (typeof Alpine !== 'undefined' && Alpine.store) ? Alpine.store('app') : null;
+          const p = (app && app.currentPhase) ? app.currentPhase : { o2: 34, pressure: 8.2, gravity: 0.16 };
           return { o2: p.o2, pressure: p.pressure, gravity: p.gravity };
         },
 
@@ -454,7 +452,7 @@
 
           this.$nextTick(() => {
             this.initChart();
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
           });
 
           window.addEventListener('phase-changed', () => {
@@ -465,7 +463,15 @@
         initChart() {
           const ctx = document.getElementById('phaseComparisonChart');
           if (!ctx) return;
-          const phases = Alpine.store('app').phases;
+          const app = (typeof Alpine !== 'undefined' && Alpine.store) ? Alpine.store('app') : null;
+          const phases = (app && app.phases) ? app.phases : [
+            { id: 'moon', name: 'Moon Base', gravity: 0.16, o2: 34, pressure: 8.2 },
+            { id: 'mars', name: 'Mars Habitat', gravity: 0.38, o2: 28, pressure: 9.5 },
+            { id: 'transit', name: 'Deep Space Transit', gravity: 0.0, o2: 21, pressure: 14.7 },
+            { id: 'iss', name: 'ISS Low Earth Orbit', gravity: 0.0, o2: 21, pressure: 14.7 },
+            { id: 'gateway', name: 'Lunar Gateway', gravity: 0.0, o2: 30, pressure: 10.2 }
+          ];
+          const curPhaseId = app ? app.currentPhaseId : 'moon';
           const labels = phases.map(p => p.name);
           const data = phases.map(p => cabinRisk(this.materials, { o2: p.o2, pressure: p.pressure, gravity: p.gravity }));
 
@@ -475,7 +481,7 @@
               labels,
               datasets: [{
                 data,
-                backgroundColor: phases.map(p => p.id === Alpine.store('app').currentPhaseId ? '#ff6a2b' : '#1e2944'),
+                backgroundColor: phases.map(p => p.id === curPhaseId ? '#ff6a2b' : '#1e2944'),
                 borderRadius: 6
               }]
             },
@@ -493,9 +499,11 @@
 
         updateChartHighlight() {
           if (!this.chart) return;
-          const phases = Alpine.store('app').phases;
+          const app = (typeof Alpine !== 'undefined' && Alpine.store) ? Alpine.store('app') : null;
+          const phases = (app && app.phases) ? app.phases : [];
+          const curPhaseId = app ? app.currentPhaseId : 'moon';
           this.chart.data.datasets[0].backgroundColor = phases.map(p => 
-            p.id === Alpine.store('app').currentPhaseId ? '#ff6a2b' : '#1e2944'
+            p.id === curPhaseId ? '#ff6a2b' : '#1e2944'
           );
           this.chart.update();
         }

@@ -286,9 +286,7 @@ function registerFlameAtlasStore() {
   if (appStoreRegistered) return;
   if (typeof Alpine !== 'undefined' && typeof Alpine.store === 'function') {
     try {
-      if (!Alpine.store('app')) {
-        Alpine.store('app', getFlameAtlasStore());
-      }
+      Alpine.store('app', getFlameAtlasStore());
       appStoreRegistered = true;
       if (typeof window !== 'undefined') {
         injectMobileNav();
