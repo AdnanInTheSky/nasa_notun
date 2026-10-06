@@ -105,24 +105,29 @@ module.exports = async function handler(req, res) {
 
   // Fallback to verified local snapshot
   try {
-    const snapshotPath = path.join(__dirname, '..', 'data', 'donki-snapshot.json');
-    if (fs.existsSync(snapshotPath)) {
-      const raw = fs.readFileSync(snapshotPath, 'utf8');
-      const snapData = JSON.parse(raw);
-      if (Array.isArray(snapData) && snapData.length > 0) {
-        const flares = snapData.map(normalizeFlare).sort((a, b) => new Date(a.peak) - new Date(b.peak));
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({
-          ok: true,
-          count: flares.length,
-          source: 'NASA DONKI Verified Snapshot (Server-Side Fallback)',
-          live: false,
-          asOf: '2026-09-26T00:00:00.000Z',
-          flares
-        }));
-        return;
+    let snapData = null;
+    try {
+      snapData = require('../data/donki-snapshot.json');
+    } catch (reqErr) {
+      const snapshotPath = path.join(__dirname, '..', 'data', 'donki-snapshot.json');
+      if (fs.existsSync(snapshotPath)) {
+        snapData = JSON.parse(fs.readFileSync(snapshotPath, 'utf8'));
       }
+    }
+
+    if (Array.isArray(snapData) && snapData.length > 0) {
+      const flares = snapData.map(normalizeFlare).sort((a, b) => new Date(a.peak) - new Date(b.peak));
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({
+        ok: true,
+        count: flares.length,
+        source: 'NASA DONKI Verified Snapshot (Server-Side Fallback)',
+        live: false,
+        asOf: '2026-09-26T00:00:00.000Z',
+        flares
+      }));
+      return;
     }
   } catch (snapErr) {
     // If snapshot read fails, return error

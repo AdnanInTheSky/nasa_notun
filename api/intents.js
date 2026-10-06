@@ -11,9 +11,15 @@ const fs = require('fs');
 const path = require('path');
 
 function loadIntents() {
-  const filePath = path.join(__dirname, '..', 'data', 'intents.json');
-  if (fs.existsSync(filePath)) {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  try {
+    return require('../data/intents.json');
+  } catch (e) {
+    try {
+      const filePath = path.join(__dirname, '..', 'data', 'intents.json');
+      if (fs.existsSync(filePath)) {
+        return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      }
+    } catch (fsErr) {}
   }
   return { kb: [], page_intents: {} };
 }
