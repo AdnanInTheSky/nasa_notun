@@ -30,6 +30,7 @@
   <script src="js/shared.js"></script>
   <script src="js/space-craft-sim.js"></script>
   <script src="js/space-craft-3d.js"></script>
+  <script src="js/unified-assistant.js"></script>
   <link rel="stylesheet" href="styles/main.css">
 
   <style>
@@ -131,6 +132,10 @@
         <a href="sources.html" class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
           <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
           <span x-text="$store.app.kids ? 'Space Cards' : 'Data Sources'"></span>
+        </a>
+        <a href="api-docs.html" class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="code-2" class="w-4 h-4 text-cyan-400"></i>
+          <span>API & Data Explorer</span>
         </a>
       </nav>
     </div>
@@ -736,10 +741,10 @@
             </div>
             <div>
               <h3 class="font-bold text-sm text-white flex items-center gap-2">
-                <span>AURA — Autonomous Utility & Rescue Assistant</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 font-mono">FireGPT Flight AI</span>
+                <span>FireGPT — Unified Flight & Tactical AI Assistant</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 font-mono">Unified Intelligence</span>
               </h3>
-              <p class="text-xs text-slate-400">Real-time situational awareness citing NASA BASS, FLEX, Saffire & ECLSS flight rules</p>
+              <p class="text-xs text-slate-400">AURA real-time telemetry, /data/intents.json knowledge base & /api/openai serverless fallback</p>
             </div>
           </div>
 
@@ -1082,6 +1087,9 @@
         init() {
           // Initialize Physics & Simulation Engine
           this.sim = new SpacecraftSimulation();
+          if (window.unifiedAssistant && typeof window.unifiedAssistant.attachSimulation === 'function') {
+            window.unifiedAssistant.attachSimulation(this.sim);
+          }
           this.chatbot = new AuraChatbot(this.sim);
           this.materials = window.MATERIAL_DATABASE || {};
 
@@ -1336,23 +1344,36 @@
           this.askAura(query);
         },
 
-        askAura(query) {
+        async askAura(query) {
           this.chatMessages.push({ sender: 'user', text: query });
 
-          setTimeout(() => {
-            const resp = this.chatbot.ask(query);
+          let resp = null;
+          try {
+            if (window.unifiedAssistant && typeof window.unifiedAssistant.ask === 'function') {
+              const history = this.chatMessages.map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', text: m.text }));
+              resp = await window.unifiedAssistant.ask(query, history);
+            }
+          } catch (e) {
+            console.warn('Unified assistant query error:', e);
+          }
+
+          if (!resp && this.chatbot) {
+            resp = this.chatbot.ask(query);
+          }
+
+          if (resp) {
             this.chatMessages.push({
               sender: 'aura',
               text: resp.reply,
               citations: resp.citations || []
             });
+          }
 
-            this.$nextTick(() => {
-              const el = document.getElementById('chat-messages-container');
-              if (el) el.scrollTop = el.scrollHeight;
-              lucide.createIcons();
-            });
-          }, 350);
+          this.$nextTick(() => {
+            const el = document.getElementById('chat-messages-container');
+            if (el) el.scrollTop = el.scrollHeight;
+            lucide.createIcons();
+          });
         },
 
         openAuraChat(promptText) {

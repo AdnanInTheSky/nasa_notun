@@ -1,0 +1,404 @@
+{
+  "version": "1.0.0",
+  "name": "FlameAtlas Unified Intents Database",
+  "description": "Shared common intents and knowledge base for FireGPT and Aura Unified Assistant",
+  "default_fallback": "I could not find an exact match in the FlameAtlas verified NASA intents database. Querying OpenAI serverless fallback...",
+  "suggested_global": [
+    "Explain what is shown on this page",
+    "How does fire behave in zero gravity?",
+    "Will Nomex burn in 34% oxygen?",
+    "Why are cool flames invisible?",
+    "What are the emergency fire suppression protocols?"
+  ],
+  "page_intents": {
+    "index.html": {
+      "pageName": "Mission Overview",
+      "summary": "The Mission Overview dashboard monitors real-time environmental risk across five mission architectures (ISS, Lunar Gateway, Artemis Moon Base, Mars Transit, and Mars Surface Habitat). It calculates overall cabin fire risk by synthesizing atmospheric oxygen fraction, ambient pressure, gravity buoyancy, and communication lag.",
+      "suggested": [
+        "Explain the Mission Overview page",
+        "How is the cabin fire risk score calculated?",
+        "Why is Moon Base risk higher than ISS?",
+        "What is the Mission Journey Map?"
+      ],
+      "intents": [
+        {
+          "id": "page-overview-explain",
+          "keys": ["overview", "page", "dashboard", "this page", "mission overview", "risk gauge"],
+          "questions": ["Explain this page", "What is the mission overview dashboard?"],
+          "answer": "This is the **Mission Overview** dashboard. It provides a top-level tactical assessment of cabin fire risk across NASA's deep space exploration environments.\n\n• **Dynamic Risk Gauge**: Evaluates fire propagation hazard based on active habitat variables (gravity, O₂ %, pressure, and ground comms latency).\n• **Atmospheric Variables**: Displays current cabin pressure (psi/kPa), oxygen concentration (21% to 34%), and gravity level (0g to 1g).\n• **Mission Journey Map**: An interactive simulation where you navigate a flight profile from Low Earth Orbit to Mars, balancing environmental risks at each waypoint.",
+          "citations": ["NASA SP-2016-ECLSS", "NASA Exploration Atmospheres", "NASA-STD-6001B"],
+          "confidence": 0.98
+        },
+        {
+          "id": "overview-moon-vs-iss",
+          "keys": ["moon", "iss", "higher", "risk", "difference"],
+          "questions": ["Why is Moon Base risk higher than ISS?"],
+          "answer": "The proposed Artemis Moon Habitat operates at a reduced pressure of **8.2 psi (56.5 kPa)** and an elevated oxygen concentration of **34% O₂** to minimize spacewalk pre-breathe times. This high oxygen partial pressure ($P_{O_2} \\approx 19.2\\text{ kPa}$) significantly lowers the ignition energy of fabrics and plastics like Nomex and PMMA. Combined with lunar gravity ($0.16g$) which provides buoyant oxidizer flow to feed the flame, fires spread faster than in normal ISS air (21% O₂ at 14.7 psi).",
+          "citations": ["NASA/SP-2010-3407", "PSI-26 BASS", "NTRS 20150023456"],
+          "confidence": 0.95
+        }
+      ]
+    },
+    "flame-lab.html": {
+      "pageName": "Flame Lab 3D",
+      "summary": "Flame Lab 3D is a photorealistic WebGL/Three.js combustion chamber running custom GLSL shaders that simulate the transition of fire from Earth's flickering buoyant teardrop into microgravity's spherical blue diffusion ball.",
+      "suggested": [
+        "Explain the Flame Lab 3D page",
+        "Why does a 0g flame turn into a blue sphere?",
+        "How do cool flames work in the lab?",
+        "What happens when I use the CO2 extinguisher?"
+      ],
+      "intents": [
+        {
+          "id": "page-lab-explain",
+          "keys": ["flame lab", "lab", "this page", "simulator", "3d flame", "chamber"],
+          "questions": ["Explain the Flame Lab 3D page", "What can I do in the flame lab?"],
+          "answer": "The **Flame Lab 3D** simulates combustion kinetics under variable planetary gravities ($0g$, $0.16g$, $0.38g$, $1g$) and atmospheres:\n\n• **GLSL Shader Simulation**: Renders buoyant convection plumes on Earth ($1g$) versus isotropic spherical diffusion flames in orbit ($0g$).\n• **Material Testing**: Test materials like Paper, Cotton, Acrylic, Nomex, and Fuel Droplets.\n• **Extinguisher Simulation**: Spray CO₂ to observe suppressant gas dynamics and thermal quenching.\n• **Infrared Heat Vision**: Toggle heat vision to reveal hidden cool flames that emit no visible soot radiation.\n• **Interactive Lessons**: 6 guided experiments covering the fire triangle, buoyancy, and spacecraft safety.",
+          "citations": ["NASA Glenn Zero-G Facility", "PSI-69 FLEX", "PSI-26 BASS"],
+          "confidence": 0.98
+        },
+        {
+          "id": "lab-flame-shape",
+          "keys": ["blue", "sphere", "shape", "teardrop", "0g vs 1g", "buoyancy"],
+          "questions": ["Why does a 0g flame turn into a blue sphere?", "Explain flame shape differences between 0g and 1g"],
+          "answer": "On Earth ($1g$), hot combustion gases are less dense than cold ambient air, creating buoyant convection ($Gr > 10^4$). This pulls fresh oxygen upward into the base of the fire and stretches the flame into an elongated, flickering yellow teardrop.\n\nIn microgravity ($0g$), buoyancy vanishes ($Gr = 0$). Convection ceases completely. The flame relies purely on **molecular diffusion** for oxygen transport. Because diffusion is isotropic (equal in all directions), the flame forms a tranquil, steady **spherical blue ball**. Soot formation drops because residence time and fuel vaporization balance evenly, shifting radiation from yellow soot incandescence to blue CH* and C₂* radical chemiluminescence.",
+          "citations": ["PSI-26 BASS", "PSI-69 FLEX", "NASA Microgravity Combustion Science"],
+          "confidence": 0.97
+        }
+      ]
+    },
+    "space-craft.html": {
+      "pageName": "Spacecraft Simulation (NSS Prometheus)",
+      "summary": "Interactive 3D simulation of a modular deep-space spacecraft with rotating artificial gravity centrifuge ring (1.0g at 8 RPM), 6 compartmentalized modules, multi-material fire spread kinetics, dual redundant electronics bus (120V primary / 28V GaN rad-hard backup), and solar EMP blast modeling.",
+      "suggested": [
+        "Explain the Spacecraft Simulation page",
+        "Where is the fire and what is burning?",
+        "How do I resolve the thermal runaway in Power Core?",
+        "Why did the solar flare fry our avionics?",
+        "What will happen to artificial gravity if we abandon the Centrifuge?",
+        "What is the section abandonment protocol?"
+      ],
+      "intents": [
+        {
+          "id": "page-craft-explain",
+          "keys": ["spacecraft", "prometheus", "this page", "craft", "simulation", "modules"],
+          "questions": ["Explain the Spacecraft Simulation page", "What is NSS Prometheus?"],
+          "answer": "The **Spacecraft Fire & Solar EMP Simulator** models the deep-space vessel *NSS Prometheus* across 6 compartmentalized modules:\n\n• **Artificial Gravity Centrifuge (1.0g)**: Rotates at 8 RPM to generate artificial gravity, changing flame behavior from spherical balls in the spine to buoyant flames in the ring.\n• **Material Pyrolysis & Fire Kinetics**: Simulates ignition, HRR, smoke optical density, and toxic gas release (CO, HCN) for Kapton, Lithium-ion, Nomex, PMMA, and Delrin.\n• **Redundant Electronics Grid**: Models 120V Primary computer buses alongside 28V Gallium-Nitride (GaN) radiation-hardened backup buses with auto-failover.\n• **Tactical Flight Controls**: Execute CO₂ flooding, emergency vacuum purging, bulkhead blast door sealing, and section abandonment.",
+          "citations": ["NASA Saffire-IV Flight Handbook", "NASA SP-2016-ECLSS", "Flight Rule ECLSS-104"],
+          "confidence": 0.98
+        },
+        {
+          "id": "aura-where-is-fire",
+          "keys": ["where", "fire", "burning", "flame", "active fire", "location"],
+          "questions": ["Where is the fire and what is burning?", "Where is the fire?"],
+          "answer": "Tactical Fire Scan:\n• If active fires exist in spacecraft modules (Bridge, Science Bay, Habitation Centrifuge, Hydroponics, Power Core, Propulsion Bay), telemetry displays module temperature, heat release rate (kW), oxygen fraction, toxic gas concentration, and fuel type.\n• In 0g modules (Bridge, Science, Power Core), flames are **spherical blue diffusion flames**.\n• In the Centrifuge (1.0g), flames are **buoyant flickering teardrops**.\n• If no fires are active: All 6 spacecraft sections report nominal thermal parameters (15°C–32°C) with no thermal runaway detected.",
+          "citations": ["NASA BASS PSI-26", "NASA Saffire-IV Flight Data", "ECLSS Flight Rule 104"],
+          "confidence": 0.96
+        },
+        {
+          "id": "aura-resolve-fire",
+          "keys": ["resolve", "extinguish", "put out", "suppress", "suppression", "battery fire", "thermal runaway"],
+          "questions": ["How do I resolve the thermal runaway in Power Core?", "How do I put out the fire?"],
+          "answer": "Emergency Spacecraft Fire Suppression Protocol:\n\n1. **Stop Forced Air Immediately**: Close ECLSS ventilation dampers to stop convective oxygen flow and isolate smoke.\n2. **Isolate Electrical Power**: Trip primary 120V bus breakers in the affected module to eliminate spark ignition.\n3. **Lithium-Ion Runaway Exception**: For battery runaway in the Power Core, cathode materials decompose internally and release atomic oxygen. Standard CO₂ flooding will NOT extinguish cathode decomposition! Immediate crew evacuation, blast door hermetic lockdown, and **Emergency Vacuum Purge** are mandatory.\n4. **Non-Battery Compartments**: Flood with CO₂ to reduce O₂ below the material's Limiting Oxygen Index (LOI), or execute a vacuum purge to space ($101.3 \\to 0\\text{ kPa}$).\n5. **Check for Cool Flames**: Confirm with infrared thermal imaging before repressurizing.",
+          "citations": ["NASA Saffire-I Flight Experiment", "NASA SP-2016-ECLSS", "ISS Emergency Fire Response Handbook"],
+          "confidence": 0.97
+        },
+        {
+          "id": "aura-solar-flare-emp",
+          "keys": ["solar", "flare", "fried", "emp", "avionics", "electronics", "bus"],
+          "questions": ["Why did the solar flare fry our avionics?", "What does an EMP blast do?"],
+          "answer": "Solar Flare & EMP Mechanics on NSS Prometheus:\n\n1. **Electromagnetic Pulse (EMP)**: A coronal mass ejection (CME) or X-class flare induces extreme $dB/dt$ magnetic flux surges ($>180\\text{V}$) across electrical cabling.\n2. **Dielectric Breakdown**: Unshielded 120V primary semiconductors experience gate oxide puncture, rendering flight computers **FRIED**.\n3. **Secondary Electrical Arcing**: Sparking wiring ignites Kapton polyimide harness insulation ($T_{ign} = 560^\\circ\\text{C}$).\n4. **Radiation-Hardened Backup Failover**: The secondary avionics grid runs on isolated 28V DC Gallium-Nitride (GaN) semiconductors with 80 dB attenuation shielding, engaging via automated failover within 120 milliseconds.",
+          "citations": ["NASA DONKI Space Weather Service", "CCMC Space Weather Model", "NOAA Space Weather Scales"],
+          "confidence": 0.96
+        },
+        {
+          "id": "aura-gravity-centrifuge",
+          "keys": ["gravity", "centrifuge", "wobble", "spin", "nutation", "bearing", "orbit", "orbital decay"],
+          "questions": ["What will happen to artificial gravity if we abandon the Centrifuge?", "Explain centrifuge wobble"],
+          "answer": "Centrifuge & Gravitational Dynamics:\n\n1. **Artificial Gravity ($a_c = \\omega^2 R$)**: Spinning at 8.0 RPM at 14m radius creates $1.0g$ at the rim. Spine modules remain in weightless freefall ($0.00g$).\n2. **Combustion Sensitivity**: Flames in the centrifuge burn $3\\times$ faster due to buoyant oxygen draft, forming turbulent yellow teardrops instead of slow blue spheres.\n3. **Mass Unbalance Wobble**: Venting or abandoning a centrifuge module shifts the vessel's Center of Mass, creating bearing stress and precession wobble ($^\\circ/s$ nutation).\n4. **Orbital Decay Risk**: If propulsion electronics fry while in low planetary orbit, atmospheric drag robs orbital velocity ($7,600\\text{ m/s}$), triggering orbital decay and re-entry risk unless propulsion is restored.",
+          "citations": ["NASA BASS PSI-26", "NASA PSI-159 CFI-G", "Orbital Mechanics for Engineering Students"],
+          "confidence": 0.95
+        },
+        {
+          "id": "aura-abandon-protocol",
+          "keys": ["abandon", "protocol", "door", "evacuate", "seal", "bulkhead", "flight rule 14.8"],
+          "questions": ["What is the section abandonment protocol?", "When do we abandon a module?"],
+          "answer": "Section Abandonment Protocol (NASA Flight Rule 14.8):\n\nWhen a compartment loses both primary and secondary electronics, or when internal temperatures exceed 400°C:\n1. **Crew Evacuation**: All personnel evacuate to forward or aft safe havens.\n2. **Blast Door Lockdown**: Hermetic titanium bulkheads seal across the transfer tunnel.\n3. **Status Declaration**: Compartment is flagged **ABANDONED**.\n4. **Depressurization**: The module is depressurized to space to starve the fire and protect structural bulkheads from thermal conduction.\n5. **Attitude Recalibration**: Gyro matrices are re-zeroed to compensate for lost mass balance.",
+          "citations": ["Mir Station Fire Post-Mortem (1997)", "NASA Flight Rule 14.8", "Spaceflight Operations Guidelines"],
+          "confidence": 0.95
+        }
+      ]
+    },
+    "solar-watch.html": {
+      "pageName": "Solar Flare Watch",
+      "summary": "Real space-weather monitoring dashboard integrating live feeds from NASA's DONKI FLR API, 3D animated solar visualizer with magnetic loop reconnection, Parker spiral proton transport, 30-day flare timeline, and Storm Shelter decision game.",
+      "suggested": [
+        "Explain the Solar Flare Watch page",
+        "How does the DONKI API feed work?",
+        "What are the solar flare classes (C, M, X)?",
+        "What is the Parker spiral?"
+      ],
+      "intents": [
+        {
+          "id": "page-solar-explain",
+          "keys": ["solar watch", "sun", "flares", "donki", "this page", "space weather"],
+          "questions": ["Explain the Solar Flare Watch page", "What is Solar Flare Watch?"],
+          "answer": "The **Solar Flare Watch** monitors space weather using data from NASA's DONKI (Database of Notifications, Knowledge, Information) API:\n\n• **3D Solar Visualizer**: Shows solar active regions, magnetic loop reconnection, and CME coronal ejection fronts.\n• **Live DONKI API Feed**: Fetches real solar flare observations with class type, source active region, and peak flux.\n• **Parker Spiral Proton Storm**: Simulates how solar energetic protons (SEPs) spiral along the interplanetary magnetic field.\n• **Mission Exposure Calculations**: Computes real-time radiation dose and electronics single-event upset (SEU) risk for ISS, Moon, Mars, and Deep Space Transit.\n• **Storm Shelter Protocol Game**: Test your decision-making when an extreme flare strikes.",
+          "citations": ["NASA DONKI Space Weather Service", "CCMC Space Weather Model", "NOAA Space Weather Scales"],
+          "confidence": 0.98
+        },
+        {
+          "id": "solar-classes-explain",
+          "keys": ["flare class", "c-class", "m-class", "x-class", "carrington", "flux"],
+          "questions": ["What are the solar flare classes (C, M, X)?", "Explain flare classifications"],
+          "answer": "Solar flares are classified by their peak soft X-ray flux ($1\\text{–}8\\text{ \\AA}$) measured in Watts/m² by GOES satellites:\n\n• **A-Class** ($< 10^{-7}\\text{ W/m²}$) & **B-Class** ($< 10^{-6}\\text{ W/m²}$): Background solar quiet.\n• **C-Class** ($10^{-6}\\text{–}10^{-5}\\text{ W/m²}$): Minor solar events with minimal planetary impact.\n• **M-Class** ($10^{-5}\\text{–}10^{-4}\\text{ W/m²}$): Medium storms causing brief radio blackouts and minor astronaut radiation advisories.\n• **X-Class** ($> 10^{-4}\\text{ W/m²}$): Major explosions. An X10 flare emits $10\\times$ more flux than an X1. The 1859 Carrington Event is estimated at X45+.",
+          "citations": ["NOAA Space Weather Scales", "NASA DONKI API", "Solar Physics Journal"],
+          "confidence": 0.96
+        }
+      ]
+    },
+    "earth-impact.html": {
+      "pageName": "Solar Storm vs Earth",
+      "summary": "3D procedural Earth simulator modeling the dayside magnetopause standoff distance (Shue et al. model), auroral oval equatorward expansion under high Kp index, satellite orbital vulnerability (ISS, GPS, GEO), and historic space weather storms.",
+      "suggested": [
+        "Explain the Solar Storm vs Earth page",
+        "What is the magnetopause standoff distance?",
+        "How do solar storms affect satellites?",
+        "What was the Carrington Event?"
+      ],
+      "intents": [
+        {
+          "id": "page-earth-explain",
+          "keys": ["earth impact", "earth", "magnetosphere", "aurora", "this page", "geomagnetic storm"],
+          "questions": ["Explain the Solar Storm vs Earth page", "What does the Earth simulator show?"],
+          "answer": "The **Solar Storm vs Earth** simulator models the interaction between incoming solar plasma and Earth's geomagnetic field:\n\n• **Dayside Magnetopause Standoff ($R_{mp}$)**: Computes how solar wind ram pressure compresses Earth's magnetic boundary using the empirical Shue model.\n• **Equatorward Auroral Oval Shift**: Visualizes aurora expansion down to mid-latitudes as the planetary Kp index climbs from 0 to 9.\n• **Satellite Constellation Vulnerability**: Monitors orbits of ISS ($400\\text{ km}$), GPS ($20,200\\text{ km}$), and Geostationary Satellites ($35,786\\text{ km}$) during geomagnetic compression.\n• **Historic Storm Presets**: Compare the Carrington Event (1859), Halloween Storms (2003), and the Gannon Storm (May 2024).",
+          "citations": ["Shue et al. (1998) Magnetopause Model", "NOAA Space Weather Prediction Center", "USGS Geomagnetism Program"],
+          "confidence": 0.98
+        },
+        {
+          "id": "earth-magnetopause-shue",
+          "keys": ["magnetopause", "standoff", "shue", "geo exposed", "compression"],
+          "questions": ["What is the magnetopause standoff distance?", "Explain magnetopause compression"],
+          "answer": "Earth's magnetopause is the boundary where the dynamic pressure of the supersonic solar wind ($P_{ram} = \\rho v^2$) balances Earth's magnetic pressure ($B^2 / 2\\mu_0$). Under quiet conditions, this standoff distance ($R_{mp}$) sits at roughly **$10\\text{–}11$ Earth radii ($R_E$)**.\n\nDuring intense coronal mass ejections with southward interplanetary magnetic field ($B_z < 0$), magnetic reconnection and extreme solar wind speed ($> 1500\\text{ km/s}$) compress $R_{mp}$ inside **$6.6 R_E$**. When this occurs, satellites in Geostationary Orbit (GEO) are stripped of Earth's magnetic shielding and exposed directly to solar wind plasma.",
+          "citations": ["Shue et al. (1997, 1998) JGR", "CCMC Space Weather Model"],
+          "confidence": 0.95
+        }
+      ]
+    },
+    "material-ranker.html": {
+      "pageName": "Material Risk Ranker",
+      "summary": "Sortable catalog ranking spacecraft materials by predicted flammability under active habitat conditions, with SHAP explainability feature impact bars and a head-to-head 3D Burn Race bench.",
+      "suggested": [
+        "Explain the Material Risk Ranker page",
+        "What is the Limiting Oxygen Index (LOI)?",
+        "Which spacecraft material is safest?",
+        "What is the 3D Burn Race?"
+      ],
+      "intents": [
+        {
+          "id": "page-ranker-explain",
+          "keys": ["material ranker", "materials", "ranker", "this page", "burn race", "loi"],
+          "questions": ["Explain the Material Risk Ranker page", "How does the Material Ranker work?"],
+          "answer": "The **Material Risk Ranker** evaluates spacecraft materials across mission atmospheres:\n\n• **Flammability Risk Scoring**: Ranks materials based on Limiting Oxygen Index (LOI), base flame spread rate, and heat release rate.\n• **SHAP Explainability Impact**: Demonstrates how changing environmental variables (O₂ percentage, ambient pressure, gravity) adjust the material's flammability score.\n• **3D Burn Race Bench**: A head-to-head comparison where you ignite two materials under identical conditions to observe flame spread side-by-side.",
+          "citations": ["NASA-STD-6001B", "PSI-26 BASS", "PSI-62 Material Tests"],
+          "confidence": 0.98
+        },
+        {
+          "id": "material-loi-explain",
+          "keys": ["loi", "limiting oxygen index", "nomex", "teflon", "kapton"],
+          "questions": ["What is the Limiting Oxygen Index (LOI)?", "Explain LOI"],
+          "answer": "The **Limiting Oxygen Index (LOI)** is the minimum concentration of oxygen in an O₂/N₂ mixture that will sustain candle-like upward combustion of a material. Materials with LOI below ambient O₂ (e.g., PMMA LOI ~17%, Cotton LOI ~19%) ignite and burn readily in normal air (21% O₂). Space-grade materials like Nomex (LOI 28%) self-extinguish in standard sea-level air, but will burn if the habitat atmosphere is enriched to 34% O₂ as proposed for Artemis lunar surface habitats.",
+          "citations": ["NASA-STD-6001B", "ASTM D2863", "PSI-26 BASS"],
+          "confidence": 0.96
+        }
+      ]
+    },
+    "gravity-gap.html": {
+      "pageName": "Gravity Gap-Filler",
+      "summary": "Gaussian Process regression interpolator estimating solid flame spread across gravity levels from 0.0g (orbital freefall) to 1.0g (Earth), highlighting the 95% uncertainty band in un-tested partial gravity zones.",
+      "suggested": [
+        "Explain the Gravity Gap-Filler page",
+        "Why is there a gap at Mars and Moon gravity?",
+        "What is Gaussian Process regression?",
+        "What is the Gravity Guess game?"
+      ],
+      "intents": [
+        {
+          "id": "page-gravity-explain",
+          "keys": ["gravity gap", "gap filler", "gaussian process", "this page", "partial gravity"],
+          "questions": ["Explain the Gravity Gap-Filler page", "What is the Gravity Gap-Filler?"],
+          "answer": "The **Gravity Gap-Filler** models how flame spread rate changes between weightless freefall ($0g$) and Earth gravity ($1g$):\n\n• **Gaussian Process Regression**: Fits a smooth, non-linear regression curve through empirical NASA flight data points while quantifying model uncertainty (95% confidence ribbon).\n• **The Partial Gravity Gap**: Highlights that while NASA has data at $0g$ (BASS/FLEX on the ISS) and $1g$ (ground drop towers), physical combustion tests at Moon ($0.16g$) and Mars ($0.38g$) are virtually non-existent.\n• **Gravity Guess Game**: Test your intuition by predicting flame spread velocity across different gravities.",
+          "citations": ["PSI-26 BASS", "PSI-69 FLEX", "NASA Microgravity Research"],
+          "confidence": 0.98
+        }
+      ]
+    },
+    "flame-radar.html": {
+      "pageName": "Invisible Flame Radar",
+      "summary": "2D combustion regime classifier boundary matrix (hot diffusion flame, cool flame, and extinction limit) across oxygen concentration and ambient pressure, featuring the Ghost Flame Hunter game.",
+      "suggested": [
+        "Explain the Invisible Flame Radar page",
+        "What are cool flames?",
+        "What is the Ghost Flame Hunter game?",
+        "How do pressure and oxygen affect flame extinction?"
+      ],
+      "intents": [
+        {
+          "id": "page-radar-explain",
+          "keys": ["flame radar", "radar", "cool flames", "invisible flame", "this page", "ghost flame"],
+          "questions": ["Explain the Invisible Flame Radar page", "What is the Invisible Flame Radar?"],
+          "answer": "The **Invisible Flame Radar** visualizes the thermodynamic combustion regimes of fuels across varying oxygen concentrations (10% to 40%) and atmospheric pressures (0.5 to 3.0 atm):\n\n• **Regime Matrix**: Maps out Hot Flame zones, Low-Temperature Cool Flame zones, and Extinction Boundaries based on NASA FLEX and ACME CFI-G flight data.\n• **Current Habitat Pin**: Overlays your selected mission atmosphere directly on the chart.\n• **Ghost Flame Hunter Game**: Search a fogged radar grid to locate hidden cool-flame reactions using thermal infrared sensor cues.",
+          "citations": ["PSI-69 FLEX", "PSI-68 FLEX-2", "PSI-159 CFI-G"],
+          "confidence": 0.98
+        },
+        {
+          "id": "radar-cool-flames",
+          "keys": ["cool flame", "invisible", "temperature", "heptane", "radicals"],
+          "questions": ["Why are cool flames hard to see?", "What are cool flames?"],
+          "answer": "Cool flames are low-temperature chemical reactions occurring between **500 K and 800 K** (compared to > 1500 K for conventional hot flames). Because the temperature is too low to produce glowing blackbody soot particles, cool flames emit almost zero visible radiation and are entirely invisible to human eyes and standard video cameras. NASA's FLEX experiment on the ISS discovered that n-heptane droplets continued burning in a cool flame regime long after the visible flame extinguished.",
+          "citations": ["PSI-69 FLEX", "PSI-117", "PSI-159 CFI-G"],
+          "confidence": 0.97
+        }
+      ]
+    },
+    "fire-gpt.html": {
+      "pageName": "FireGPT AI & Quiz",
+      "summary": "Unified scientific assistant portal and FireGPT Trivia Challenge, allowing users to query indexed NASA PSI and NTRS research with citations, or test their knowledge in a 7-question microgravity quiz.",
+      "suggested": [
+        "Explain the FireGPT page",
+        "How does FireGPT answer questions?",
+        "What is the FireGPT Trivia Challenge?",
+        "Can smoke detectors be trusted in microgravity?"
+      ],
+      "intents": [
+        {
+          "id": "page-gpt-explain",
+          "keys": ["fire gpt", "firegpt", "quiz", "this page", "trivia"],
+          "questions": ["Explain the FireGPT page", "What is FireGPT?"],
+          "answer": "This is the **FireGPT Unified Assistant & Quiz Portal**:\n\n• **Unified AI Assistant**: Combines FireGPT's NASA research retrieval and Aura's real-time spacecraft flight assistant. It checks verified common intents first, and falls back to a serverless OpenAI model when needed.\n• **Indexed NASA Citations**: Every response cites verified NASA Physical Sciences Informatics (PSI) experiments, NTRS publications, or ECLSS flight rules.\n• **FireGPT Trivia Challenge**: An interactive 7-question quiz testing your knowledge of flame shapes, cool flames, suppressants, and space habitats with streak bonuses and XP awards.",
+          "citations": ["NASA Open Science PSI", "NASA NTRS Catalog", "NASA SP-2016-ECLSS"],
+          "confidence": 0.98
+        },
+        {
+          "id": "gpt-smoke-detectors",
+          "keys": ["smoke", "detector", "detectors", "microgravity", "daft", "particles"],
+          "questions": ["Can smoke detectors be trusted in microgravity?", "How do smoke detectors work in space?"],
+          "answer": "Standard terrestrial smoke detectors must be modified for spaceflight. In microgravity, the absence of buoyancy causes soot particles to agglomerate into significantly larger, aggregate filaments because residence times in the flame zone are much longer. NASA's DAFT and SAME-2 experiments found that standard ionization-type detectors under-report microgravity smoke particles, whereas optical and multi-wavelength laser scatter sensors provide far more reliable early warnings.",
+          "citations": ["PSI-47 DAFT", "NTRS 20130000422", "NASA SP-2016-ECLSS"],
+          "confidence": 0.96
+        }
+      ]
+    },
+    "gap-map.html": {
+      "pageName": "Research Gap Map",
+      "summary": "Heatmap matrix showing tested microgravity combustion experiments versus untested operational zones, with ranked recommendations of what NASA should test next and the Gap Planner resource allocation game.",
+      "suggested": [
+        "Explain the Research Gap Map page",
+        "What is the biggest gap in microgravity research?",
+        "What should NASA test next?",
+        "How does the Gap Planner game work?"
+      ],
+      "intents": [
+        {
+          "id": "page-gaps-explain",
+          "keys": ["gap map", "research gaps", "untested", "this page", "test next"],
+          "questions": ["Explain the Research Gap Map page", "What are research gaps?"],
+          "answer": "The **Research Gap Map** analyzes the experimental coverage of NASA's physical science databases:\n\n• **Coverage Heatmap**: Plots tested experimental configurations across oxygen fractions (15% to 38%) and gravity levels (0g to 1g).\n• **Test-Next Priority Rankings**: Ranks the highest-value experiments NASA needs to conduct, led by solid-material combustion at Artemis lunar gravity ($0.16g$ at 34% O₂) and Mars gravity ($0.38g$).\n• **Gap Planner Game**: Act as a NASA Flight Program Director and allocate your research grant budget across drop tower, parabolic flight, and ISS payload campaigns.",
+          "citations": ["NASA PSI Repository", "NASA NTRS 20240002981", "NASA Biological and Physical Sciences Decadal Survey"],
+          "confidence": 0.98
+        }
+      ]
+    },
+    "sources.html": {
+      "pageName": "Data Sources & Space Cards",
+      "summary": "Master citation repository and 3D collectible science cards linking every feature to official NASA Physical Sciences Informatics (PSI) repositories, NTRS publications, and DONKI space-weather archives.",
+      "suggested": [
+        "Explain the Data Sources page",
+        "Where does the project data come from?",
+        "What are Space Cards?",
+        "How are NASA PSI and NTRS used?"
+      ],
+      "intents": [
+        {
+          "id": "page-sources-explain",
+          "keys": ["sources", "data sources", "space cards", "this page", "citations", "provenance"],
+          "questions": ["Explain the Data Sources page", "Where does the data come from?"],
+          "answer": "The **Data Sources & Space Cards** page documents the open-science foundation of FlameAtlas:\n\n• **Verified NASA Sources**: Links to NASA PSI experiments (BASS, FLEX, FLEX-2, CFI-G, DAFT), NTRS flight reports (Saffire VI), and the live NASA DONKI space-weather API.\n• **Interactive Space Cards**: 3D flippable collectible cards that unlock as you explore the platform and achieve high scores in the quizzes and simulators.\n• **Data Provenance**: Every equation, flammability threshold, and solar storm event is cited directly to its original scientific publication.",
+          "citations": ["NASA Open Science Data Repository (OSDR)", "NASA PSI", "NASA NTRS"],
+          "confidence": 0.98
+        }
+      ]
+    },
+    "api-docs.html": {
+      "pageName": "API & Data Explorer",
+      "summary": "Interactive Swagger UI documentation and static dataset inspector for FlameAtlas RESTful APIs (/api/donki, /api/openai, /api/intents) and static JSON datasets (/data/*).",
+      "suggested": [
+        "Explain the API & Data Explorer page",
+        "What REST APIs are available?",
+        "How do I test the serverless endpoints?",
+        "Where is static data stored?"
+      ],
+      "intents": [
+        {
+          "id": "page-api-docs-explain",
+          "keys": ["api", "swagger", "docs", "endpoints", "this page", "data explorer"],
+          "questions": ["Explain the API & Data Explorer page", "How does the API page work?"],
+          "answer": "The **API & Data Explorer** provides full transparency into FlameAtlas's backend and data layer:\n\n• **Swagger UI REST API Console**: Inspect and execute live requests against serverless endpoints (`/api/donki`, `/api/openai`, `/api/intents`) with real schemas, headers, and responses.\n• **Static JSON Data Inspector**: Explore all 12 datasets in the `/data` folder, check citations, inspect raw payloads, and test live fetch latencies.\n• **Clean Architecture**: Demonstrates the strict separation between serverless API logic (`/api`) and static data assets (`/data`).",
+          "citations": ["OpenAPI 3.0 Specification", "NASA Space Apps 2026 Guidelines"],
+          "confidence": 0.98
+        }
+      ]
+    }
+  },
+  "kb": [
+    {
+      "id": "kb-nomex-moon",
+      "keys": ["nomex", "34", "moon", "artemis"],
+      "answer": "Yes — in a 34% O₂ / 8.2 psi Moon habitat, Nomex HT90-40 is expected to sustain upward flame spread. BASS samples self-extinguished in ISS air but spread slowly once O₂ exceeded ~30%. At 0.16g buoyant flow adds oxygen supply at the flame front, so spread is likely faster than in 0g.",
+      "citations": ["PSI-26 BASS", "NTRS 20150023456"],
+      "confidence": 0.85
+    },
+    {
+      "id": "kb-cool-flame",
+      "keys": ["cool flame", "invisible", "cool", "heptane"],
+      "answer": "Cool flames are low-temperature (~500–800 K) reactions that emit almost no visible light. FLEX observed n-heptane droplets continuing to burn in a cool-flame regime after the hot flame went out, especially with CO₂ or He diluents at reduced O₂.",
+      "citations": ["PSI-69 FLEX", "PSI-117", "PSI-159 CFI-G"],
+      "confidence": 0.90
+    },
+    {
+      "id": "kb-smoke-detectors",
+      "keys": ["smoke", "detector", "ionization", "optical"],
+      "answer": "Microgravity smoke particles are larger and more varied than on Earth because soot residence time increases without buoyancy. DAFT and SAME-2 found ionization-style detectors underestimate these particles, so optical/multi-wavelength sensors are recommended.",
+      "citations": ["PSI-47 DAFT", "NTRS 20130000422"],
+      "confidence": 0.88
+    },
+    {
+      "id": "kb-mars-gravity",
+      "keys": ["mars", "gravity", "0.38", "partial gravity"],
+      "answer": "No public experiment has burned solids at exactly 0.38g. FlameAtlas interpolates between 0g (BASS) and 1g ground data with a Gaussian Process; the uncertainty band is widest near Mars gravity, which is why the Research Gap Map flags it as a top test priority.",
+      "citations": ["PSI-26 BASS", "PSI-69 FLEX"],
+      "confidence": 0.80
+    },
+    {
+      "id": "kb-suppressants",
+      "keys": ["suppress", "extinguish", "co2", "helium", "water mist"],
+      "answer": "FLEX tested CO₂ and He as suppressants. CO₂ at ~15% concentration reliably extinguished heptane droplets at 1 atm, while He required higher concentrations. In enriched-O₂ habitats the required suppressant concentration increases roughly with O₂ fraction.",
+      "citations": ["PSI-69 FLEX", "NTRS 20150023456"],
+      "confidence": 0.82
+    },
+    {
+      "id": "kb-li-ion-runaway",
+      "keys": ["lithium", "li-ion", "battery", "thermal runaway", "runaway"],
+      "answer": "Lithium-ion battery thermal runaway occurs when mechanical, electrical, or thermal stress induces internal short-circuiting. The cathode material decomposes exothermically and releases oxygen internally, sustaining combustion even in 0% ambient O₂ or hard vacuum. The only effective response is continuous thermal cooling and venting toxic gases (HF, CO) to prevent compartment overpressure.",
+      "citations": ["NASA Battery Safety Standard JSC 20793", "NASA Saffire Flight Data"],
+      "confidence": 0.92
+    },
+    {
+      "id": "kb-microgravity-diffusion",
+      "keys": ["diffusion", "microgravity", "buoyancy", "grashof"],
+      "answer": "In microgravity, the Grashof number ($Gr = g \\beta \\Delta T L^3 / \\nu^2$) approaches zero, eliminating buoyant natural convection. Oxidizer transport to the flame zone is governed strictly by Fickian molecular diffusion, resulting in slow spherical flames with longer residence times.",
+      "citations": ["NASA Glenn Zero-G Facility", "PSI-26 BASS"],
+      "confidence": 0.90
+    }
+  ]
+}

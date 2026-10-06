@@ -1,0 +1,22 @@
+{
+  "name": "flameatlas-terrafusion",
+  "version": "2.0.0",
+  "description": "FlameAtlas — NASA Space Apps 2026: Flame in Freefall. Unified FireGPT & Aura Assistant, Common Intents, and Serverless APIs.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "nasa",
+    "space-apps",
+    "flame-in-freefall",
+    "microgravity",
+    "firegpt",
+    "aura",
+    "threejs",
+    "serverless"
+  ],
+  "author": "FlameAtlas Team",
+  "license": "MIT"
+}

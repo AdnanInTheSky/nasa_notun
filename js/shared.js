@@ -343,6 +343,10 @@ function injectMobileNav() {
             <i data-lucide="flask-conical" class="w-4 h-4 text-cyan-400"></i>
             <span x-text="$store.app.kids ? 'Fire Lab 3D' : 'Flame Lab 3D'"></span>
           </a>
+          <a href="space-craft.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="rocket" class="w-4 h-4 text-rose-400"></i>
+            <span x-text="$store.app.kids ? 'Spacecraft Fire Sim' : 'Spacecraft Simulation'"></span>
+          </a>
           <a href="solar-watch.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
             <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
             <span x-text="$store.app.kids ? 'Sun Blasts' : 'Solar Flare Watch'"></span>
@@ -374,6 +378,10 @@ function injectMobileNav() {
           <a href="sources.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
             <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
             <span x-text="$store.app.kids ? 'Space Cards' : 'Data Sources'"></span>
+          </a>
+          <a href="api-docs.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="code-2" class="w-4 h-4 text-cyan-400"></i>
+            <span>API & Data Explorer</span>
           </a>
         </nav>
       </div>

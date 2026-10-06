@@ -16,6 +16,7 @@
   <!-- Application Core Scripts -->
   <script src="js/models.js"></script>
   <script src="js/shared.js"></script>
+  <script src="js/unified-assistant.js"></script>
   <link rel="stylesheet" href="styles/main.css">
 </head>
 <body class="text-slate-100 flex min-h-screen" x-data="fireGptPage()">
@@ -78,6 +79,10 @@
         <a href="sources.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
           <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
           <span x-text="$store.app.kids ? 'Space Cards' : 'Data Sources'"></span>
+        </a>
+        <a href="api-docs.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="code-2" class="w-4 h-4 text-cyan-400"></i>
+          <span>API & Data Explorer</span>
         </a>
       </nav>
     </div>
@@ -180,6 +185,12 @@
                         <span x-text="c"></span>
                       </span>
                     </template>
+                  </div>
+
+                  <!-- Source Origin Badge -->
+                  <div x-show="msg.source" class="text-[9px] font-mono text-slate-400 pt-1 border-t border-slate-800/80 flex items-center gap-1">
+                    <span class="text-slate-500">Source:</span>
+                    <span class="text-pink-300" x-text="msg.source"></span>
                   </div>
                 </div>
               </div>
@@ -378,52 +389,77 @@
 
         async init() {
           try {
-            const res = await fetch('./data/firegpt.json');
+            // First source of truth: /data/intents.json
+            const res = await fetch('./data/intents.json');
             if (res.ok) {
               const data = await res.json();
               this.kb = data.kb || [];
-              this.suggested = data.suggested || [];
+              this.suggested = (data.page_intents && data.page_intents['fire-gpt.html']?.suggested) || data.suggested_global || [];
+            } else {
+              const fb = await fetch('./data/firegpt.json');
+              if (fb.ok) {
+                const data = await fb.json();
+                this.kb = data.kb || [];
+                this.suggested = data.suggested || [];
+              }
             }
           } catch(e) {}
           this.$nextTick(() => lucide.createIcons());
         },
 
-        askQuestion(query) {
+        async askQuestion(query) {
           if (!query.trim() || this.busy) return;
-          const q = query.trim().toLowerCase();
+          const q = query.trim();
           this.queryInput = '';
-          this.messages.push({ id: Date.now(), role: 'user', text: query });
+          this.messages.push({ id: Date.now(), role: 'user', text: q });
           this.busy = true;
 
           // Scroll messages
           this.scrollToBottom();
 
-          // Search KB
-          let best = null;
-          let bestScore = 0;
-          this.kb.forEach(entry => {
-            const score = entry.keys.filter(k => q.includes(k)).length;
-            if (score > bestScore) {
-              best = entry;
-              bestScore = score;
+          let resp = null;
+          try {
+            if (window.unifiedAssistant && typeof window.unifiedAssistant.ask === 'function') {
+              const history = this.messages.map(m => ({ role: m.role, text: m.text }));
+              resp = await window.unifiedAssistant.ask(q, history);
             }
+          } catch (e) {
+            console.warn('Unified assistant query failed:', e);
+          }
+
+          if (!resp) {
+            // Local KB fallback
+            const lowerQ = q.toLowerCase();
+            let best = null;
+            let bestScore = 0;
+            this.kb.forEach(entry => {
+              const score = entry.keys.filter(k => lowerQ.includes(k)).length;
+              if (score > bestScore) {
+                best = entry;
+                bestScore = score;
+              }
+            });
+            resp = {
+              reply: best ? best.answer : 'I could not find a NASA source that answers this directly. Try asking about Nomex, cool flames, smoke detectors, suppressants, or Mars gravity.',
+              citations: best ? best.citations : ['NASA PSI Repository'],
+              source: best ? 'Common Intents (/data/intents.json)' : 'FireGPT Offline Fallback'
+            };
+          }
+
+          this.busy = false;
+          this.messages.push({
+            id: Date.now() + 1,
+            role: 'bot',
+            text: resp.reply,
+            citations: resp.citations || [],
+            source: resp.source || 'Unified Assistant'
           });
 
-          const answerText = best ? best.answer : 'I could not find a NASA source that answers this directly. FireGPT only answers from indexed PSI and NTRS text — try asking about Nomex, cool flames, smoke detectors, suppressants, or Mars gravity.';
-          const citations = best ? best.citations : ['NASA PSI Repository'];
-
-          setTimeout(() => {
-            this.busy = false;
-            this.messages.push({
-              id: Date.now() + 1,
-              role: 'bot',
-              text: answerText,
-              citations: citations
-            });
+          if (Alpine.store('app') && typeof Alpine.store('app').addXp === 'function') {
             Alpine.store('app').addXp(10, 'FireGPT research answer');
-            this.scrollToBottom();
-            this.$nextTick(() => lucide.createIcons());
-          }, 800);
+          }
+          this.scrollToBottom();
+          this.$nextTick(() => lucide.createIcons());
         },
 
         scrollToBottom() {

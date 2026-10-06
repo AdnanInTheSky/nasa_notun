@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en" data-kids>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlameAtlas — API & Data Explorer | NASA Space Apps 2026</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Swagger UI CDN -->
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <!-- Application Core Scripts -->
+  <script src="js/models.js"></script>
+  <script src="js/shared.js"></script>
+  <script src="js/unified-assistant.js"></script>
+  <link rel="stylesheet" href="styles/main.css">
+  <style>
+    /* Swagger UI Dark Mode Adaptations */
+    .swagger-ui {
+      color: #cbd5e1;
+      font-family: inherit;
+    }
+    .swagger-ui .info {
+      margin: 10px 0 20px 0;
+    }
+    .swagger-ui .info .title {
+      color: #ffffff;
+      font-size: 1.5rem;
+    }
+    .swagger-ui .info p, .swagger-ui .info li {
+      color: #94a3b8;
+    }
+    .swagger-ui .scheme-container {
+      background: transparent;
+      box-shadow: none;
+      padding: 0;
+    }
+    .swagger-ui .opblock-tag {
+      color: #f1f5f9;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+      font-size: 1.1rem;
+    }
+    .swagger-ui .opblock {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(51, 65, 85, 0.8);
+      border-radius: 0.75rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+      margin-bottom: 12px;
+    }
+    .swagger-ui .opblock .opblock-summary {
+      border-color: rgba(51, 65, 85, 0.6);
+    }
+    .swagger-ui .opblock .opblock-summary-method {
+      border-radius: 0.375rem;
+      font-weight: 700;
+      font-size: 12px;
+    }
+    .swagger-ui .opblock .opblock-summary-path,
+    .swagger-ui .opblock .opblock-summary-path__deprecated {
+      color: #f8fafc;
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .swagger-ui .opblock .opblock-summary-description {
+      color: #94a3b8;
+      font-size: 12px;
+    }
+    .swagger-ui .opblock-body {
+      background: rgba(2, 6, 23, 0.85);
+      border-top: 1px solid rgba(51, 65, 85, 0.6);
+    }
+    .swagger-ui table thead tr td, .swagger-ui table thead tr th {
+      color: #94a3b8;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+    }
+    .swagger-ui .parameters-col_name {
+      color: #f1f5f9;
+    }
+    .swagger-ui .parameter__name {
+      color: #38bdf8;
+      font-weight: 600;
+    }
+    .swagger-ui .parameter__type {
+      color: #ec4899;
+    }
+    .swagger-ui .tab li button.tablinks {
+      color: #94a3b8;
+    }
+    .swagger-ui .tab li button.tablinks.active {
+      color: #ffffff;
+    }
+    .swagger-ui .btn {
+      border-radius: 0.5rem;
+      font-weight: 600;
+      color: #ffffff;
+      border-color: rgba(51, 65, 85, 0.8);
+    }
+    .swagger-ui .btn.execute {
+      background-color: #ec4899;
+      border-color: #db2777;
+    }
+    .swagger-ui .btn.execute:hover {
+      background-color: #db2777;
+    }
+    .swagger-ui .btn.try-out__btn {
+      color: #38bdf8;
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+    .swagger-ui select {
+      background: #0f172a;
+      color: #ffffff;
+      border: 1px solid #334155;
+      border-radius: 0.375rem;
+    }
+    .swagger-ui input[type=text] {
+      background: #0f172a;
+      color: #ffffff;
+      border: 1px solid #334155;
+      border-radius: 0.375rem;
+      padding: 6px 10px;
+    }
+    .swagger-ui textarea {
+      background: #0f172a;
+      color: #f8fafc;
+      border: 1px solid #334155;
+      border-radius: 0.375rem;
+    }
+    .swagger-ui .response-col_status {
+      color: #34d399;
+      font-weight: bold;
+    }
+    .swagger-ui .responses-inner h4, .swagger-ui .responses-inner h5 {
+      color: #cbd5e1;
+    }
+    .swagger-ui .highlight-code {
+      background: #020617;
+    }
+    .swagger-ui .microlight {
+      background: #020617 !important;
+      color: #e2e8f0 !important;
+      border-radius: 0.5rem;
+      border: 1px solid #1e293b;
+    }
+    .swagger-ui .model-box {
+      background: rgba(15, 23, 42, 0.5);
+    }
+    .swagger-ui .model {
+      color: #cbd5e1;
+    }
+  </style>
+</head>
+<body class="text-slate-100 flex min-h-screen" x-data="apiDocsPage()">
+  <div class="starfield" aria-hidden="true"></div>
+
+  <!-- Shared Sidebar Navigation -->
+  <aside class="w-64 border-r border-slate-800 bg-slate-950/80 backdrop-blur-md p-5 flex flex-col justify-between fixed top-0 bottom-0 left-0 z-30 hidden md:flex">
+    <div>
+      <a href="index.html" class="flex items-center gap-3 mb-8 group">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-400 p-0.5 shadow-lg shadow-orange-500/20 group-hover:scale-105 transition-transform flex items-center justify-center">
+          <i data-lucide="flame" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <span class="font-bold tracking-tight text-white block text-lg leading-tight">FlameAtlas</span>
+          <span class="text-xs text-slate-400 font-mono" x-text="$store.app.kids ? 'Fire Adventure' : 'Moon & Mars Safety'"></span>
+        </div>
+      </a>
+
+      <nav class="space-y-1 text-sm font-medium">
+        <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="gauge" class="w-4 h-4 text-orange-400"></i>
+          <span x-text="$store.app.kids ? 'Mission Map' : 'Mission Overview'"></span>
+        </a>
+        <a href="flame-lab.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="flask-conical" class="w-4 h-4 text-cyan-400"></i>
+          <span x-text="$store.app.kids ? 'Fire Lab 3D' : 'Flame Lab 3D'"></span>
+        </a>
+        <a href="space-craft.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="rocket" class="w-4 h-4 text-rose-400"></i>
+          <span x-text="$store.app.kids ? 'Spacecraft Fire Sim' : 'Spacecraft Simulation'"></span>
+        </a>
+        <a href="solar-watch.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
+          <span x-text="$store.app.kids ? 'Sun Blasts' : 'Solar Flare Watch'"></span>
+        </a>
+        <a href="earth-impact.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="globe-2" class="w-4 h-4 text-emerald-400"></i>
+          <span x-text="$store.app.kids ? 'Storm vs Earth' : 'Solar Storm vs Earth'"></span>
+        </a>
+        <a href="material-ranker.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
+          <span x-text="$store.app.kids ? 'Burn Race' : 'Material Ranker'"></span>
+        </a>
+        <a href="gravity-gap.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="orbit" class="w-4 h-4 text-sky-400"></i>
+          <span x-text="$store.app.kids ? 'Gravity Guess' : 'Gravity Gap-Filler'"></span>
+        </a>
+        <a href="flame-radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="radar" class="w-4 h-4 text-indigo-400"></i>
+          <span x-text="$store.app.kids ? 'Ghost Flames' : 'Invisible Flame Radar'"></span>
+        </a>
+        <a href="fire-gpt.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="message-square-text" class="w-4 h-4 text-pink-400"></i>
+          <span x-text="$store.app.kids ? 'Quiz Time' : 'FireGPT AI'"></span>
+        </a>
+        <a href="gap-map.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="map" class="w-4 h-4 text-yellow-400"></i>
+          <span x-text="$store.app.kids ? 'Plan Tests' : 'Research Gap Map'"></span>
+        </a>
+        <a href="sources.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors">
+          <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
+          <span x-text="$store.app.kids ? 'Space Cards' : 'Data Sources'"></span>
+        </a>
+        <!-- Final Page: API & Data Inspection -->
+        <a href="api-docs.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-semibold shadow-inner">
+          <i data-lucide="code-2" class="w-4 h-4"></i>
+          <span>API & Data Explorer</span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="glass-pill p-3 border border-slate-800/80 text-xs text-slate-400 flex items-center gap-3">
+      <div class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></div>
+      <div>
+        <p class="font-medium text-slate-200">REST & Data Layer</p>
+        <p class="text-[11px] text-slate-400">Swagger UI & /data JSON</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Shell -->
+  <div class="flex-1 md:ml-64 flex flex-col min-w-0">
+    <header class="sticky top-0 z-20 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 px-4 md:px-8 py-3 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none">
+        <span class="text-xs uppercase tracking-wider text-slate-400 font-mono hidden sm:inline">Phase:</span>
+        <template x-for="p in $store.app.phases" :key="p.id">
+          <button @click="$store.app.setPhase(p.id)"
+                  :class="$store.app.currentPhaseId === p.id ? 'bg-orange-500 text-slate-950 font-semibold' : 'bg-slate-900 text-slate-300 hover:bg-slate-800'"
+                  class="px-3 py-1.5 rounded-lg text-xs transition-colors shrink-0 flex items-center gap-1.5">
+            <span x-text="p.name"></span>
+          </button>
+        </template>
+      </div>
+
+      <div class="flex items-center gap-3 shrink-0">
+        <!-- Sound Toggle -->
+        <button @click="$store.app.toggleSound()" class="glass-pill px-3 py-1.5 text-xs text-slate-300 hover:text-white flex items-center gap-1.5">
+          <i :data-lucide="$store.app.sound ? 'volume-2' : 'volume-x'" class="w-3.5 h-3.5"></i>
+        </button>
+        <!-- Kids Mode Toggle -->
+        <button @click="$store.app.toggleKids()" class="glass-pill px-3 py-1.5 text-xs text-slate-300 hover:text-white flex items-center gap-1.5">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span x-text="$store.app.kids ? 'Kids ON' : 'Pro Mode'"></span>
+        </button>
+      </div>
+    </header>
+
+    <main class="flex-1 p-4 md:p-8 space-y-6 max-w-7xl w-full mx-auto">
+      <!-- Title & Hero Banner -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+        <div>
+          <div class="flex items-center gap-2 text-cyan-400 text-xs font-mono uppercase tracking-wider">
+            <i data-lucide="terminal" class="w-4 h-4"></i>
+            <span>Architecture & Data Inspection Console</span>
+          </div>
+          <h1 class="text-2xl md:text-3xl font-extrabold text-white mt-1">REST API & Data Explorer</h1>
+          <p class="text-sm text-slate-400 mt-1 max-w-3xl">
+            Inspect FlameAtlas's backend architecture. Clearly separated into serverless RESTful API endpoints (<code class="text-cyan-400 font-mono text-xs">/api</code>) and static JSON scientific datasets (<code class="text-amber-400 font-mono text-xs">/data</code>).
+          </p>
+        </div>
+
+        <!-- Section Tab Switcher -->
+        <div class="flex items-center p-1 rounded-xl bg-slate-900 border border-slate-800 shrink-0">
+          <button @click="activeTab = 'api'"
+                  :class="activeTab === 'api' ? 'bg-cyan-500 text-slate-950 font-bold shadow-md' : 'text-slate-400 hover:text-white'"
+                  class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs transition-all">
+            <i data-lucide="webhook" class="w-4 h-4"></i>
+            <span>REST APIs (Swagger UI)</span>
+          </button>
+          <button @click="activeTab = 'data'"
+                  :class="activeTab === 'data' ? 'bg-amber-500 text-slate-950 font-bold shadow-md' : 'text-slate-400 hover:text-white'"
+                  class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs transition-all">
+            <i data-lucide="database" class="w-4 h-4"></i>
+            <span>Static JSON Data (/data)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Architecture Flow Diagram Card -->
+      <section class="glass-card p-5 border border-slate-800">
+        <h2 class="text-xs uppercase tracking-wider font-mono text-slate-400 mb-3 flex items-center gap-2">
+          <i data-lucide="git-merge" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span>Unified Data & API Architecture Flow</span>
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <div class="p-4 rounded-xl bg-slate-900/80 border border-cyan-500/30 space-y-2">
+            <div class="flex items-center gap-2 font-bold text-cyan-400">
+              <span class="px-2 py-0.5 rounded bg-cyan-500/20 font-mono text-[11px]">1</span>
+              <span>Common Intents (First Truth)</span>
+            </div>
+            <p class="text-slate-400 leading-relaxed">
+              Every assistant query searches <code class="text-cyan-300 font-mono">/data/intents.json</code> first. Predefined questions, spacecraft rules, and material physics return instant, verified answers with zero external API calls.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-slate-900/80 border border-rose-500/30 space-y-2">
+            <div class="flex items-center gap-2 font-bold text-rose-400">
+              <span class="px-2 py-0.5 rounded bg-rose-500/20 font-mono text-[11px]">2</span>
+              <span>OpenAI Serverless Fallback</span>
+            </div>
+            <p class="text-slate-400 leading-relaxed">
+              If an inquiry cannot be answered from the intents file, the frontend securely queries <code class="text-rose-300 font-mono">/api/openai</code>. Keys remain strictly server-side in environment variables.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-slate-900/80 border border-amber-500/30 space-y-2">
+            <div class="flex items-center gap-2 font-bold text-amber-400">
+              <span class="px-2 py-0.5 rounded bg-amber-500/20 font-mono text-[11px]">3</span>
+              <span>External API Encapsulation</span>
+            </div>
+            <p class="text-slate-400 leading-relaxed">
+              All external services (such as NASA DONKI space weather) are encapsulated under <code class="text-amber-300 font-mono">/api/donki</code>. Frontend pages consume serverless endpoints rather than scattered client calls.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 1: REST APIs (Swagger UI) -->
+      <section x-show="activeTab === 'api'" class="space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <i data-lucide="webhook" class="w-5 h-5 text-cyan-400"></i>
+              <span>Interactive REST API Documentation (Swagger UI)</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">
+              Live testing console powered by Swagger UI bundle. You can view endpoint schemas, parameter specifications, and execute live HTTP requests.
+            </p>
+          </div>
+          <span class="px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono">
+            OpenAPI 3.0.3
+          </span>
+        </div>
+
+        <!-- Swagger UI Target Container -->
+        <div class="glass-card p-6 border border-slate-800 rounded-2xl">
+          <div id="swagger-ui"></div>
+        </div>
+      </section>
+
+      <!-- TAB 2: Static JSON Data Inspection (/data) -->
+      <section x-show="activeTab === 'data'" class="space-y-6">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <i data-lucide="database" class="w-5 h-5 text-amber-400"></i>
+            <span>Static JSON Data Inspection (<code class="text-amber-400 font-mono text-sm">/data/</code>)</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Inspect all static datasets bundled with FlameAtlas. Test live client fetches, inspect payload structures, and view citations.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Dataset Selector List -->
+          <div class="glass-card p-4 border border-slate-800 space-y-2 h-[600px] overflow-y-auto custom-scroll">
+            <span class="text-xs uppercase font-mono text-slate-400 px-2 block mb-2">Available Datasets (12)</span>
+            <template x-for="d in datasets" :key="d.filename">
+              <button @click="selectDataset(d)"
+                      :class="selectedDataset.filename === d.filename ? 'bg-amber-500/15 border-amber-500/40 text-amber-300' : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:bg-slate-900'"
+                      class="w-full text-left p-3 rounded-xl border transition-colors flex flex-col gap-1">
+                <div class="flex items-center justify-between">
+                  <span class="font-mono text-xs font-semibold" x-text="d.filename"></span>
+                  <span class="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 font-mono" x-text="d.size"></span>
+                </div>
+                <div class="text-[11px] text-slate-400 line-clamp-1" x-text="d.title"></div>
+                <div class="text-[10px] text-cyan-400/80 font-mono" x-text="d.source"></div>
+              </button>
+            </template>
+          </div>
+
+          <!-- Dataset Inspector & Live Fetch Sandbox -->
+          <div class="lg:col-span-2 glass-card p-5 border border-slate-800 flex flex-col h-[600px]">
+            <!-- Dataset Header -->
+            <div class="border-b border-slate-800 pb-3 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-mono font-bold text-amber-400" x-text="`/data/${selectedDataset.filename}`"></span>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono" x-text="selectedDataset.badge"></span>
+                </div>
+                <h3 class="text-sm font-bold text-white mt-1" x-text="selectedDataset.title"></h3>
+                <p class="text-xs text-slate-400 mt-0.5" x-text="selectedDataset.desc"></p>
+                <div class="text-[11px] text-cyan-400 font-mono mt-1" x-text="`Citation: ${selectedDataset.source}`"></div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <!-- Test Fetch Button -->
+                <button @click="testFetchDataset()"
+                        :disabled="fetching"
+                        class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50">
+                  <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                  <span x-text="fetching ? 'Fetching...' : 'Test Fetch'"></span>
+                </button>
+                <!-- Copy JSON Button -->
+                <button @click="copyJson()"
+                        class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs flex items-center gap-1.5 transition-colors">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                  <span x-text="copied ? 'Copied!' : 'Copy'"></span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Fetch Telemetry Banner -->
+            <div x-show="fetchStats" class="my-2 p-2 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-mono flex items-center justify-between text-slate-400">
+              <div>
+                <span>Status: </span>
+                <span :class="fetchStats.ok ? 'text-emerald-400' : 'text-rose-400'" x-text="fetchStats.status"></span>
+              </div>
+              <div>
+                <span>Latency: </span>
+                <span class="text-amber-400" x-text="`${fetchStats.latencyMs} ms`"></span>
+              </div>
+              <div>
+                <span>Length: </span>
+                <span class="text-cyan-400" x-text="`${fetchStats.bytes} bytes`"></span>
+              </div>
+            </div>
+
+            <!-- JSON Content Viewer -->
+            <div class="flex-1 overflow-auto rounded-xl bg-slate-950 p-4 border border-slate-900 font-mono text-xs text-emerald-300 leading-relaxed custom-scroll">
+              <pre class="whitespace-pre-wrap break-all" x-text="jsonContent"></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    window.apiDocsPage = function() {
+      return {
+        activeTab: 'api',
+        datasets: [
+          {
+            filename: 'intents.json',
+            title: 'Unified Common Intents & Knowledge Base',
+            badge: 'Primary Source of Truth',
+            size: '~15 KB',
+            desc: 'Shared intents mapping for FireGPT explainer & AURA flight rules, question matching, and page explainers.',
+            source: 'FlameAtlas Team · NASA PSI & NTRS Standard'
+          },
+          {
+            filename: 'firegpt.json',
+            title: 'FireGPT Indexed Citations Archive',
+            badge: 'NASA PSI / NTRS',
+            size: '2.4 KB',
+            desc: 'Curated microgravity Q&A pairs with citations to FLEX, BASS, DAFT, and CFI-G experiments.',
+            source: 'NASA PSI-69 FLEX, PSI-26 BASS, NTRS 20150023456'
+          },
+          {
+            filename: 'donki-snapshot.json',
+            title: 'NASA DONKI Verified Solar Flare Snapshot',
+            badge: 'Space Weather',
+            size: '5.4 KB',
+            desc: 'Verified historical snapshot of 17 solar flares, CME speed, and active regions from NASA DONKI.',
+            source: 'NASA Goddard GSFC / CCMC DONKI Catalog'
+          },
+          {
+            filename: 'materials.json',
+            title: 'Spacecraft Materials & Flammability Limits',
+            badge: 'Materials Science',
+            size: '1.2 KB',
+            desc: 'Limiting Oxygen Index (LOI), base flame spread rate, and polymer types for 10 space materials.',
+            source: 'NASA-STD-6001B · PSI-26 BASS'
+          },
+          {
+            filename: 'missions.json',
+            title: 'Exploration Habitat Atmospheres',
+            badge: 'ECLSS Standards',
+            size: '1.3 KB',
+            desc: 'Baseline pressure, oxygen fraction, gravity, and ground comms delays for 5 NASA habitats.',
+            source: 'NASA/SP-2010-3407 Exploration Atmospheres'
+          },
+          {
+            filename: 'earth-presets.json',
+            title: 'Geomagnetic Storm Scenarios & Cities',
+            badge: 'Space Weather',
+            size: '2.0 KB',
+            desc: 'Carrington 1859, May 2024 Gannon, and Halloween 2003 storm parameters with worldwide city latitudes.',
+            source: 'NOAA SWPC Historical Storm Database'
+          },
+          {
+            filename: 'gravity.json',
+            title: 'Gaussian Process Gravity Hyperparameters',
+            badge: 'Statistical Model',
+            size: '0.4 KB',
+            desc: 'Regression parameters for interpolating combustion spread across 0g to 1g gravity regimes.',
+            source: 'NASA PSI Observation Synthesis'
+          },
+          {
+            filename: 'radar.json',
+            title: 'Combustion Regime Classifier Matrix',
+            badge: 'Combustion Limits',
+            size: '0.6 KB',
+            desc: 'Fuels (heptane, decane, methanol), diluents (CO2, He, N2), and pressure/O2 axes.',
+            source: 'PSI-69 FLEX · PSI-159 CFI-G'
+          },
+          {
+            filename: 'gaps.json',
+            title: 'Microgravity Research Gap Priority Matrix',
+            badge: 'Decadal Survey',
+            size: '0.8 KB',
+            desc: 'Tested vs untested operational envelopes and ranked test recommendations for future space flights.',
+            source: 'NASA Physical Sciences Informatics Gap Analysis'
+          },
+          {
+            filename: 'lab.json',
+            title: 'Flame Lab 3D Presets & Science Lessons',
+            badge: '3D Simulation',
+            size: '3.9 KB',
+            desc: '3D combustion chamber materials, planetary gravity environments, and 6 guided experiments.',
+            source: 'NASA Glenn Zero-G Facility · FlameAtlas Team'
+          },
+          {
+            filename: 'game.json',
+            title: 'Space Cadet Levels, Badges & Trivia Quiz',
+            badge: 'Gamification',
+            size: '9.3 KB',
+            desc: 'Gamification XP milestones, unlockable achievement badges, and science trivia questions.',
+            source: 'NASA NTRS Publications · FlameAtlas Team'
+          },
+          {
+            filename: 'sources.json',
+            title: 'Master Citation Index & URLs',
+            badge: 'Open Science',
+            size: '1.3 KB',
+            desc: 'Official direct links to NASA Physical Sciences Informatics and NTRS document repositories.',
+            source: 'NASA Open Science Data Repository (OSDR)'
+          }
+        ],
+        selectedDataset: null,
+        jsonContent: 'Loading dataset...',
+        fetching: false,
+        copied: false,
+        fetchStats: null,
+
+        async init() {
+          this.selectedDataset = this.datasets[0];
+          await this.loadSelectedDataset();
+
+          this.$nextTick(() => {
+            this.initSwagger();
+            lucide.createIcons();
+          });
+        },
+
+        initSwagger() {
+          const uiContainer = document.getElementById('swagger-ui');
+          if (!uiContainer || typeof SwaggerUIBundle === 'undefined') return;
+
+          SwaggerUIBundle({
+            url: './data/openapi.json',
+            dom_id: '#swagger-ui',
+            deepLinking: true,
+            presets: [
+              SwaggerUIBundle.presets.apis,
+              SwaggerUIBundle.SwaggerUIStandalonePreset
+            ],
+            layout: 'BaseLayout',
+            defaultModelsExpandDepth: -1,
+            docExpansion: 'list'
+          });
+        },
+
+        async selectDataset(d) {
+          this.selectedDataset = d;
+          this.fetchStats = null;
+          await this.loadSelectedDataset();
+        },
+
+        async loadSelectedDataset() {
+          this.jsonContent = 'Loading /data/' + this.selectedDataset.filename + '...';
+          try {
+            const res = await fetch('./data/' + this.selectedDataset.filename);
+            if (res.ok) {
+              const data = await res.json();
+              this.jsonContent = JSON.stringify(data, null, 2);
+            } else {
+              this.jsonContent = '// HTTP Error: ' + res.status + ' ' + res.statusText;
+            }
+          } catch (e) {
+            this.jsonContent = '// Error reading dataset: ' + e.message;
+          }
+        },
+
+        async testFetchDataset() {
+          this.fetching = true;
+          const t0 = performance.now();
+          try {
+            const res = await fetch('./data/' + this.selectedDataset.filename);
+            const t1 = performance.now();
+            const text = await res.text();
+            this.fetchStats = {
+              ok: res.ok,
+              status: `${res.status} ${res.statusText}`,
+              latencyMs: (t1 - t0).toFixed(1),
+              bytes: text.length
+            };
+            try {
+              const parsed = JSON.parse(text);
+              this.jsonContent = JSON.stringify(parsed, null, 2);
+            } catch (je) {
+              this.jsonContent = text;
+            }
+          } catch (e) {
+            this.fetchStats = {
+              ok: false,
+              status: 'Network Error',
+              latencyMs: '0',
+              bytes: 0
+            };
+            this.jsonContent = '// Fetch Error: ' + e.message;
+          } finally {
+            this.fetching = false;
+          }
+        },
+
+        copyJson() {
+          navigator.clipboard.writeText(this.jsonContent);
+          this.copied = true;
+          setTimeout(() => { this.copied = false; }, 2000);
+        }
+      };
+    };
+  </script>
+
+  <!-- Alpine.js CDN (Loaded at bottom with defer to guarantee everything is registered first) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</body>
+</html>

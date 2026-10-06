@@ -1,0 +1,221 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "FlameAtlas REST API Specification",
+    "version": "2.0.0",
+    "description": "RESTful serverless endpoints for FlameAtlas (NASA Space Apps 2026: Flame in Freefall). Provides access to NASA DONKI space weather feeds, Common Intents knowledge retrieval, and OpenAI conversational fallback.",
+    "contact": {
+      "name": "FlameAtlas Science & Engineering Team",
+      "url": "https://github.com/nasa-space-apps"
+    }
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Current Host / Serverless Runtime"
+    }
+  ],
+  "paths": {
+    "/api/intents": {
+      "get": {
+        "tags": ["Common Intents"],
+        "summary": "Get Common Intents Index & Metadata",
+        "description": "Retrieves the status, total indexed knowledge base entries, covered dashboard pages, and suggested user queries from /data/intents.json.",
+        "responses": {
+          "200": {
+            "description": "Common intents metadata retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": true },
+                    "name": { "type": "string", "example": "FlameAtlas Unified Intents Database" },
+                    "version": { "type": "string", "example": "1.0.0" },
+                    "totalKbEntries": { "type": "integer", "example": 7 },
+                    "totalPagesIndexed": { "type": "integer", "example": 12 },
+                    "suggestedQueries": {
+                      "type": "array",
+                      "items": { "type": "string" },
+                      "example": [
+                        "Explain what is shown on this page",
+                        "Will Nomex burn in 34% oxygen?",
+                        "Why are cool flames invisible?"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Common Intents"],
+        "summary": "Match User Query Against Common Intents",
+        "description": "First source of truth: Evaluates a user question against verified NASA PSI, NTRS, and ECLSS rules before falling back to external AI.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                  "query": { "type": "string", "example": "Will Nomex burn in 34% oxygen on the Moon?" },
+                  "pageContext": { "type": "string", "example": "Mission Overview" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Intent match result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": true },
+                    "matched": { "type": "boolean", "example": true },
+                    "reply": { "type": "string" },
+                    "citations": { "type": "array", "items": { "type": "string" } },
+                    "source": { "type": "string", "example": "Common Intents Engine (/data/intents.json)" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing query parameter"
+          }
+        }
+      }
+    },
+    "/api/openai": {
+      "post": {
+        "tags": ["OpenAI Serverless"],
+        "summary": "Invoke OpenAI AI Fallback",
+        "description": "Serverless fallback invoked ONLY when /data/intents.json cannot answer the query. Uses process.env.OPENAI_API_KEY server-side. Never exposes keys to the frontend.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["prompt"],
+                "properties": {
+                  "prompt": { "type": "string", "example": "How do convective currents behave in a centrifuge spinning at 8 RPM?" },
+                  "pageContext": { "type": "string", "example": "Spacecraft Simulation (NSS Prometheus)" },
+                  "history": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": { "type": "string", "example": "user" },
+                        "text": { "type": "string", "example": "Previous question" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generative AI response or configuration advisory",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": true },
+                    "reply": { "type": "string" },
+                    "citations": { "type": "array", "items": { "type": "string" } },
+                    "source": { "type": "string", "example": "OpenAI gpt-4o-mini (Serverless Fallback)" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON or missing prompt"
+          },
+          "500": {
+            "description": "OpenAI upstream error"
+          }
+        }
+      }
+    },
+    "/api/donki": {
+      "get": {
+        "tags": ["NASA DONKI Space Weather"],
+        "summary": "Fetch Solar Flare Observations",
+        "description": "Queries NASA's live DONKI FLR API (Space Weather Database Of Notifications, Knowledge, Information) with server-side caching and automatic fallback to verified local snapshots.",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "description": "Number of preceding days of space weather history to retrieve",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 30
+            }
+          },
+          {
+            "name": "apiKey",
+            "in": "query",
+            "description": "Optional NASA API key. Defaults to server environment variable or DEMO_KEY.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "DEMO_KEY"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solar flare catalog retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": true },
+                    "count": { "type": "integer", "example": 17 },
+                    "source": { "type": "string", "example": "NASA DONKI API (Live Serverless Feed /api/donki)" },
+                    "live": { "type": "boolean", "example": true },
+                    "asOf": { "type": "string", "format": "date-time" },
+                    "flares": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string", "example": "2026-08-26T06:29:00-FLR-001" },
+                          "classType": { "type": "string", "example": "M2.2" },
+                          "flux": { "type": "number", "example": 0.000022 },
+                          "begin": { "type": "string" },
+                          "peak": { "type": "string" },
+                          "location": { "type": "string", "example": "N03W02" },
+                          "region": { "type": "integer", "example": 14513 },
+                          "hasCME": { "type": "boolean", "example": true },
+                          "cmeSpeed": { "type": "number", "example": 950 }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to retrieve from live DONKI and fallback snapshot"
+          }
+        }
+      }
+    }
+  }
+}

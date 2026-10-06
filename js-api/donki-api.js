@@ -162,26 +162,47 @@
   }
 
   /**
-   * Fetch solar flares with immediate fallback guarantee
+   * Fetch solar flares via the serverless /api/donki endpoint with immediate fallback guarantee
    */
   async function fetchDonkiFlares(days = 30, apiKey = 'DEMO_KEY') {
     const end = new Date();
-    const start = new Date(end.getTime() - days * DAY);
-    const qs = `startDate=${iso(start)}&endDate=${iso(end)}`;
+    const qs = `days=${days}${apiKey && apiKey !== 'DEMO_KEY' ? `&apiKey=${encodeURIComponent(apiKey)}` : ''}`;
 
-    // Quick non-blocking attempt (2.5 second timeout)
-    const liveAttempt = `https://api.nasa.gov/DONKI/FLR?${qs}&api_key=${apiKey}`;
+    // 1. Consume Serverless /api/donki endpoint
     try {
       const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 3500);
+      const res = await fetch(`/api/donki?${qs}`, { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && Array.isArray(data.flares) && data.flares.length > 0) {
+          return {
+            flares: data.flares.map(normalizeFlare).sort((x, y) => x.peak - y.peak),
+            source: data.source || 'NASA DONKI API (Live Serverless Feed /api/donki)',
+            live: Boolean(data.live),
+            asOf: data.asOf ? new Date(data.asOf) : end
+          };
+        }
+      }
+    } catch (e) {
+      // Gracefully fall through to client fallback
+    }
+
+    // 2. Direct client query fallback (for static deployment environments)
+    try {
+      const start = new Date(end.getTime() - days * DAY);
+      const directQs = `startDate=${iso(start)}&endDate=${iso(end)}&api_key=${apiKey}`;
+      const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 2500);
-      const res = await fetch(liveAttempt, { signal: ctrl.signal });
+      const res = await fetch(`https://api.nasa.gov/DONKI/FLR?${directQs}`, { signal: ctrl.signal });
       clearTimeout(timer);
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
           return {
             flares: data.map(normalizeFlare).sort((x, y) => x.peak - y.peak),
-            source: 'NASA DONKI API (Live Feed)',
+            source: 'NASA DONKI API (Client Direct)',
             live: true,
             asOf: end
           };
@@ -191,7 +212,7 @@
       // Gracefully fall through
     }
 
-    // Try local JSON file snapshot
+    // 3. Try local JSON file snapshot
     try {
       const snapRes = await fetch('./data/donki-snapshot.json');
       if (snapRes.ok) {
@@ -209,7 +230,7 @@
       // Gracefully fall through
     }
 
-    // Return instant embedded real NASA flares (never fails, 0ms)
+    // 4. Return instant embedded real NASA flares (never fails, 0ms)
     return {
       flares: EMBEDDED_DONKI_FLARES.map(normalizeFlare).sort((x, y) => x.peak - y.peak),
       source: 'NASA DONKI Verified Catalog (In-Memory)',
