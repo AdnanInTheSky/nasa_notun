@@ -227,7 +227,12 @@
         for (const entry of this.intentsData.kb) {
           let score = 0;
           for (const k of entry.keys) {
-            if (q.includes(k.toLowerCase())) score += 2;
+            if (q.includes(k.toLowerCase())) score += 2.5;
+          }
+          if (entry.questions) {
+            for (const pq of entry.questions) {
+              if (q.includes(pq.toLowerCase()) || pq.toLowerCase().includes(q)) score += 5;
+            }
           }
           if (score > bestScore) {
             bestScore = score;

@@ -23,18 +23,44 @@
       "intents": [
         {
           "id": "page-overview-explain",
-          "keys": ["overview", "page", "dashboard", "this page", "mission overview", "risk gauge"],
-          "questions": ["Explain this page", "What is the mission overview dashboard?"],
+          "keys": [
+            "overview",
+            "page",
+            "dashboard",
+            "this page",
+            "mission overview",
+            "risk gauge"
+          ],
+          "questions": [
+            "Explain this page",
+            "What is the mission overview dashboard?"
+          ],
           "answer": "This is the **Mission Overview** dashboard. It provides a top-level tactical assessment of cabin fire risk across NASA's deep space exploration environments.\n\n• **Dynamic Risk Gauge**: Evaluates fire propagation hazard based on active habitat variables (gravity, O₂ %, pressure, and ground comms latency).\n• **Atmospheric Variables**: Displays current cabin pressure (psi/kPa), oxygen concentration (21% to 34%), and gravity level (0g to 1g).\n• **Mission Journey Map**: An interactive simulation where you navigate a flight profile from Low Earth Orbit to Mars, balancing environmental risks at each waypoint.",
-          "citations": ["NASA SP-2016-ECLSS", "NASA Exploration Atmospheres", "NASA-STD-6001B"],
+          "citations": [
+            "NASA SP-2016-ECLSS",
+            "NASA Exploration Atmospheres",
+            "NASA-STD-6001B"
+          ],
           "confidence": 0.98
         },
         {
           "id": "overview-moon-vs-iss",
-          "keys": ["moon", "iss", "higher", "risk", "difference"],
-          "questions": ["Why is Moon Base risk higher than ISS?"],
+          "keys": [
+            "moon",
+            "iss",
+            "higher",
+            "risk",
+            "difference"
+          ],
+          "questions": [
+            "Why is Moon Base risk higher than ISS?"
+          ],
           "answer": "The proposed Artemis Moon Habitat operates at a reduced pressure of **8.2 psi (56.5 kPa)** and an elevated oxygen concentration of **34% O₂** to minimize spacewalk pre-breathe times. This high oxygen partial pressure ($P_{O_2} \\approx 19.2\\text{ kPa}$) significantly lowers the ignition energy of fabrics and plastics like Nomex and PMMA. Combined with lunar gravity ($0.16g$) which provides buoyant oxidizer flow to feed the flame, fires spread faster than in normal ISS air (21% O₂ at 14.7 psi).",
-          "citations": ["NASA/SP-2010-3407", "PSI-26 BASS", "NTRS 20150023456"],
+          "citations": [
+            "NASA/SP-2010-3407",
+            "PSI-26 BASS",
+            "NTRS 20150023456"
+          ],
           "confidence": 0.95
         }
       ]
@@ -51,18 +77,46 @@
       "intents": [
         {
           "id": "page-lab-explain",
-          "keys": ["flame lab", "lab", "this page", "simulator", "3d flame", "chamber"],
-          "questions": ["Explain the Flame Lab 3D page", "What can I do in the flame lab?"],
+          "keys": [
+            "flame lab",
+            "lab",
+            "this page",
+            "simulator",
+            "3d flame",
+            "chamber"
+          ],
+          "questions": [
+            "Explain the Flame Lab 3D page",
+            "What can I do in the flame lab?"
+          ],
           "answer": "The **Flame Lab 3D** simulates combustion kinetics under variable planetary gravities ($0g$, $0.16g$, $0.38g$, $1g$) and atmospheres:\n\n• **GLSL Shader Simulation**: Renders buoyant convection plumes on Earth ($1g$) versus isotropic spherical diffusion flames in orbit ($0g$).\n• **Material Testing**: Test materials like Paper, Cotton, Acrylic, Nomex, and Fuel Droplets.\n• **Extinguisher Simulation**: Spray CO₂ to observe suppressant gas dynamics and thermal quenching.\n• **Infrared Heat Vision**: Toggle heat vision to reveal hidden cool flames that emit no visible soot radiation.\n• **Interactive Lessons**: 6 guided experiments covering the fire triangle, buoyancy, and spacecraft safety.",
-          "citations": ["NASA Glenn Zero-G Facility", "PSI-69 FLEX", "PSI-26 BASS"],
+          "citations": [
+            "NASA Glenn Zero-G Facility",
+            "PSI-69 FLEX",
+            "PSI-26 BASS"
+          ],
           "confidence": 0.98
         },
         {
           "id": "lab-flame-shape",
-          "keys": ["blue", "sphere", "shape", "teardrop", "0g vs 1g", "buoyancy"],
-          "questions": ["Why does a 0g flame turn into a blue sphere?", "Explain flame shape differences between 0g and 1g"],
+          "keys": [
+            "blue",
+            "sphere",
+            "shape",
+            "teardrop",
+            "0g vs 1g",
+            "buoyancy"
+          ],
+          "questions": [
+            "Why does a 0g flame turn into a blue sphere?",
+            "Explain flame shape differences between 0g and 1g"
+          ],
           "answer": "On Earth ($1g$), hot combustion gases are less dense than cold ambient air, creating buoyant convection ($Gr > 10^4$). This pulls fresh oxygen upward into the base of the fire and stretches the flame into an elongated, flickering yellow teardrop.\n\nIn microgravity ($0g$), buoyancy vanishes ($Gr = 0$). Convection ceases completely. The flame relies purely on **molecular diffusion** for oxygen transport. Because diffusion is isotropic (equal in all directions), the flame forms a tranquil, steady **spherical blue ball**. Soot formation drops because residence time and fuel vaporization balance evenly, shifting radiation from yellow soot incandescence to blue CH* and C₂* radical chemiluminescence.",
-          "citations": ["PSI-26 BASS", "PSI-69 FLEX", "NASA Microgravity Combustion Science"],
+          "citations": [
+            "PSI-26 BASS",
+            "PSI-69 FLEX",
+            "NASA Microgravity Combustion Science"
+          ],
           "confidence": 0.97
         }
       ]
@@ -81,50 +135,139 @@
       "intents": [
         {
           "id": "page-craft-explain",
-          "keys": ["spacecraft", "prometheus", "this page", "craft", "simulation", "modules"],
-          "questions": ["Explain the Spacecraft Simulation page", "What is NSS Prometheus?"],
+          "keys": [
+            "spacecraft",
+            "prometheus",
+            "this page",
+            "craft",
+            "simulation",
+            "modules"
+          ],
+          "questions": [
+            "Explain the Spacecraft Simulation page",
+            "What is NSS Prometheus?"
+          ],
           "answer": "The **Spacecraft Fire & Solar EMP Simulator** models the deep-space vessel *NSS Prometheus* across 6 compartmentalized modules:\n\n• **Artificial Gravity Centrifuge (1.0g)**: Rotates at 8 RPM to generate artificial gravity, changing flame behavior from spherical balls in the spine to buoyant flames in the ring.\n• **Material Pyrolysis & Fire Kinetics**: Simulates ignition, HRR, smoke optical density, and toxic gas release (CO, HCN) for Kapton, Lithium-ion, Nomex, PMMA, and Delrin.\n• **Redundant Electronics Grid**: Models 120V Primary computer buses alongside 28V Gallium-Nitride (GaN) radiation-hardened backup buses with auto-failover.\n• **Tactical Flight Controls**: Execute CO₂ flooding, emergency vacuum purging, bulkhead blast door sealing, and section abandonment.",
-          "citations": ["NASA Saffire-IV Flight Handbook", "NASA SP-2016-ECLSS", "Flight Rule ECLSS-104"],
+          "citations": [
+            "NASA Saffire-IV Flight Handbook",
+            "NASA SP-2016-ECLSS",
+            "Flight Rule ECLSS-104"
+          ],
           "confidence": 0.98
         },
         {
           "id": "aura-where-is-fire",
-          "keys": ["where", "fire", "burning", "flame", "active fire", "location"],
-          "questions": ["Where is the fire and what is burning?", "Where is the fire?"],
+          "keys": [
+            "where",
+            "fire",
+            "burning",
+            "flame",
+            "active fire",
+            "location"
+          ],
+          "questions": [
+            "Where is the fire and what is burning?",
+            "Where is the fire?"
+          ],
           "answer": "Tactical Fire Scan:\n• If active fires exist in spacecraft modules (Bridge, Science Bay, Habitation Centrifuge, Hydroponics, Power Core, Propulsion Bay), telemetry displays module temperature, heat release rate (kW), oxygen fraction, toxic gas concentration, and fuel type.\n• In 0g modules (Bridge, Science, Power Core), flames are **spherical blue diffusion flames**.\n• In the Centrifuge (1.0g), flames are **buoyant flickering teardrops**.\n• If no fires are active: All 6 spacecraft sections report nominal thermal parameters (15°C–32°C) with no thermal runaway detected.",
-          "citations": ["NASA BASS PSI-26", "NASA Saffire-IV Flight Data", "ECLSS Flight Rule 104"],
+          "citations": [
+            "NASA BASS PSI-26",
+            "NASA Saffire-IV Flight Data",
+            "ECLSS Flight Rule 104"
+          ],
           "confidence": 0.96
         },
         {
           "id": "aura-resolve-fire",
-          "keys": ["resolve", "extinguish", "put out", "suppress", "suppression", "battery fire", "thermal runaway"],
-          "questions": ["How do I resolve the thermal runaway in Power Core?", "How do I put out the fire?"],
+          "keys": [
+            "resolve",
+            "extinguish",
+            "put out",
+            "suppress",
+            "suppression",
+            "battery fire",
+            "thermal runaway"
+          ],
+          "questions": [
+            "How do I resolve the thermal runaway in Power Core?",
+            "How do I put out the fire?"
+          ],
           "answer": "Emergency Spacecraft Fire Suppression Protocol:\n\n1. **Stop Forced Air Immediately**: Close ECLSS ventilation dampers to stop convective oxygen flow and isolate smoke.\n2. **Isolate Electrical Power**: Trip primary 120V bus breakers in the affected module to eliminate spark ignition.\n3. **Lithium-Ion Runaway Exception**: For battery runaway in the Power Core, cathode materials decompose internally and release atomic oxygen. Standard CO₂ flooding will NOT extinguish cathode decomposition! Immediate crew evacuation, blast door hermetic lockdown, and **Emergency Vacuum Purge** are mandatory.\n4. **Non-Battery Compartments**: Flood with CO₂ to reduce O₂ below the material's Limiting Oxygen Index (LOI), or execute a vacuum purge to space ($101.3 \\to 0\\text{ kPa}$).\n5. **Check for Cool Flames**: Confirm with infrared thermal imaging before repressurizing.",
-          "citations": ["NASA Saffire-I Flight Experiment", "NASA SP-2016-ECLSS", "ISS Emergency Fire Response Handbook"],
+          "citations": [
+            "NASA Saffire-I Flight Experiment",
+            "NASA SP-2016-ECLSS",
+            "ISS Emergency Fire Response Handbook"
+          ],
           "confidence": 0.97
         },
         {
           "id": "aura-solar-flare-emp",
-          "keys": ["solar", "flare", "fried", "emp", "avionics", "electronics", "bus"],
-          "questions": ["Why did the solar flare fry our avionics?", "What does an EMP blast do?"],
+          "keys": [
+            "solar",
+            "flare",
+            "fried",
+            "emp",
+            "avionics",
+            "electronics",
+            "bus"
+          ],
+          "questions": [
+            "Why did the solar flare fry our avionics?",
+            "What does an EMP blast do?"
+          ],
           "answer": "Solar Flare & EMP Mechanics on NSS Prometheus:\n\n1. **Electromagnetic Pulse (EMP)**: A coronal mass ejection (CME) or X-class flare induces extreme $dB/dt$ magnetic flux surges ($>180\\text{V}$) across electrical cabling.\n2. **Dielectric Breakdown**: Unshielded 120V primary semiconductors experience gate oxide puncture, rendering flight computers **FRIED**.\n3. **Secondary Electrical Arcing**: Sparking wiring ignites Kapton polyimide harness insulation ($T_{ign} = 560^\\circ\\text{C}$).\n4. **Radiation-Hardened Backup Failover**: The secondary avionics grid runs on isolated 28V DC Gallium-Nitride (GaN) semiconductors with 80 dB attenuation shielding, engaging via automated failover within 120 milliseconds.",
-          "citations": ["NASA DONKI Space Weather Service", "CCMC Space Weather Model", "NOAA Space Weather Scales"],
+          "citations": [
+            "NASA DONKI Space Weather Service",
+            "CCMC Space Weather Model",
+            "NOAA Space Weather Scales"
+          ],
           "confidence": 0.96
         },
         {
           "id": "aura-gravity-centrifuge",
-          "keys": ["gravity", "centrifuge", "wobble", "spin", "nutation", "bearing", "orbit", "orbital decay"],
-          "questions": ["What will happen to artificial gravity if we abandon the Centrifuge?", "Explain centrifuge wobble"],
+          "keys": [
+            "gravity",
+            "centrifuge",
+            "wobble",
+            "spin",
+            "nutation",
+            "bearing",
+            "orbit",
+            "orbital decay"
+          ],
+          "questions": [
+            "What will happen to artificial gravity if we abandon the Centrifuge?",
+            "Explain centrifuge wobble"
+          ],
           "answer": "Centrifuge & Gravitational Dynamics:\n\n1. **Artificial Gravity ($a_c = \\omega^2 R$)**: Spinning at 8.0 RPM at 14m radius creates $1.0g$ at the rim. Spine modules remain in weightless freefall ($0.00g$).\n2. **Combustion Sensitivity**: Flames in the centrifuge burn $3\\times$ faster due to buoyant oxygen draft, forming turbulent yellow teardrops instead of slow blue spheres.\n3. **Mass Unbalance Wobble**: Venting or abandoning a centrifuge module shifts the vessel's Center of Mass, creating bearing stress and precession wobble ($^\\circ/s$ nutation).\n4. **Orbital Decay Risk**: If propulsion electronics fry while in low planetary orbit, atmospheric drag robs orbital velocity ($7,600\\text{ m/s}$), triggering orbital decay and re-entry risk unless propulsion is restored.",
-          "citations": ["NASA BASS PSI-26", "NASA PSI-159 CFI-G", "Orbital Mechanics for Engineering Students"],
+          "citations": [
+            "NASA BASS PSI-26",
+            "NASA PSI-159 CFI-G",
+            "Orbital Mechanics for Engineering Students"
+          ],
           "confidence": 0.95
         },
         {
           "id": "aura-abandon-protocol",
-          "keys": ["abandon", "protocol", "door", "evacuate", "seal", "bulkhead", "flight rule 14.8"],
-          "questions": ["What is the section abandonment protocol?", "When do we abandon a module?"],
+          "keys": [
+            "abandon",
+            "protocol",
+            "door",
+            "evacuate",
+            "seal",
+            "bulkhead",
+            "flight rule 14.8"
+          ],
+          "questions": [
+            "What is the section abandonment protocol?",
+            "When do we abandon a module?"
+          ],
           "answer": "Section Abandonment Protocol (NASA Flight Rule 14.8):\n\nWhen a compartment loses both primary and secondary electronics, or when internal temperatures exceed 400°C:\n1. **Crew Evacuation**: All personnel evacuate to forward or aft safe havens.\n2. **Blast Door Lockdown**: Hermetic titanium bulkheads seal across the transfer tunnel.\n3. **Status Declaration**: Compartment is flagged **ABANDONED**.\n4. **Depressurization**: The module is depressurized to space to starve the fire and protect structural bulkheads from thermal conduction.\n5. **Attitude Recalibration**: Gyro matrices are re-zeroed to compensate for lost mass balance.",
-          "citations": ["Mir Station Fire Post-Mortem (1997)", "NASA Flight Rule 14.8", "Spaceflight Operations Guidelines"],
+          "citations": [
+            "Mir Station Fire Post-Mortem (1997)",
+            "NASA Flight Rule 14.8",
+            "Spaceflight Operations Guidelines"
+          ],
           "confidence": 0.95
         }
       ]
@@ -141,18 +284,46 @@
       "intents": [
         {
           "id": "page-solar-explain",
-          "keys": ["solar watch", "sun", "flares", "donki", "this page", "space weather"],
-          "questions": ["Explain the Solar Flare Watch page", "What is Solar Flare Watch?"],
+          "keys": [
+            "solar watch",
+            "sun",
+            "flares",
+            "donki",
+            "this page",
+            "space weather"
+          ],
+          "questions": [
+            "Explain the Solar Flare Watch page",
+            "What is Solar Flare Watch?"
+          ],
           "answer": "The **Solar Flare Watch** monitors space weather using data from NASA's DONKI (Database of Notifications, Knowledge, Information) API:\n\n• **3D Solar Visualizer**: Shows solar active regions, magnetic loop reconnection, and CME coronal ejection fronts.\n• **Live DONKI API Feed**: Fetches real solar flare observations with class type, source active region, and peak flux.\n• **Parker Spiral Proton Storm**: Simulates how solar energetic protons (SEPs) spiral along the interplanetary magnetic field.\n• **Mission Exposure Calculations**: Computes real-time radiation dose and electronics single-event upset (SEU) risk for ISS, Moon, Mars, and Deep Space Transit.\n• **Storm Shelter Protocol Game**: Test your decision-making when an extreme flare strikes.",
-          "citations": ["NASA DONKI Space Weather Service", "CCMC Space Weather Model", "NOAA Space Weather Scales"],
+          "citations": [
+            "NASA DONKI Space Weather Service",
+            "CCMC Space Weather Model",
+            "NOAA Space Weather Scales"
+          ],
           "confidence": 0.98
         },
         {
           "id": "solar-classes-explain",
-          "keys": ["flare class", "c-class", "m-class", "x-class", "carrington", "flux"],
-          "questions": ["What are the solar flare classes (C, M, X)?", "Explain flare classifications"],
+          "keys": [
+            "flare class",
+            "c-class",
+            "m-class",
+            "x-class",
+            "carrington",
+            "flux"
+          ],
+          "questions": [
+            "What are the solar flare classes (C, M, X)?",
+            "Explain flare classifications"
+          ],
           "answer": "Solar flares are classified by their peak soft X-ray flux ($1\\text{–}8\\text{ \\AA}$) measured in Watts/m² by GOES satellites:\n\n• **A-Class** ($< 10^{-7}\\text{ W/m²}$) & **B-Class** ($< 10^{-6}\\text{ W/m²}$): Background solar quiet.\n• **C-Class** ($10^{-6}\\text{–}10^{-5}\\text{ W/m²}$): Minor solar events with minimal planetary impact.\n• **M-Class** ($10^{-5}\\text{–}10^{-4}\\text{ W/m²}$): Medium storms causing brief radio blackouts and minor astronaut radiation advisories.\n• **X-Class** ($> 10^{-4}\\text{ W/m²}$): Major explosions. An X10 flare emits $10\\times$ more flux than an X1. The 1859 Carrington Event is estimated at X45+.",
-          "citations": ["NOAA Space Weather Scales", "NASA DONKI API", "Solar Physics Journal"],
+          "citations": [
+            "NOAA Space Weather Scales",
+            "NASA DONKI API",
+            "Solar Physics Journal"
+          ],
           "confidence": 0.96
         }
       ]
@@ -169,18 +340,44 @@
       "intents": [
         {
           "id": "page-earth-explain",
-          "keys": ["earth impact", "earth", "magnetosphere", "aurora", "this page", "geomagnetic storm"],
-          "questions": ["Explain the Solar Storm vs Earth page", "What does the Earth simulator show?"],
+          "keys": [
+            "earth impact",
+            "earth",
+            "magnetosphere",
+            "aurora",
+            "this page",
+            "geomagnetic storm"
+          ],
+          "questions": [
+            "Explain the Solar Storm vs Earth page",
+            "What does the Earth simulator show?"
+          ],
           "answer": "The **Solar Storm vs Earth** simulator models the interaction between incoming solar plasma and Earth's geomagnetic field:\n\n• **Dayside Magnetopause Standoff ($R_{mp}$)**: Computes how solar wind ram pressure compresses Earth's magnetic boundary using the empirical Shue model.\n• **Equatorward Auroral Oval Shift**: Visualizes aurora expansion down to mid-latitudes as the planetary Kp index climbs from 0 to 9.\n• **Satellite Constellation Vulnerability**: Monitors orbits of ISS ($400\\text{ km}$), GPS ($20,200\\text{ km}$), and Geostationary Satellites ($35,786\\text{ km}$) during geomagnetic compression.\n• **Historic Storm Presets**: Compare the Carrington Event (1859), Halloween Storms (2003), and the Gannon Storm (May 2024).",
-          "citations": ["Shue et al. (1998) Magnetopause Model", "NOAA Space Weather Prediction Center", "USGS Geomagnetism Program"],
+          "citations": [
+            "Shue et al. (1998) Magnetopause Model",
+            "NOAA Space Weather Prediction Center",
+            "USGS Geomagnetism Program"
+          ],
           "confidence": 0.98
         },
         {
           "id": "earth-magnetopause-shue",
-          "keys": ["magnetopause", "standoff", "shue", "geo exposed", "compression"],
-          "questions": ["What is the magnetopause standoff distance?", "Explain magnetopause compression"],
+          "keys": [
+            "magnetopause",
+            "standoff",
+            "shue",
+            "geo exposed",
+            "compression"
+          ],
+          "questions": [
+            "What is the magnetopause standoff distance?",
+            "Explain magnetopause compression"
+          ],
           "answer": "Earth's magnetopause is the boundary where the dynamic pressure of the supersonic solar wind ($P_{ram} = \\rho v^2$) balances Earth's magnetic pressure ($B^2 / 2\\mu_0$). Under quiet conditions, this standoff distance ($R_{mp}$) sits at roughly **$10\\text{–}11$ Earth radii ($R_E$)**.\n\nDuring intense coronal mass ejections with southward interplanetary magnetic field ($B_z < 0$), magnetic reconnection and extreme solar wind speed ($> 1500\\text{ km/s}$) compress $R_{mp}$ inside **$6.6 R_E$**. When this occurs, satellites in Geostationary Orbit (GEO) are stripped of Earth's magnetic shielding and exposed directly to solar wind plasma.",
-          "citations": ["Shue et al. (1997, 1998) JGR", "CCMC Space Weather Model"],
+          "citations": [
+            "Shue et al. (1997, 1998) JGR",
+            "CCMC Space Weather Model"
+          ],
           "confidence": 0.95
         }
       ]
@@ -197,18 +394,45 @@
       "intents": [
         {
           "id": "page-ranker-explain",
-          "keys": ["material ranker", "materials", "ranker", "this page", "burn race", "loi"],
-          "questions": ["Explain the Material Risk Ranker page", "How does the Material Ranker work?"],
+          "keys": [
+            "material ranker",
+            "materials",
+            "ranker",
+            "this page",
+            "burn race",
+            "loi"
+          ],
+          "questions": [
+            "Explain the Material Risk Ranker page",
+            "How does the Material Ranker work?"
+          ],
           "answer": "The **Material Risk Ranker** evaluates spacecraft materials across mission atmospheres:\n\n• **Flammability Risk Scoring**: Ranks materials based on Limiting Oxygen Index (LOI), base flame spread rate, and heat release rate.\n• **SHAP Explainability Impact**: Demonstrates how changing environmental variables (O₂ percentage, ambient pressure, gravity) adjust the material's flammability score.\n• **3D Burn Race Bench**: A head-to-head comparison where you ignite two materials under identical conditions to observe flame spread side-by-side.",
-          "citations": ["NASA-STD-6001B", "PSI-26 BASS", "PSI-62 Material Tests"],
+          "citations": [
+            "NASA-STD-6001B",
+            "PSI-26 BASS",
+            "PSI-62 Material Tests"
+          ],
           "confidence": 0.98
         },
         {
           "id": "material-loi-explain",
-          "keys": ["loi", "limiting oxygen index", "nomex", "teflon", "kapton"],
-          "questions": ["What is the Limiting Oxygen Index (LOI)?", "Explain LOI"],
+          "keys": [
+            "loi",
+            "limiting oxygen index",
+            "nomex",
+            "teflon",
+            "kapton"
+          ],
+          "questions": [
+            "What is the Limiting Oxygen Index (LOI)?",
+            "Explain LOI"
+          ],
           "answer": "The **Limiting Oxygen Index (LOI)** is the minimum concentration of oxygen in an O₂/N₂ mixture that will sustain candle-like upward combustion of a material. Materials with LOI below ambient O₂ (e.g., PMMA LOI ~17%, Cotton LOI ~19%) ignite and burn readily in normal air (21% O₂). Space-grade materials like Nomex (LOI 28%) self-extinguish in standard sea-level air, but will burn if the habitat atmosphere is enriched to 34% O₂ as proposed for Artemis lunar surface habitats.",
-          "citations": ["NASA-STD-6001B", "ASTM D2863", "PSI-26 BASS"],
+          "citations": [
+            "NASA-STD-6001B",
+            "ASTM D2863",
+            "PSI-26 BASS"
+          ],
           "confidence": 0.96
         }
       ]
@@ -225,10 +449,23 @@
       "intents": [
         {
           "id": "page-gravity-explain",
-          "keys": ["gravity gap", "gap filler", "gaussian process", "this page", "partial gravity"],
-          "questions": ["Explain the Gravity Gap-Filler page", "What is the Gravity Gap-Filler?"],
+          "keys": [
+            "gravity gap",
+            "gap filler",
+            "gaussian process",
+            "this page",
+            "partial gravity"
+          ],
+          "questions": [
+            "Explain the Gravity Gap-Filler page",
+            "What is the Gravity Gap-Filler?"
+          ],
           "answer": "The **Gravity Gap-Filler** models how flame spread rate changes between weightless freefall ($0g$) and Earth gravity ($1g$):\n\n• **Gaussian Process Regression**: Fits a smooth, non-linear regression curve through empirical NASA flight data points while quantifying model uncertainty (95% confidence ribbon).\n• **The Partial Gravity Gap**: Highlights that while NASA has data at $0g$ (BASS/FLEX on the ISS) and $1g$ (ground drop towers), physical combustion tests at Moon ($0.16g$) and Mars ($0.38g$) are virtually non-existent.\n• **Gravity Guess Game**: Test your intuition by predicting flame spread velocity across different gravities.",
-          "citations": ["PSI-26 BASS", "PSI-69 FLEX", "NASA Microgravity Research"],
+          "citations": [
+            "PSI-26 BASS",
+            "PSI-69 FLEX",
+            "NASA Microgravity Research"
+          ],
           "confidence": 0.98
         }
       ]
@@ -245,18 +482,45 @@
       "intents": [
         {
           "id": "page-radar-explain",
-          "keys": ["flame radar", "radar", "cool flames", "invisible flame", "this page", "ghost flame"],
-          "questions": ["Explain the Invisible Flame Radar page", "What is the Invisible Flame Radar?"],
+          "keys": [
+            "flame radar",
+            "radar",
+            "cool flames",
+            "invisible flame",
+            "this page",
+            "ghost flame"
+          ],
+          "questions": [
+            "Explain the Invisible Flame Radar page",
+            "What is the Invisible Flame Radar?"
+          ],
           "answer": "The **Invisible Flame Radar** visualizes the thermodynamic combustion regimes of fuels across varying oxygen concentrations (10% to 40%) and atmospheric pressures (0.5 to 3.0 atm):\n\n• **Regime Matrix**: Maps out Hot Flame zones, Low-Temperature Cool Flame zones, and Extinction Boundaries based on NASA FLEX and ACME CFI-G flight data.\n• **Current Habitat Pin**: Overlays your selected mission atmosphere directly on the chart.\n• **Ghost Flame Hunter Game**: Search a fogged radar grid to locate hidden cool-flame reactions using thermal infrared sensor cues.",
-          "citations": ["PSI-69 FLEX", "PSI-68 FLEX-2", "PSI-159 CFI-G"],
+          "citations": [
+            "PSI-69 FLEX",
+            "PSI-68 FLEX-2",
+            "PSI-159 CFI-G"
+          ],
           "confidence": 0.98
         },
         {
           "id": "radar-cool-flames",
-          "keys": ["cool flame", "invisible", "temperature", "heptane", "radicals"],
-          "questions": ["Why are cool flames hard to see?", "What are cool flames?"],
+          "keys": [
+            "cool flame",
+            "invisible",
+            "temperature",
+            "heptane",
+            "radicals"
+          ],
+          "questions": [
+            "Why are cool flames hard to see?",
+            "What are cool flames?"
+          ],
           "answer": "Cool flames are low-temperature chemical reactions occurring between **500 K and 800 K** (compared to > 1500 K for conventional hot flames). Because the temperature is too low to produce glowing blackbody soot particles, cool flames emit almost zero visible radiation and are entirely invisible to human eyes and standard video cameras. NASA's FLEX experiment on the ISS discovered that n-heptane droplets continued burning in a cool flame regime long after the visible flame extinguished.",
-          "citations": ["PSI-69 FLEX", "PSI-117", "PSI-159 CFI-G"],
+          "citations": [
+            "PSI-69 FLEX",
+            "PSI-117",
+            "PSI-159 CFI-G"
+          ],
           "confidence": 0.97
         }
       ]
@@ -265,27 +529,594 @@
       "pageName": "FireGPT AI & Quiz",
       "summary": "Unified scientific assistant portal and FireGPT Trivia Challenge, allowing users to query indexed NASA PSI and NTRS research with citations, or test their knowledge in a 7-question microgravity quiz.",
       "suggested": [
-        "Explain the FireGPT page",
-        "How does FireGPT answer questions?",
-        "What is the FireGPT Trivia Challenge?",
-        "Can smoke detectors be trusted in microgravity?"
+        "What factors could affect flame spread under these conditions?",
+        "How does ventilation velocity affect flame spread in microgravity?",
+        "Will Nomex burn in 34% oxygen on the Moon?",
+        "Why are cool flames invisible and dangerous?",
+        "Can smoke detectors be trusted in microgravity?",
+        "What happens to fire at Mars gravity (0.38g)?",
+        "How should a spacecraft crew extinguish a fire in microgravity?",
+        "What materials are safest on a spacecraft?"
       ],
       "intents": [
         {
-          "id": "page-gpt-explain",
-          "keys": ["fire gpt", "firegpt", "quiz", "this page", "trivia"],
-          "questions": ["Explain the FireGPT page", "What is FireGPT?"],
-          "answer": "This is the **FireGPT Unified Assistant & Quiz Portal**:\n\n• **Unified AI Assistant**: Combines FireGPT's NASA research retrieval and Aura's real-time spacecraft flight assistant. It checks verified common intents first, and falls back to a serverless OpenAI model when needed.\n• **Indexed NASA Citations**: Every response cites verified NASA Physical Sciences Informatics (PSI) experiments, NTRS publications, or ECLSS flight rules.\n• **FireGPT Trivia Challenge**: An interactive 7-question quiz testing your knowledge of flame shapes, cool flames, suppressants, and space habitats with streak bonuses and XP awards.",
-          "citations": ["NASA Open Science PSI", "NASA NTRS Catalog", "NASA SP-2016-ECLSS"],
+          "id": "flame-spread-factors",
+          "keys": [
+            "factors",
+            "flame spread",
+            "conditions",
+            "spread rate",
+            "affect",
+            "variables",
+            "parameters",
+            "influence"
+          ],
+          "questions": [
+            "What factors could affect flame spread under these conditions?",
+            "What factors influence flame spread in microgravity?",
+            "What controls how fast fire spreads in space?",
+            "How do environmental conditions affect flame spread rate?",
+            "What makes flame spread faster or slower in spacecraft?"
+          ],
+          "answer": "In space and partial-gravity habitats, flame spread rate is governed by five primary interdependent factors:\n\n1. **Ventilation / Flow Velocity**: Without natural buoyancy, forced ventilation ($0.05$ to $0.3\\text{ m/s}$) is the sole source of oxidizer transport. A peak spread velocity occurs at moderate flow speeds (~$0.15\\text{ m/s}$); very high flows blow out the flame through convective heat loss, while zero flow leads to self-extinction under stagnant combustion products.\n2. **Oxygen Concentration & Partial Pressure**: Elevated oxygen (e.g. $34\\%\\text{ O}_2$ at $8.2\\text{ psi}$ in proposed Artemis Moon habitats) drastically increases chemical reaction kinetics and flame temperature, allowing materials that self-extinguish in Earth air to sustain rapid upward flame spread.\n3. **Effective Gravity Level**: Gravity determines buoyant drafting ($Grashof\\text{ number}$). At $0g$, flames are spherical and diffusion-limited. At $0.16g$ (Moon) and $0.38g$ (Mars), weak buoyancy feeds fresh oxygen without blowing the flame out, potentially creating faster spread than $0g$.\n4. **Material Thickness & Thermal Inertia**: Thermally thin fuels (fabrics, paper, plastic films) spread much faster because the entire thickness heats up rapidly. Thermally thick fuels (thick Nomex composites, PMMA slabs) require significant surface pre-heating.\n5. **Flow Direction (Concurrent vs. Opposed)**: Concurrent flow (airflow moving in the same direction as flame spread) carries hot exhaust gases over unburned fuel, preheating it and causing spread rates up to $10\\times$ faster than opposed flow (flame moving into incoming air).",
+          "citations": [
+            "NASA BASS Experiment Series",
+            "Saffire-I through VI Large-Scale Tests",
+            "NASA-STD-6001B Test 1",
+            "PSI-26 BASS",
+            "PSI-159 CFI-G"
+          ],
+          "confidence": 0.99
+        },
+        {
+          "id": "ventilation-velocity-impact",
+          "keys": [
+            "ventilation",
+            "velocity",
+            "airflow",
+            "fans",
+            "forced flow",
+            "convection"
+          ],
+          "questions": [
+            "How does ventilation velocity affect flame spread in microgravity?",
+            "What happens if cabin fans are turned off during a fire?",
+            "Can airflow put out a fire in space?"
+          ],
+          "answer": "Ventilation velocity has a characteristic **bell-curve (non-monotonic) effect** on microgravity flame spread:\n\n• **Sub-critical Flow (<0.02 m/s)**: In quiescent zero-g air, combustion products (CO₂ and H₂O) accumulate around the flame sphere. Without buoyancy to evacuate them, the flame self-suffocates from lack of fresh oxygen.\n• **Optimal Spread Regime (0.05–0.25 m/s)**: Typical spacecraft cabin air conditioning speeds provide continuous fresh oxygen delivery to the flame front, maximizing flame spread rate.\n• **Blowoff Extinction (>0.8–1.2 m/s)**: Above a critical velocity, convective cooling strips heat away from the reaction zone faster than chemical combustion can release it, quenching the flame.\n\nBecause fans feed microgravity fire, NASA emergency doctrine requires **immediate ventilation shutdown** upon any smoke detection.",
+          "citations": [
+            "NASA Saffire-IV (NTRS 20200002135)",
+            "BASS-II Flame Extinction Experiments",
+            "PSI-26 BASS"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "id": "microgravity-vs-earth-fire",
+          "keys": [
+            "differently",
+            "earth fire",
+            "space fire",
+            "difference",
+            "buoyancy",
+            "gravity vs zero g"
+          ],
+          "questions": [
+            "Why does fire behave differently in microgravity compared to Earth?",
+            "What is the main difference between Earth fire and space fire?",
+            "Why are flames spherical in zero gravity?"
+          ],
+          "answer": "On Earth ($1g$), hot combustion gases are less dense than cold ambient air, creating buoyant natural convection ($Gr > 10^4$). This pulls fresh oxygen upward into the flame base and stretches the flame into an elongated, flickering yellow teardrop.\n\nIn microgravity ($0g$), gravity is zero ($Gr = 0$). Natural convection vanishes completely. Oxidizer transport relies strictly on **molecular diffusion**. Because diffusion occurs equally in all radial directions (isotropically), microgravity fire forms a tranquil, steady **spherical blue flame** burning at lower temperatures (~1200 K vs 1600 K on Earth) with minimal soot emission.",
+          "citations": [
+            "NASA FLEX Experiment",
+            "LSP Flame Design",
+            "Glenn Research Center Microgravity Combustion Science"
+          ],
           "confidence": 0.98
         },
         {
-          "id": "gpt-smoke-detectors",
-          "keys": ["smoke", "detector", "detectors", "microgravity", "daft", "particles"],
-          "questions": ["Can smoke detectors be trusted in microgravity?", "How do smoke detectors work in space?"],
-          "answer": "Standard terrestrial smoke detectors must be modified for spaceflight. In microgravity, the absence of buoyancy causes soot particles to agglomerate into significantly larger, aggregate filaments because residence times in the flame zone are much longer. NASA's DAFT and SAME-2 experiments found that standard ionization-type detectors under-report microgravity smoke particles, whereas optical and multi-wavelength laser scatter sensors provide far more reliable early warnings.",
-          "citations": ["PSI-47 DAFT", "NTRS 20130000422", "NASA SP-2016-ECLSS"],
+          "id": "nomex-lunar-habitats",
+          "keys": [
+            "nomex",
+            "moon",
+            "34",
+            "34%",
+            "artemis",
+            "lunar habitat",
+            "burn on moon"
+          ],
+          "questions": [
+            "Will Nomex burn in 34% oxygen on the Moon?",
+            "Can Nomex ignite in lunar habitat conditions?",
+            "Is Nomex safe for Artemis Moon bases?"
+          ],
+          "answer": "Yes — Nomex HT90-40 (widely considered flame-retardant on Earth with an LOI of ~28–30%) can ignite and sustain upward flame spread in proposed Artemis lunar habitat conditions (**34% O₂ at 8.2 psi / 56.5 kPa**).\n\nIn standard ISS sea-level air (21% O₂ at 14.7 psi), BASS experiment samples self-extinguished. However, once oxygen exceeds ~30%, chemical reaction rates exceed radiative heat losses. At Lunar gravity ($0.16g$), buoyant airflow drafts oxygen into the flame front, increasing spread velocity above microgravity values.",
+          "citations": [
+            "PSI-26 BASS",
+            "NASA-STD-6001B",
+            "NTRS 20150023456",
+            "Artemis ECLSS Baseline 8.2 psi / 34% O₂"
+          ],
           "confidence": 0.96
+        },
+        {
+          "id": "cool-flames-hazard",
+          "keys": [
+            "cool flame",
+            "cool flames",
+            "invisible",
+            "heptane",
+            "low temperature"
+          ],
+          "questions": [
+            "What are cool flames and why are they dangerous in spacecraft?",
+            "Why are cool flames hard to see?",
+            "How do cool flames form in microgravity?"
+          ],
+          "answer": "Cool flames are low-temperature (~500–800 K vs 1500–2000 K for hot flames) quasi-steady combustion reactions driven by low-temperature alkyl-peroxy radical chemistry rather than standard H-O chain branching. They emit virtually zero visible light (only faint formaldehyde chemiluminescence) and minimal infrared radiation.\n\nIn NASA's FLEX experiment on the ISS, large fuel droplets (n-heptane, decane) extinguished their visible hot flames, yet continued burning invisibly for dozens of seconds as cool flames. They represent a severe hazard because crew members and conventional thermal sensors cannot see them, and they can re-ignite hot flames if oxygen or pressure changes.",
+          "citations": [
+            "PSI-69 FLEX",
+            "PSI-117 Cool Flame Studies",
+            "Williams et al., Combustion and Flame (2014)"
+          ],
+          "confidence": 0.95
+        },
+        {
+          "id": "smoke-detector-reliability",
+          "keys": [
+            "smoke",
+            "detector",
+            "detectors",
+            "ionization",
+            "optical",
+            "particle size",
+            "daft"
+          ],
+          "questions": [
+            "Can smoke detectors be trusted in microgravity?",
+            "How does microgravity smoke differ from Earth smoke?",
+            "Why do ionization smoke detectors fail in space?"
+          ],
+          "answer": "Conventional Earth smoke detectors cannot be blindly trusted in space. Because buoyant convection is absent in $0g$, soot particles remain trapped in the hot reaction zone up to $10\\times$ longer. This prolonged residence time causes soot particles to agglomerate into massive, elongated chain clusters ($10$ to $50$ times larger than Earth smoke particles).\n\nExperiments on the ISS (**DAFT** and **SAME-2**) proved that ionization detectors (which rely on small aerosol particles to capture ions) severely underestimate microgravity smoke, whereas optical light-scattering and multi-wavelength laser sensors detect it much earlier.",
+          "citations": [
+            "PSI-47 DAFT",
+            "SAME-2 (Smoke Aerosol Measurement Experiment)",
+            "NTRS 20130000422"
+          ],
+          "confidence": 0.96
+        },
+        {
+          "id": "mars-gravity-fire",
+          "keys": [
+            "mars",
+            "gravity",
+            "0.38",
+            "0.38g",
+            "martian",
+            "partial gravity"
+          ],
+          "questions": [
+            "What happens to fire at Mars gravity (0.38g)?",
+            "What do we know about fire behavior at Mars gravity?",
+            "Is fire safer on Mars than on Earth?"
+          ],
+          "answer": "Mars gravity ($0.38g$) represents the most critical research gap in spacecraft fire safety. At $0.38g$, buoyancy is strong enough to draft oxygen into the flame (preventing self-extinction like in $0g$), yet weak enough that buoyant convective cooling is reduced compared to Earth.\n\nIn proposed Mars surface habitat conditions ($30$–$32\\%\\text{ O}_2$ at $8.2\\text{ psi}$), this can create a worst-case condition where buoyant flow accelerates flame spread without blowing the flame out. Current predictions rely on Gaussian Process regression interpolating between $0g$ (drop towers/ISS) and $1g$, which is why NASA's CFI-G experiment identifies $0.38g$ as the top testing priority.",
+          "citations": [
+            "NASA CFI-G (Confined Combustion)",
+            "NASA Research Gap Map",
+            "PSI-26 BASS",
+            "PSI-69 FLEX"
+          ],
+          "confidence": 0.94
+        },
+        {
+          "id": "spacecraft-extinguishment-doctrine",
+          "keys": [
+            "extinguish",
+            "extinguisher",
+            "put out",
+            "suppress",
+            "water mist",
+            "co2",
+            "doctrine"
+          ],
+          "questions": [
+            "How should a spacecraft crew extinguish a fire in microgravity?",
+            "What is the best way to put out a fire on a spacecraft?",
+            "What extinguishers are used on the ISS and Orion?"
+          ],
+          "answer": "NASA spacecraft emergency fire doctrine follows a strict, multi-tier protocol:\n\n1. **Isolate & Stop Ventilation**: Immediately shutdown cabin air circulation fans and inter-module ventilation (IMV) to eliminate forced oxygen delivery.\n2. **Depower the Affected Circuit**: 90% of spacecraft fires are electrical; cutting bus power removes the continuous ignition/joule-heating source.\n3. **Deploy Extinguishers**: On ISS USOS, Fine Water Mist extinguishers (using nitrogen-propelled micro-droplets) are preferred because they extinguish flames without generating toxic halon gases. Russian modules utilize CO₂ extinguishers. Orion uses compact water-foam.\n4. **Depressurization / Vacuum Venting**: If a fire is uncontained in an unoccupied module, the module is sealed and vented to space vacuum (reducing pressure below 1 psia), instantly extinguishing the flame.",
+          "citations": [
+            "NASA ISS Emergency Operations Procedures (EOP Fire)",
+            "Orion Fire Safety Standards",
+            "NASA SP-2010-3407"
+          ],
+          "confidence": 0.98
+        },
+        {
+          "id": "pressure-oxygen-flammability",
+          "keys": [
+            "pressure",
+            "oxygen",
+            "partial pressure",
+            "8.2 psi",
+            "ppo2",
+            "flammability"
+          ],
+          "questions": [
+            "Why does cabin pressure and oxygen concentration affect flammability?",
+            "How does partial pressure of oxygen relate to ignition risk?",
+            "Why do Artemis habitats use 8.2 psi instead of 14.7 psi?"
+          ],
+          "answer": "Material ignition and flame spread depend primarily on the oxygen partial pressure ($P_{O_2}$) and molar concentration, not total barometric pressure alone. Artemis habitats use $8.2\\text{ psi}$ ($56.5\\text{ kPa}$) with $34\\%\\text{ O}_2$ so that $P_{O_2}$ remains ~2.79 psi (comparable to sea level breathing, avoiding hypoxia) while allowing astronauts to conduct spacewalks with minimal pre-breathe decompression time.\n\nHowever, reduced total pressure decreases inert gas (nitrogen) thermal ballast, which increases the flame temperature and lowers the energy required for ignition.",
+          "citations": [
+            "NASA Explored Co-habitation Atmospheres",
+            "ECLSS 8.2 psia Standard",
+            "NASA-STD-6001B"
+          ],
+          "confidence": 0.95
+        },
+        {
+          "id": "limiting-oxygen-index-loi",
+          "keys": [
+            "loi",
+            "limiting oxygen index",
+            "test 1",
+            "astm d2863",
+            "index"
+          ],
+          "questions": [
+            "What is the Limiting Oxygen Index (LOI) and how does it change in space?",
+            "What is the Limiting Oxygen Index (LOI)?",
+            "Can a material that passes Earth flammability tests burn in space?"
+          ],
+          "answer": "The Limiting Oxygen Index (LOI) is the minimum volumetric concentration of oxygen in an O₂/N₂ mixture that will sustain candle-like downward flaming combustion. On Earth, materials with LOI > 21% self-extinguish in normal air.\n\nHowever, in space habitats with low ventilation ($0.05$–$0.2\\text{ m/s}$), low-velocity concurrent flow can preheat the unburned solid, lowering the effective LOI by 3% to 6%. Consequently, materials certified as 'non-flammable' by standard Earth NASA Test 1 can burn under space habitat ventilation regimes.",
+          "citations": [
+            "ASTM D2863",
+            "NASA-STD-6001B Test 1",
+            "Saffire-I Flammability Analysis"
+          ],
+          "confidence": 0.95
+        },
+        {
+          "id": "battery-thermal-runaway-space",
+          "keys": [
+            "battery",
+            "lithium",
+            "li-ion",
+            "runaway",
+            "thermal runaway",
+            "cells"
+          ],
+          "questions": [
+            "What happens during a lithium-ion battery fire in a spacecraft?",
+            "What happens during battery thermal runaway in space?",
+            "How dangerous is a lithium-ion battery fire in a spacecraft?"
+          ],
+          "answer": "Lithium-ion battery thermal runaway is the highest-consequence fire hazard on crewed spacecraft because Li-ion cells contain both chemical fuel and internal oxidizers (metal oxides). During runaway, cathode breakdown releases oxygen internally, sustaining exothermic reactions even in pure vacuum or CO₂ environments.\n\nIt produces toxic, explosive gases (H₂, CO, HF, hydrocarbons) and ejected hot shrapnel (>900°C). Astronauts contain runaway cells inside designated Pyro-Stop fire containment bags and flood them with water mist to cool adjacent cells below critical propagation temperature.",
+          "citations": [
+            "NASA JSC Battery Safety Design Requirements (JSC-20793)",
+            "Crew Health and Safety Standards"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "id": "saffire-experiments-lessons",
+          "keys": [
+            "saffire",
+            "cygnus",
+            "large-scale",
+            "large fire",
+            "findings",
+            "tests"
+          ],
+          "questions": [
+            "What did NASA learn from the large-scale Saffire fire experiments?",
+            "What is the Saffire experiment?",
+            "What were the key findings of Saffire tests?"
+          ],
+          "answer": "NASA's Spacecraft Fire Safety Demonstration (Saffire) series tested large-scale, real-world fires inside uncrewed Cygnus cargo resupply vehicles after departing the ISS. Saffire-I through VI burned full-scale fabrics, PMMA slabs, Nomex composites, and structured materials under controlled airflows ($0.1$–$0.4\\text{ m/s}$) and oxygen levels (21% to 34%).\n\nKey findings: flames spread faster and longer than predicted by small-scale drop tower tests, high-order smoke stratification occurred, and airflow speed dictated whether flames grew or starved.",
+          "citations": [
+            "NASA Glenn Saffire Mission Project",
+            "NTRS 20170008985",
+            "Saffire-I through Saffire-VI Final Reports"
+          ],
+          "confidence": 0.98
+        },
+        {
+          "id": "solar-storms-electrical-fires",
+          "keys": [
+            "solar flare",
+            "solar storm",
+            "cme",
+            "emp",
+            "electrical fire",
+            "donki",
+            "charging"
+          ],
+          "questions": [
+            "How can a solar storm or flare trigger electrical fires on a spacecraft?",
+            "Why does solar flare activity increase spacecraft fire risk?",
+            "What is the link between space weather and spacecraft electrical fire?"
+          ],
+          "answer": "Major solar storms (X-class solar flares and Coronal Mass Ejections tracked by NASA DONKI) inject intense fluxes of relativistic protons and electrons into space environments. When these particles strike spacecraft electronics, they induce deep dielectric charging in wire insulation and printed circuit boards, triggering high-voltage electrostatic discharge (ESD) arcs.\n\nFurthermore, Geomagnetically Induced Currents (GIC) and radiation upsets can cause avionics power converters to latch up, causing runaway resistive joule heating that ignites surrounding wire bundles.",
+          "citations": [
+            "NASA DONKI Space Weather Service",
+            "NASA-HDBK-4002A",
+            "NASA SP-8084 Space Radiation Hazards"
+          ],
+          "confidence": 0.96
+        },
+        {
+          "id": "eclss-smoke-cleanup",
+          "keys": [
+            "smoke cleanup",
+            "scrub",
+            "toxic smoke",
+            "eclss",
+            "smoke eater",
+            "post-fire",
+            "pba"
+          ],
+          "questions": [
+            "How do astronauts scrub toxic smoke from cabin air after a fire?",
+            "What is the ECLSS atmosphere scrubbing procedure?",
+            "Can astronauts breathe cabin air after putting out a fire?"
+          ],
+          "answer": "After extinguishing a fire, the atmosphere remains lethal due to carbon monoxide (CO), hydrogen cyanide (HCN), hydrogen fluoride (HF), and fine soot particles. Astronauts remain in Portable Breathing Apparatus (PBA) masks with positive pressure oxygen.\n\nECLSS activates high-capacity Smoke Eater cartridges (combining HEPA particulate filters with acid-gas and organic vapor scrubbers), followed by Carbon Monoxide Oxidation filters (converting CO to CO₂ via noble metal catalysts) and Trace Contaminant Control Subsystem (TCCS) catalytic oxidizers.",
+          "citations": [
+            "NASA ISS ECLSS Operational Handbook",
+            "NASA Technical Memorandum TM-2013-217381"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "id": "concurrent-vs-opposed-spread",
+          "keys": [
+            "concurrent",
+            "opposed",
+            "direction",
+            "wind",
+            "spread direction",
+            "flow"
+          ],
+          "questions": [
+            "What is the difference between concurrent and opposed flame spread?",
+            "Why does concurrent flame spread burn faster?",
+            "Which direction does fire spread relative to airflow?"
+          ],
+          "answer": "In opposed-flow flame spread, the flame propagates in the direction opposite to the airflow (e.g. into the wind). Heat transfer to unburned fuel is limited to conduction against the flow, resulting in slower, steady spread rates (~$0.1$–$0.5\\text{ mm/s}$).\n\nIn concurrent-flow (forward) flame spread, the flame propagates in the same direction as the airflow (wind at its back). Hot convective exhaust flows directly over unburned fuel ahead of the flame front, preheating large areas and generating accelerating flame spread rates up to $10$–$50\\text{ mm/s}$. In spacecraft corridors, concurrent flow represents the greatest hazard.",
+          "citations": [
+            "NASA Glenn Microgravity Combustion Group",
+            "De Ris & Fernandez-Pello Combustion Theory",
+            "PSI-26 BASS"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "id": "materials-risk-hierarchy",
+          "keys": [
+            "materials",
+            "safest",
+            "dangerous",
+            "pmma",
+            "teflon",
+            "ptfe",
+            "kapton",
+            "ranker"
+          ],
+          "questions": [
+            "Which materials are safest and which are most dangerous on a spacecraft?",
+            "What materials have the highest and lowest fire risk in spacecraft?",
+            "How are spacecraft materials ranked for flammability?"
+          ],
+          "answer": "According to NASA-STD-6001B ratings and the FlameAtlas Material Ranker:\n\n• **Highest Risk**: PMMA / Acrylic (LOI ~17%, high heat release rate, drips flaming liquid), Cotton/Cellulose fabrics (LOI ~18%, rapid surface flame spread), Polyurethane foam (dense toxic smoke and cyanide emission).\n• **Moderate Risk**: Polycarbonate (LOI ~26%, char-forming, ignites at elevated O₂), Silicone elastomers (low heat release but burns in enriched O₂).\n• **Lowest Risk / Fire Resistant**: Nomex / Kevlar aramids (LOI ~29–31%, self-extinguishing in ISS air), Kapton polyimide (LOI ~36%, zero flame spread below 35% O₂), PTFE / Teflon (LOI ~95%, non-flammable in virtually all breathable habitat atmospheres).",
+          "citations": [
+            "NASA-STD-6001B Flammability Database",
+            "MAPTIS Database",
+            "FlameAtlas Materials Ranking Model"
+          ],
+          "confidence": 0.98
+        },
+        {
+          "id": "centrifuge-artificial-gravity",
+          "keys": [
+            "centrifuge",
+            "artificial gravity",
+            "coriolis",
+            "rotating",
+            "spin"
+          ],
+          "questions": [
+            "How does artificial gravity in a rotating spacecraft centrifuge affect fire?",
+            "Does a rotating habitat make fire safer or more dangerous?",
+            "What is the Coriolis effect on a flame?"
+          ],
+          "answer": "Artificial gravity generated by rotation introduces both centrifugal acceleration (outward radial buoyancy) and Coriolis acceleration (tangential deflection).\n\nA fire in a rotating spacecraft centrifuge (such as NSS Prometheus Centrifuge module) will develop buoyant plumes pointing radially inward (toward the rotation hub), while the Coriolis effect curves the flame plume sideways against the spin direction. Because centrifugal gravity provides continuous buoyant convection, materials ignite and spread faster in rotating modules than in microgravity 0g modules.",
+          "citations": [
+            "NASA Artificial Gravity Combustion Studies",
+            "NTRS 19740003821",
+            "Centrifuge Fire Dynamics"
+          ],
+          "confidence": 0.94
+        },
+        {
+          "id": "drop-tower-testing-limits",
+          "keys": [
+            "drop tower",
+            "drop towers",
+            "time limit",
+            "2.2 second",
+            "5.1 second",
+            "facility"
+          ],
+          "questions": [
+            "Why do drop tower tests have time limitations for fire research?",
+            "Why do drop tower tests have time limitations for fire experiments?",
+            "How do scientists test microgravity fire on Earth?"
+          ],
+          "answer": "Drop towers (like NASA Glenn's 2.2-Second and 5.1-Second Zero Gravity Facilities) provide exceptionally clean microgravity ($10^{-5}g$) by letting an experiment capsule free-fall in a vacuum chamber.\n\nHowever, 2.2 to 5.1 seconds is only long enough to observe ignition and initial flame establishment; it is too short to study steady-state solid material combustion, which requires 30 to 300 seconds to reach thermal equilibrium. Long-duration tests require orbital platforms like the ISS (BASS, FLEX, CIR) or Cygnus vehicles (Saffire).",
+          "citations": [
+            "NASA Glenn 5.1-Second Zero Gravity Research Facility",
+            "NASA Microgravity Science Facilities"
+          ],
+          "confidence": 0.96
+        },
+        {
+          "id": "soot-formation-0g",
+          "keys": [
+            "soot",
+            "soot formation",
+            "black smoke",
+            "agglomeration",
+            "particle",
+            "spherules"
+          ],
+          "questions": [
+            "Why is microgravity smoke soot particle size larger than on Earth?",
+            "How does soot formation differ in microgravity?",
+            "What causes soot agglomeration in 0g?"
+          ],
+          "answer": "In $1g$, buoyant flow rapidly sweeps unburned fuel and soot particles out of the flame zone in milliseconds, quenching them into small individual spherules (10–30 nm).\n\nIn microgravity ($0g$), transport is dominated by diffusion, so soot precursors remain in the hot reaction zone (1000–1400 K) for up to hundreds of milliseconds. This long residence time allows continuous surface growth and coagulation, forming giant soot agglomerates and filaments up to hundreds of micrometers long. Microgravity soot is also more radiative, causing significant radiative heat loss from the flame.",
+          "citations": [
+            "NASA CIR (Combustion Integrated Rack)",
+            "LSP Soot Diagnostics",
+            "NTRS 20110014812"
+          ],
+          "confidence": 0.96
+        },
+        {
+          "id": "nasa-std-6001-test-1",
+          "keys": [
+            "nasa-std-6001",
+            "test 1",
+            "qualification",
+            "upward flame",
+            "screening"
+          ],
+          "questions": [
+            "How does NASA qualify materials for space flight under NASA-STD-6001?",
+            "What is the NASA-STD-6001 Test 1 standard?",
+            "What is the upward flame propagation test?"
+          ],
+          "answer": "NASA-STD-6001B Test 1 (Upward Flame Propagation Test) is NASA's mandatory flammability screening method for all materials used in crew compartments. A standardized sample (30 cm tall) is exposed to an ignition flame at its bottom edge in the worst-case planned flight atmosphere (e.g. 34% O₂ at 8.2 psi for Artemis).\n\nTo pass (Class 'A' rating), the flame must self-extinguish before burning more than 15 cm (6 inches) of the sample, and cannot drip flaming material that ignites paper beneath it.",
+          "citations": [
+            "NASA-STD-6001B Test 1",
+            "JSC Materials and Processes (M&P) Directorate"
+          ],
+          "confidence": 0.98
+        },
+        {
+          "id": "cabin-depressurization-protocol",
+          "keys": [
+            "depressurization",
+            "venting",
+            "vacuum",
+            "depressurize",
+            "abandonment",
+            "hatch"
+          ],
+          "questions": [
+            "When should astronauts vent a compartment to vacuum to extinguish a fire?",
+            "What is the section abandonment protocol?",
+            "Can vacuum put out a fire in space?"
+          ],
+          "answer": "Cabin depressurization (venting to vacuum) is the ultimate fail-safe extinguishment method when chemical or water mist suppressants fail. Once cabin pressure drops below **1.0 psia (6.9 kPa)**, the partial pressure of oxygen falls below the absolute thermodynamic threshold required for flaming combustion, extinguishing the flame within seconds.\n\nProtocol requires: (1) All crew evacuated to safe adjacent modules, (2) Hermetic hatch interlocks engaged and verified, (3) Depressurization relief valves opened to space vacuum, (4) Structural cool-down monitoring via thermal cameras before re-pressurization.",
+          "citations": [
+            "NASA ISS Emergency Procedures Rule EOP-FIRE-03",
+            "Orion Flight Safety Manual"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "id": "suppression-agents-comparison",
+          "keys": [
+            "suppression agent",
+            "extinguishing agent",
+            "water mist vs co2",
+            "halon",
+            "best extinguisher"
+          ],
+          "questions": [
+            "What suppression agent is best for microgravity: CO2, Water Mist, or Nitrogen?",
+            "Why is Halon banned on spacecraft?",
+            "What extinguisher works best in zero gravity?"
+          ],
+          "answer": "Comparative evaluation of microgravity fire suppression agents:\n\n• **Fine Water Mist (Best Overall for Crew Modules)**: Uses micro-droplets propelled by N₂. Evaporative cooling drops flame temperatures by hundreds of degrees, while water expansion displaces oxygen. It leaves no toxic gas and is easily cleaned up by cabin condensing heat exchangers.\n• **CO₂ (Effective but Requires Crew PPE)**: Replaces oxygen by physical displacement. Highly effective in sealed enclosures (avionics racks), but poses acute crew hypercapnia/asphyxiation risk if discharged into common living areas.\n• **Halon 1301 (Banned in Space)**: Highly effective chemical inhibitor, but thermally decomposes into lethal hydrogen fluoride (HF) and hydrogen bromide (HBr) which permanently poison spacecraft ECLSS catalyst beds.",
+          "citations": [
+            "NASA GRC Fire Extinguishment Research",
+            "ISS Fine Water Mist Certification",
+            "NASA TP-2015-218567"
+          ],
+          "confidence": 0.96
+        },
+        {
+          "id": "kapton-wire-arc-tracking",
+          "keys": [
+            "kapton",
+            "wire",
+            "arc tracking",
+            "wiring",
+            "electrical arc",
+            "insulation"
+          ],
+          "questions": [
+            "Why did Kapton wire insulation cause electrical fires in aerospace history?",
+            "What is arc tracking in spacecraft wiring?",
+            "Is Kapton still used for spacecraft electrical wiring?"
+          ],
+          "answer": "Aromatic polyimide (Kapton) was extensively used in the Apollo and early Space Shuttle eras for lightweight wire insulation. However, when damaged or exposed to moisture, Kapton undergoes **flashover arc tracking**: high-voltage electrical arcs pyrolyze the polymer into conductive carbon graphite tracks. The conductive carbon track sustains continuous short-circuit arcing, which flash-burns wire bundles along entire conduits at velocities exceeding $1\\text{ m/s}$.\n\nModern spacecraft replace pure Kapton with cross-linked Tefzel (ETFE), PTFE, or composite polyimide/PTFE hybridized insulation.",
+          "citations": [
+            "NASA Reference Publication RP-1308 (Wiring Arc Tracking)",
+            "FAA Aircraft Wiring System Safety"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "id": "infrared-invisible-flame-detection",
+          "keys": [
+            "infrared",
+            "sensors",
+            "multi-wavelength",
+            "flame radar",
+            "detect invisible",
+            "wavelength"
+          ],
+          "questions": [
+            "How do multi-wavelength infrared sensors detect invisible flames?",
+            "How does the Invisible Flame Radar work?",
+            "What sensor detects cool flames in microgravity?"
+          ],
+          "answer": "Invisible and cool flames emit virtually zero blackbody radiation in the human-visible spectrum (400–700 nm). However, combustion chemistry releases discrete molecular emission bands:\n\n• **CO₂ Asymmetric Stretch (4.26 μm)**: The primary signature of carbon oxidation.\n• **H₂O Vapor Radiative Band (2.7 μm)**: Emitted by steam in the hot gas plume.\n• **Formaldehyde Chemiluminescence (410–480 nm)**: Characteristic signature of low-temperature cool flame oxidation.\n\nMulti-wavelength optical flame sensors compare narrow-band filters centered on 4.26 μm with reference bands (4.0 μm and 4.4 μm) using differential optical density algorithms, instantly flagging non-luminous and cool flames with zero false alarms.",
+          "citations": [
+            "NASA GRC Optical Sensor Development",
+            "PSI-159 CFI-G",
+            "FlameAtlas Sensor Analysis"
+          ],
+          "confidence": 0.97
+        },
+        {
+          "id": "flame-color-temperature-physics",
+          "keys": [
+            "color",
+            "flame color",
+            "temperature",
+            "yellow vs blue",
+            "blue flame",
+            "soot radiation"
+          ],
+          "questions": [
+            "What does the color of a microgravity flame indicate about its temperature?",
+            "Why are Earth flames yellow while microgravity flames are blue?",
+            "What causes blue chemiluminescence in fire?"
+          ],
+          "answer": "Flame color is a direct diagnostic of chemical combustion efficiency and temperature:\n\n• **Yellow / Orange Flames (~1500–1800 K)**: Dominated by continuous blackbody incandescence of solid carbon soot nanoparticles (soot glow). Abundant on Earth due to buoyant drafting of fuel pyrolyzates.\n• **Blue Flames (~1100–1400 K)**: Dominated by molecular chemiluminescence from excited electronic states of free radicals: CH* (431 nm) and C₂* Swan bands (470–516 nm). Prevalent in microgravity because lower residence times and balanced diffusion prevent soot particle agglomeration.\n• **Invisible / Colorless (<800 K)**: Characteristic of cool flames. Reaction temperatures are too low to excite CH* radicals or create glowing soot, emitting only faint ultraviolet/blue formaldehyde emissions.",
+          "citations": [
+            "Gaydon - Spectroscopy of Flames",
+            "NASA CIR Project (Combustion Integrated Rack)",
+            "PSI-69 FLEX"
+          ],
+          "confidence": 0.98
         }
       ]
     },
@@ -301,10 +1132,23 @@
       "intents": [
         {
           "id": "page-gaps-explain",
-          "keys": ["gap map", "research gaps", "untested", "this page", "test next"],
-          "questions": ["Explain the Research Gap Map page", "What are research gaps?"],
+          "keys": [
+            "gap map",
+            "research gaps",
+            "untested",
+            "this page",
+            "test next"
+          ],
+          "questions": [
+            "Explain the Research Gap Map page",
+            "What are research gaps?"
+          ],
           "answer": "The **Research Gap Map** analyzes the experimental coverage of NASA's physical science databases:\n\n• **Coverage Heatmap**: Plots tested experimental configurations across oxygen fractions (15% to 38%) and gravity levels (0g to 1g).\n• **Test-Next Priority Rankings**: Ranks the highest-value experiments NASA needs to conduct, led by solid-material combustion at Artemis lunar gravity ($0.16g$ at 34% O₂) and Mars gravity ($0.38g$).\n• **Gap Planner Game**: Act as a NASA Flight Program Director and allocate your research grant budget across drop tower, parabolic flight, and ISS payload campaigns.",
-          "citations": ["NASA PSI Repository", "NASA NTRS 20240002981", "NASA Biological and Physical Sciences Decadal Survey"],
+          "citations": [
+            "NASA PSI Repository",
+            "NASA NTRS 20240002981",
+            "NASA Biological and Physical Sciences Decadal Survey"
+          ],
           "confidence": 0.98
         }
       ]
@@ -321,10 +1165,24 @@
       "intents": [
         {
           "id": "page-sources-explain",
-          "keys": ["sources", "data sources", "space cards", "this page", "citations", "provenance"],
-          "questions": ["Explain the Data Sources page", "Where does the data come from?"],
+          "keys": [
+            "sources",
+            "data sources",
+            "space cards",
+            "this page",
+            "citations",
+            "provenance"
+          ],
+          "questions": [
+            "Explain the Data Sources page",
+            "Where does the data come from?"
+          ],
           "answer": "The **Data Sources & Space Cards** page documents the open-science foundation of FlameAtlas:\n\n• **Verified NASA Sources**: Links to NASA PSI experiments (BASS, FLEX, FLEX-2, CFI-G, DAFT), NTRS flight reports (Saffire VI), and the live NASA DONKI space-weather API.\n• **Interactive Space Cards**: 3D flippable collectible cards that unlock as you explore the platform and achieve high scores in the quizzes and simulators.\n• **Data Provenance**: Every equation, flammability threshold, and solar storm event is cited directly to its original scientific publication.",
-          "citations": ["NASA Open Science Data Repository (OSDR)", "NASA PSI", "NASA NTRS"],
+          "citations": [
+            "NASA Open Science Data Repository (OSDR)",
+            "NASA PSI",
+            "NASA NTRS"
+          ],
           "confidence": 0.98
         }
       ]
@@ -341,10 +1199,23 @@
       "intents": [
         {
           "id": "page-api-docs-explain",
-          "keys": ["api", "swagger", "docs", "endpoints", "this page", "data explorer"],
-          "questions": ["Explain the API & Data Explorer page", "How does the API page work?"],
+          "keys": [
+            "api",
+            "swagger",
+            "docs",
+            "endpoints",
+            "this page",
+            "data explorer"
+          ],
+          "questions": [
+            "Explain the API & Data Explorer page",
+            "How does the API page work?"
+          ],
           "answer": "The **API & Data Explorer** provides full transparency into FlameAtlas's backend and data layer:\n\n• **Swagger UI REST API Console**: Inspect and execute live requests against serverless endpoints (`/api/donki`, `/api/openai`, `/api/intents`) with real schemas, headers, and responses.\n• **Static JSON Data Inspector**: Explore all 12 datasets in the `/data` folder, check citations, inspect raw payloads, and test live fetch latencies.\n• **Clean Architecture**: Demonstrates the strict separation between serverless API logic (`/api`) and static data assets (`/data`).",
-          "citations": ["OpenAPI 3.0 Specification", "NASA Space Apps 2026 Guidelines"],
+          "citations": [
+            "OpenAPI 3.0 Specification",
+            "NASA Space Apps 2026 Guidelines"
+          ],
           "confidence": 0.98
         }
       ]
@@ -352,53 +1223,583 @@
   },
   "kb": [
     {
-      "id": "kb-nomex-moon",
-      "keys": ["nomex", "34", "moon", "artemis"],
-      "answer": "Yes — in a 34% O₂ / 8.2 psi Moon habitat, Nomex HT90-40 is expected to sustain upward flame spread. BASS samples self-extinguished in ISS air but spread slowly once O₂ exceeded ~30%. At 0.16g buoyant flow adds oxygen supply at the flame front, so spread is likely faster than in 0g.",
-      "citations": ["PSI-26 BASS", "NTRS 20150023456"],
-      "confidence": 0.85
+      "id": "flame-spread-factors",
+      "keys": [
+        "factors",
+        "flame spread",
+        "conditions",
+        "spread rate",
+        "affect",
+        "variables",
+        "parameters",
+        "influence"
+      ],
+      "questions": [
+        "What factors could affect flame spread under these conditions?",
+        "What factors influence flame spread in microgravity?",
+        "What controls how fast fire spreads in space?",
+        "How do environmental conditions affect flame spread rate?",
+        "What makes flame spread faster or slower in spacecraft?"
+      ],
+      "answer": "In space and partial-gravity habitats, flame spread rate is governed by five primary interdependent factors:\n\n1. **Ventilation / Flow Velocity**: Without natural buoyancy, forced ventilation ($0.05$ to $0.3\\text{ m/s}$) is the sole source of oxidizer transport. A peak spread velocity occurs at moderate flow speeds (~$0.15\\text{ m/s}$); very high flows blow out the flame through convective heat loss, while zero flow leads to self-extinction under stagnant combustion products.\n2. **Oxygen Concentration & Partial Pressure**: Elevated oxygen (e.g. $34\\%\\text{ O}_2$ at $8.2\\text{ psi}$ in proposed Artemis Moon habitats) drastically increases chemical reaction kinetics and flame temperature, allowing materials that self-extinguish in Earth air to sustain rapid upward flame spread.\n3. **Effective Gravity Level**: Gravity determines buoyant drafting ($Grashof\\text{ number}$). At $0g$, flames are spherical and diffusion-limited. At $0.16g$ (Moon) and $0.38g$ (Mars), weak buoyancy feeds fresh oxygen without blowing the flame out, potentially creating faster spread than $0g$.\n4. **Material Thickness & Thermal Inertia**: Thermally thin fuels (fabrics, paper, plastic films) spread much faster because the entire thickness heats up rapidly. Thermally thick fuels (thick Nomex composites, PMMA slabs) require significant surface pre-heating.\n5. **Flow Direction (Concurrent vs. Opposed)**: Concurrent flow (airflow moving in the same direction as flame spread) carries hot exhaust gases over unburned fuel, preheating it and causing spread rates up to $10\\times$ faster than opposed flow (flame moving into incoming air).",
+      "citations": [
+        "NASA BASS Experiment Series",
+        "Saffire-I through VI Large-Scale Tests",
+        "NASA-STD-6001B Test 1",
+        "PSI-26 BASS",
+        "PSI-159 CFI-G"
+      ],
+      "confidence": 0.99
     },
     {
-      "id": "kb-cool-flame",
-      "keys": ["cool flame", "invisible", "cool", "heptane"],
-      "answer": "Cool flames are low-temperature (~500–800 K) reactions that emit almost no visible light. FLEX observed n-heptane droplets continuing to burn in a cool-flame regime after the hot flame went out, especially with CO₂ or He diluents at reduced O₂.",
-      "citations": ["PSI-69 FLEX", "PSI-117", "PSI-159 CFI-G"],
-      "confidence": 0.90
+      "id": "ventilation-velocity-impact",
+      "keys": [
+        "ventilation",
+        "velocity",
+        "airflow",
+        "fans",
+        "forced flow",
+        "convection"
+      ],
+      "questions": [
+        "How does ventilation velocity affect flame spread in microgravity?",
+        "What happens if cabin fans are turned off during a fire?",
+        "Can airflow put out a fire in space?"
+      ],
+      "answer": "Ventilation velocity has a characteristic **bell-curve (non-monotonic) effect** on microgravity flame spread:\n\n• **Sub-critical Flow (<0.02 m/s)**: In quiescent zero-g air, combustion products (CO₂ and H₂O) accumulate around the flame sphere. Without buoyancy to evacuate them, the flame self-suffocates from lack of fresh oxygen.\n• **Optimal Spread Regime (0.05–0.25 m/s)**: Typical spacecraft cabin air conditioning speeds provide continuous fresh oxygen delivery to the flame front, maximizing flame spread rate.\n• **Blowoff Extinction (>0.8–1.2 m/s)**: Above a critical velocity, convective cooling strips heat away from the reaction zone faster than chemical combustion can release it, quenching the flame.\n\nBecause fans feed microgravity fire, NASA emergency doctrine requires **immediate ventilation shutdown** upon any smoke detection.",
+      "citations": [
+        "NASA Saffire-IV (NTRS 20200002135)",
+        "BASS-II Flame Extinction Experiments",
+        "PSI-26 BASS"
+      ],
+      "confidence": 0.97
     },
     {
-      "id": "kb-smoke-detectors",
-      "keys": ["smoke", "detector", "ionization", "optical"],
-      "answer": "Microgravity smoke particles are larger and more varied than on Earth because soot residence time increases without buoyancy. DAFT and SAME-2 found ionization-style detectors underestimate these particles, so optical/multi-wavelength sensors are recommended.",
-      "citations": ["PSI-47 DAFT", "NTRS 20130000422"],
-      "confidence": 0.88
+      "id": "microgravity-vs-earth-fire",
+      "keys": [
+        "differently",
+        "earth fire",
+        "space fire",
+        "difference",
+        "buoyancy",
+        "gravity vs zero g"
+      ],
+      "questions": [
+        "Why does fire behave differently in microgravity compared to Earth?",
+        "What is the main difference between Earth fire and space fire?",
+        "Why are flames spherical in zero gravity?"
+      ],
+      "answer": "On Earth ($1g$), hot combustion gases are less dense than cold ambient air, creating buoyant natural convection ($Gr > 10^4$). This pulls fresh oxygen upward into the flame base and stretches the flame into an elongated, flickering yellow teardrop.\n\nIn microgravity ($0g$), gravity is zero ($Gr = 0$). Natural convection vanishes completely. Oxidizer transport relies strictly on **molecular diffusion**. Because diffusion occurs equally in all radial directions (isotropically), microgravity fire forms a tranquil, steady **spherical blue flame** burning at lower temperatures (~1200 K vs 1600 K on Earth) with minimal soot emission.",
+      "citations": [
+        "NASA FLEX Experiment",
+        "LSP Flame Design",
+        "Glenn Research Center Microgravity Combustion Science"
+      ],
+      "confidence": 0.98
     },
     {
-      "id": "kb-mars-gravity",
-      "keys": ["mars", "gravity", "0.38", "partial gravity"],
-      "answer": "No public experiment has burned solids at exactly 0.38g. FlameAtlas interpolates between 0g (BASS) and 1g ground data with a Gaussian Process; the uncertainty band is widest near Mars gravity, which is why the Research Gap Map flags it as a top test priority.",
-      "citations": ["PSI-26 BASS", "PSI-69 FLEX"],
-      "confidence": 0.80
+      "id": "nomex-lunar-habitats",
+      "keys": [
+        "nomex",
+        "moon",
+        "34",
+        "34%",
+        "artemis",
+        "lunar habitat",
+        "burn on moon"
+      ],
+      "questions": [
+        "Will Nomex burn in 34% oxygen on the Moon?",
+        "Can Nomex ignite in lunar habitat conditions?",
+        "Is Nomex safe for Artemis Moon bases?"
+      ],
+      "answer": "Yes — Nomex HT90-40 (widely considered flame-retardant on Earth with an LOI of ~28–30%) can ignite and sustain upward flame spread in proposed Artemis lunar habitat conditions (**34% O₂ at 8.2 psi / 56.5 kPa**).\n\nIn standard ISS sea-level air (21% O₂ at 14.7 psi), BASS experiment samples self-extinguished. However, once oxygen exceeds ~30%, chemical reaction rates exceed radiative heat losses. At Lunar gravity ($0.16g$), buoyant airflow drafts oxygen into the flame front, increasing spread velocity above microgravity values.",
+      "citations": [
+        "PSI-26 BASS",
+        "NASA-STD-6001B",
+        "NTRS 20150023456",
+        "Artemis ECLSS Baseline 8.2 psi / 34% O₂"
+      ],
+      "confidence": 0.96
     },
     {
-      "id": "kb-suppressants",
-      "keys": ["suppress", "extinguish", "co2", "helium", "water mist"],
-      "answer": "FLEX tested CO₂ and He as suppressants. CO₂ at ~15% concentration reliably extinguished heptane droplets at 1 atm, while He required higher concentrations. In enriched-O₂ habitats the required suppressant concentration increases roughly with O₂ fraction.",
-      "citations": ["PSI-69 FLEX", "NTRS 20150023456"],
-      "confidence": 0.82
+      "id": "cool-flames-hazard",
+      "keys": [
+        "cool flame",
+        "cool flames",
+        "invisible",
+        "heptane",
+        "low temperature"
+      ],
+      "questions": [
+        "What are cool flames and why are they dangerous in spacecraft?",
+        "Why are cool flames hard to see?",
+        "How do cool flames form in microgravity?"
+      ],
+      "answer": "Cool flames are low-temperature (~500–800 K vs 1500–2000 K for hot flames) quasi-steady combustion reactions driven by low-temperature alkyl-peroxy radical chemistry rather than standard H-O chain branching. They emit virtually zero visible light (only faint formaldehyde chemiluminescence) and minimal infrared radiation.\n\nIn NASA's FLEX experiment on the ISS, large fuel droplets (n-heptane, decane) extinguished their visible hot flames, yet continued burning invisibly for dozens of seconds as cool flames. They represent a severe hazard because crew members and conventional thermal sensors cannot see them, and they can re-ignite hot flames if oxygen or pressure changes.",
+      "citations": [
+        "PSI-69 FLEX",
+        "PSI-117 Cool Flame Studies",
+        "Williams et al., Combustion and Flame (2014)"
+      ],
+      "confidence": 0.95
     },
     {
-      "id": "kb-li-ion-runaway",
-      "keys": ["lithium", "li-ion", "battery", "thermal runaway", "runaway"],
-      "answer": "Lithium-ion battery thermal runaway occurs when mechanical, electrical, or thermal stress induces internal short-circuiting. The cathode material decomposes exothermically and releases oxygen internally, sustaining combustion even in 0% ambient O₂ or hard vacuum. The only effective response is continuous thermal cooling and venting toxic gases (HF, CO) to prevent compartment overpressure.",
-      "citations": ["NASA Battery Safety Standard JSC 20793", "NASA Saffire Flight Data"],
-      "confidence": 0.92
+      "id": "smoke-detector-reliability",
+      "keys": [
+        "smoke",
+        "detector",
+        "detectors",
+        "ionization",
+        "optical",
+        "particle size",
+        "daft"
+      ],
+      "questions": [
+        "Can smoke detectors be trusted in microgravity?",
+        "How does microgravity smoke differ from Earth smoke?",
+        "Why do ionization smoke detectors fail in space?"
+      ],
+      "answer": "Conventional Earth smoke detectors cannot be blindly trusted in space. Because buoyant convection is absent in $0g$, soot particles remain trapped in the hot reaction zone up to $10\\times$ longer. This prolonged residence time causes soot particles to agglomerate into massive, elongated chain clusters ($10$ to $50$ times larger than Earth smoke particles).\n\nExperiments on the ISS (**DAFT** and **SAME-2**) proved that ionization detectors (which rely on small aerosol particles to capture ions) severely underestimate microgravity smoke, whereas optical light-scattering and multi-wavelength laser sensors detect it much earlier.",
+      "citations": [
+        "PSI-47 DAFT",
+        "SAME-2 (Smoke Aerosol Measurement Experiment)",
+        "NTRS 20130000422"
+      ],
+      "confidence": 0.96
     },
     {
-      "id": "kb-microgravity-diffusion",
-      "keys": ["diffusion", "microgravity", "buoyancy", "grashof"],
-      "answer": "In microgravity, the Grashof number ($Gr = g \\beta \\Delta T L^3 / \\nu^2$) approaches zero, eliminating buoyant natural convection. Oxidizer transport to the flame zone is governed strictly by Fickian molecular diffusion, resulting in slow spherical flames with longer residence times.",
-      "citations": ["NASA Glenn Zero-G Facility", "PSI-26 BASS"],
-      "confidence": 0.90
+      "id": "mars-gravity-fire",
+      "keys": [
+        "mars",
+        "gravity",
+        "0.38",
+        "0.38g",
+        "martian",
+        "partial gravity"
+      ],
+      "questions": [
+        "What happens to fire at Mars gravity (0.38g)?",
+        "What do we know about fire behavior at Mars gravity?",
+        "Is fire safer on Mars than on Earth?"
+      ],
+      "answer": "Mars gravity ($0.38g$) represents the most critical research gap in spacecraft fire safety. At $0.38g$, buoyancy is strong enough to draft oxygen into the flame (preventing self-extinction like in $0g$), yet weak enough that buoyant convective cooling is reduced compared to Earth.\n\nIn proposed Mars surface habitat conditions ($30$–$32\\%\\text{ O}_2$ at $8.2\\text{ psi}$), this can create a worst-case condition where buoyant flow accelerates flame spread without blowing the flame out. Current predictions rely on Gaussian Process regression interpolating between $0g$ (drop towers/ISS) and $1g$, which is why NASA's CFI-G experiment identifies $0.38g$ as the top testing priority.",
+      "citations": [
+        "NASA CFI-G (Confined Combustion)",
+        "NASA Research Gap Map",
+        "PSI-26 BASS",
+        "PSI-69 FLEX"
+      ],
+      "confidence": 0.94
+    },
+    {
+      "id": "spacecraft-extinguishment-doctrine",
+      "keys": [
+        "extinguish",
+        "extinguisher",
+        "put out",
+        "suppress",
+        "water mist",
+        "co2",
+        "doctrine"
+      ],
+      "questions": [
+        "How should a spacecraft crew extinguish a fire in microgravity?",
+        "What is the best way to put out a fire on a spacecraft?",
+        "What extinguishers are used on the ISS and Orion?"
+      ],
+      "answer": "NASA spacecraft emergency fire doctrine follows a strict, multi-tier protocol:\n\n1. **Isolate & Stop Ventilation**: Immediately shutdown cabin air circulation fans and inter-module ventilation (IMV) to eliminate forced oxygen delivery.\n2. **Depower the Affected Circuit**: 90% of spacecraft fires are electrical; cutting bus power removes the continuous ignition/joule-heating source.\n3. **Deploy Extinguishers**: On ISS USOS, Fine Water Mist extinguishers (using nitrogen-propelled micro-droplets) are preferred because they extinguish flames without generating toxic halon gases. Russian modules utilize CO₂ extinguishers. Orion uses compact water-foam.\n4. **Depressurization / Vacuum Venting**: If a fire is uncontained in an unoccupied module, the module is sealed and vented to space vacuum (reducing pressure below 1 psia), instantly extinguishing the flame.",
+      "citations": [
+        "NASA ISS Emergency Operations Procedures (EOP Fire)",
+        "Orion Fire Safety Standards",
+        "NASA SP-2010-3407"
+      ],
+      "confidence": 0.98
+    },
+    {
+      "id": "pressure-oxygen-flammability",
+      "keys": [
+        "pressure",
+        "oxygen",
+        "partial pressure",
+        "8.2 psi",
+        "ppo2",
+        "flammability"
+      ],
+      "questions": [
+        "Why does cabin pressure and oxygen concentration affect flammability?",
+        "How does partial pressure of oxygen relate to ignition risk?",
+        "Why do Artemis habitats use 8.2 psi instead of 14.7 psi?"
+      ],
+      "answer": "Material ignition and flame spread depend primarily on the oxygen partial pressure ($P_{O_2}$) and molar concentration, not total barometric pressure alone. Artemis habitats use $8.2\\text{ psi}$ ($56.5\\text{ kPa}$) with $34\\%\\text{ O}_2$ so that $P_{O_2}$ remains ~2.79 psi (comparable to sea level breathing, avoiding hypoxia) while allowing astronauts to conduct spacewalks with minimal pre-breathe decompression time.\n\nHowever, reduced total pressure decreases inert gas (nitrogen) thermal ballast, which increases the flame temperature and lowers the energy required for ignition.",
+      "citations": [
+        "NASA Explored Co-habitation Atmospheres",
+        "ECLSS 8.2 psia Standard",
+        "NASA-STD-6001B"
+      ],
+      "confidence": 0.95
+    },
+    {
+      "id": "limiting-oxygen-index-loi",
+      "keys": [
+        "loi",
+        "limiting oxygen index",
+        "test 1",
+        "astm d2863",
+        "index"
+      ],
+      "questions": [
+        "What is the Limiting Oxygen Index (LOI) and how does it change in space?",
+        "What is the Limiting Oxygen Index (LOI)?",
+        "Can a material that passes Earth flammability tests burn in space?"
+      ],
+      "answer": "The Limiting Oxygen Index (LOI) is the minimum volumetric concentration of oxygen in an O₂/N₂ mixture that will sustain candle-like downward flaming combustion. On Earth, materials with LOI > 21% self-extinguish in normal air.\n\nHowever, in space habitats with low ventilation ($0.05$–$0.2\\text{ m/s}$), low-velocity concurrent flow can preheat the unburned solid, lowering the effective LOI by 3% to 6%. Consequently, materials certified as 'non-flammable' by standard Earth NASA Test 1 can burn under space habitat ventilation regimes.",
+      "citations": [
+        "ASTM D2863",
+        "NASA-STD-6001B Test 1",
+        "Saffire-I Flammability Analysis"
+      ],
+      "confidence": 0.95
+    },
+    {
+      "id": "battery-thermal-runaway-space",
+      "keys": [
+        "battery",
+        "lithium",
+        "li-ion",
+        "runaway",
+        "thermal runaway",
+        "cells"
+      ],
+      "questions": [
+        "What happens during a lithium-ion battery fire in a spacecraft?",
+        "What happens during battery thermal runaway in space?",
+        "How dangerous is a lithium-ion battery fire in a spacecraft?"
+      ],
+      "answer": "Lithium-ion battery thermal runaway is the highest-consequence fire hazard on crewed spacecraft because Li-ion cells contain both chemical fuel and internal oxidizers (metal oxides). During runaway, cathode breakdown releases oxygen internally, sustaining exothermic reactions even in pure vacuum or CO₂ environments.\n\nIt produces toxic, explosive gases (H₂, CO, HF, hydrocarbons) and ejected hot shrapnel (>900°C). Astronauts contain runaway cells inside designated Pyro-Stop fire containment bags and flood them with water mist to cool adjacent cells below critical propagation temperature.",
+      "citations": [
+        "NASA JSC Battery Safety Design Requirements (JSC-20793)",
+        "Crew Health and Safety Standards"
+      ],
+      "confidence": 0.97
+    },
+    {
+      "id": "saffire-experiments-lessons",
+      "keys": [
+        "saffire",
+        "cygnus",
+        "large-scale",
+        "large fire",
+        "findings",
+        "tests"
+      ],
+      "questions": [
+        "What did NASA learn from the large-scale Saffire fire experiments?",
+        "What is the Saffire experiment?",
+        "What were the key findings of Saffire tests?"
+      ],
+      "answer": "NASA's Spacecraft Fire Safety Demonstration (Saffire) series tested large-scale, real-world fires inside uncrewed Cygnus cargo resupply vehicles after departing the ISS. Saffire-I through VI burned full-scale fabrics, PMMA slabs, Nomex composites, and structured materials under controlled airflows ($0.1$–$0.4\\text{ m/s}$) and oxygen levels (21% to 34%).\n\nKey findings: flames spread faster and longer than predicted by small-scale drop tower tests, high-order smoke stratification occurred, and airflow speed dictated whether flames grew or starved.",
+      "citations": [
+        "NASA Glenn Saffire Mission Project",
+        "NTRS 20170008985",
+        "Saffire-I through Saffire-VI Final Reports"
+      ],
+      "confidence": 0.98
+    },
+    {
+      "id": "solar-storms-electrical-fires",
+      "keys": [
+        "solar flare",
+        "solar storm",
+        "cme",
+        "emp",
+        "electrical fire",
+        "donki",
+        "charging"
+      ],
+      "questions": [
+        "How can a solar storm or flare trigger electrical fires on a spacecraft?",
+        "Why does solar flare activity increase spacecraft fire risk?",
+        "What is the link between space weather and spacecraft electrical fire?"
+      ],
+      "answer": "Major solar storms (X-class solar flares and Coronal Mass Ejections tracked by NASA DONKI) inject intense fluxes of relativistic protons and electrons into space environments. When these particles strike spacecraft electronics, they induce deep dielectric charging in wire insulation and printed circuit boards, triggering high-voltage electrostatic discharge (ESD) arcs.\n\nFurthermore, Geomagnetically Induced Currents (GIC) and radiation upsets can cause avionics power converters to latch up, causing runaway resistive joule heating that ignites surrounding wire bundles.",
+      "citations": [
+        "NASA DONKI Space Weather Service",
+        "NASA-HDBK-4002A",
+        "NASA SP-8084 Space Radiation Hazards"
+      ],
+      "confidence": 0.96
+    },
+    {
+      "id": "eclss-smoke-cleanup",
+      "keys": [
+        "smoke cleanup",
+        "scrub",
+        "toxic smoke",
+        "eclss",
+        "smoke eater",
+        "post-fire",
+        "pba"
+      ],
+      "questions": [
+        "How do astronauts scrub toxic smoke from cabin air after a fire?",
+        "What is the ECLSS atmosphere scrubbing procedure?",
+        "Can astronauts breathe cabin air after putting out a fire?"
+      ],
+      "answer": "After extinguishing a fire, the atmosphere remains lethal due to carbon monoxide (CO), hydrogen cyanide (HCN), hydrogen fluoride (HF), and fine soot particles. Astronauts remain in Portable Breathing Apparatus (PBA) masks with positive pressure oxygen.\n\nECLSS activates high-capacity Smoke Eater cartridges (combining HEPA particulate filters with acid-gas and organic vapor scrubbers), followed by Carbon Monoxide Oxidation filters (converting CO to CO₂ via noble metal catalysts) and Trace Contaminant Control Subsystem (TCCS) catalytic oxidizers.",
+      "citations": [
+        "NASA ISS ECLSS Operational Handbook",
+        "NASA Technical Memorandum TM-2013-217381"
+      ],
+      "confidence": 0.97
+    },
+    {
+      "id": "concurrent-vs-opposed-spread",
+      "keys": [
+        "concurrent",
+        "opposed",
+        "direction",
+        "wind",
+        "spread direction",
+        "flow"
+      ],
+      "questions": [
+        "What is the difference between concurrent and opposed flame spread?",
+        "Why does concurrent flame spread burn faster?",
+        "Which direction does fire spread relative to airflow?"
+      ],
+      "answer": "In opposed-flow flame spread, the flame propagates in the direction opposite to the airflow (e.g. into the wind). Heat transfer to unburned fuel is limited to conduction against the flow, resulting in slower, steady spread rates (~$0.1$–$0.5\\text{ mm/s}$).\n\nIn concurrent-flow (forward) flame spread, the flame propagates in the same direction as the airflow (wind at its back). Hot convective exhaust flows directly over unburned fuel ahead of the flame front, preheating large areas and generating accelerating flame spread rates up to $10$–$50\\text{ mm/s}$. In spacecraft corridors, concurrent flow represents the greatest hazard.",
+      "citations": [
+        "NASA Glenn Microgravity Combustion Group",
+        "De Ris & Fernandez-Pello Combustion Theory",
+        "PSI-26 BASS"
+      ],
+      "confidence": 0.97
+    },
+    {
+      "id": "materials-risk-hierarchy",
+      "keys": [
+        "materials",
+        "safest",
+        "dangerous",
+        "pmma",
+        "teflon",
+        "ptfe",
+        "kapton",
+        "ranker"
+      ],
+      "questions": [
+        "Which materials are safest and which are most dangerous on a spacecraft?",
+        "What materials have the highest and lowest fire risk in spacecraft?",
+        "How are spacecraft materials ranked for flammability?"
+      ],
+      "answer": "According to NASA-STD-6001B ratings and the FlameAtlas Material Ranker:\n\n• **Highest Risk**: PMMA / Acrylic (LOI ~17%, high heat release rate, drips flaming liquid), Cotton/Cellulose fabrics (LOI ~18%, rapid surface flame spread), Polyurethane foam (dense toxic smoke and cyanide emission).\n• **Moderate Risk**: Polycarbonate (LOI ~26%, char-forming, ignites at elevated O₂), Silicone elastomers (low heat release but burns in enriched O₂).\n• **Lowest Risk / Fire Resistant**: Nomex / Kevlar aramids (LOI ~29–31%, self-extinguishing in ISS air), Kapton polyimide (LOI ~36%, zero flame spread below 35% O₂), PTFE / Teflon (LOI ~95%, non-flammable in virtually all breathable habitat atmospheres).",
+      "citations": [
+        "NASA-STD-6001B Flammability Database",
+        "MAPTIS Database",
+        "FlameAtlas Materials Ranking Model"
+      ],
+      "confidence": 0.98
+    },
+    {
+      "id": "centrifuge-artificial-gravity",
+      "keys": [
+        "centrifuge",
+        "artificial gravity",
+        "coriolis",
+        "rotating",
+        "spin"
+      ],
+      "questions": [
+        "How does artificial gravity in a rotating spacecraft centrifuge affect fire?",
+        "Does a rotating habitat make fire safer or more dangerous?",
+        "What is the Coriolis effect on a flame?"
+      ],
+      "answer": "Artificial gravity generated by rotation introduces both centrifugal acceleration (outward radial buoyancy) and Coriolis acceleration (tangential deflection).\n\nA fire in a rotating spacecraft centrifuge (such as NSS Prometheus Centrifuge module) will develop buoyant plumes pointing radially inward (toward the rotation hub), while the Coriolis effect curves the flame plume sideways against the spin direction. Because centrifugal gravity provides continuous buoyant convection, materials ignite and spread faster in rotating modules than in microgravity 0g modules.",
+      "citations": [
+        "NASA Artificial Gravity Combustion Studies",
+        "NTRS 19740003821",
+        "Centrifuge Fire Dynamics"
+      ],
+      "confidence": 0.94
+    },
+    {
+      "id": "drop-tower-testing-limits",
+      "keys": [
+        "drop tower",
+        "drop towers",
+        "time limit",
+        "2.2 second",
+        "5.1 second",
+        "facility"
+      ],
+      "questions": [
+        "Why do drop tower tests have time limitations for fire research?",
+        "Why do drop tower tests have time limitations for fire experiments?",
+        "How do scientists test microgravity fire on Earth?"
+      ],
+      "answer": "Drop towers (like NASA Glenn's 2.2-Second and 5.1-Second Zero Gravity Facilities) provide exceptionally clean microgravity ($10^{-5}g$) by letting an experiment capsule free-fall in a vacuum chamber.\n\nHowever, 2.2 to 5.1 seconds is only long enough to observe ignition and initial flame establishment; it is too short to study steady-state solid material combustion, which requires 30 to 300 seconds to reach thermal equilibrium. Long-duration tests require orbital platforms like the ISS (BASS, FLEX, CIR) or Cygnus vehicles (Saffire).",
+      "citations": [
+        "NASA Glenn 5.1-Second Zero Gravity Research Facility",
+        "NASA Microgravity Science Facilities"
+      ],
+      "confidence": 0.96
+    },
+    {
+      "id": "soot-formation-0g",
+      "keys": [
+        "soot",
+        "soot formation",
+        "black smoke",
+        "agglomeration",
+        "particle",
+        "spherules"
+      ],
+      "questions": [
+        "Why is microgravity smoke soot particle size larger than on Earth?",
+        "How does soot formation differ in microgravity?",
+        "What causes soot agglomeration in 0g?"
+      ],
+      "answer": "In $1g$, buoyant flow rapidly sweeps unburned fuel and soot particles out of the flame zone in milliseconds, quenching them into small individual spherules (10–30 nm).\n\nIn microgravity ($0g$), transport is dominated by diffusion, so soot precursors remain in the hot reaction zone (1000–1400 K) for up to hundreds of milliseconds. This long residence time allows continuous surface growth and coagulation, forming giant soot agglomerates and filaments up to hundreds of micrometers long. Microgravity soot is also more radiative, causing significant radiative heat loss from the flame.",
+      "citations": [
+        "NASA CIR (Combustion Integrated Rack)",
+        "LSP Soot Diagnostics",
+        "NTRS 20110014812"
+      ],
+      "confidence": 0.96
+    },
+    {
+      "id": "nasa-std-6001-test-1",
+      "keys": [
+        "nasa-std-6001",
+        "test 1",
+        "qualification",
+        "upward flame",
+        "screening"
+      ],
+      "questions": [
+        "How does NASA qualify materials for space flight under NASA-STD-6001?",
+        "What is the NASA-STD-6001 Test 1 standard?",
+        "What is the upward flame propagation test?"
+      ],
+      "answer": "NASA-STD-6001B Test 1 (Upward Flame Propagation Test) is NASA's mandatory flammability screening method for all materials used in crew compartments. A standardized sample (30 cm tall) is exposed to an ignition flame at its bottom edge in the worst-case planned flight atmosphere (e.g. 34% O₂ at 8.2 psi for Artemis).\n\nTo pass (Class 'A' rating), the flame must self-extinguish before burning more than 15 cm (6 inches) of the sample, and cannot drip flaming material that ignites paper beneath it.",
+      "citations": [
+        "NASA-STD-6001B Test 1",
+        "JSC Materials and Processes (M&P) Directorate"
+      ],
+      "confidence": 0.98
+    },
+    {
+      "id": "cabin-depressurization-protocol",
+      "keys": [
+        "depressurization",
+        "venting",
+        "vacuum",
+        "depressurize",
+        "abandonment",
+        "hatch"
+      ],
+      "questions": [
+        "When should astronauts vent a compartment to vacuum to extinguish a fire?",
+        "What is the section abandonment protocol?",
+        "Can vacuum put out a fire in space?"
+      ],
+      "answer": "Cabin depressurization (venting to vacuum) is the ultimate fail-safe extinguishment method when chemical or water mist suppressants fail. Once cabin pressure drops below **1.0 psia (6.9 kPa)**, the partial pressure of oxygen falls below the absolute thermodynamic threshold required for flaming combustion, extinguishing the flame within seconds.\n\nProtocol requires: (1) All crew evacuated to safe adjacent modules, (2) Hermetic hatch interlocks engaged and verified, (3) Depressurization relief valves opened to space vacuum, (4) Structural cool-down monitoring via thermal cameras before re-pressurization.",
+      "citations": [
+        "NASA ISS Emergency Procedures Rule EOP-FIRE-03",
+        "Orion Flight Safety Manual"
+      ],
+      "confidence": 0.97
+    },
+    {
+      "id": "suppression-agents-comparison",
+      "keys": [
+        "suppression agent",
+        "extinguishing agent",
+        "water mist vs co2",
+        "halon",
+        "best extinguisher"
+      ],
+      "questions": [
+        "What suppression agent is best for microgravity: CO2, Water Mist, or Nitrogen?",
+        "Why is Halon banned on spacecraft?",
+        "What extinguisher works best in zero gravity?"
+      ],
+      "answer": "Comparative evaluation of microgravity fire suppression agents:\n\n• **Fine Water Mist (Best Overall for Crew Modules)**: Uses micro-droplets propelled by N₂. Evaporative cooling drops flame temperatures by hundreds of degrees, while water expansion displaces oxygen. It leaves no toxic gas and is easily cleaned up by cabin condensing heat exchangers.\n• **CO₂ (Effective but Requires Crew PPE)**: Replaces oxygen by physical displacement. Highly effective in sealed enclosures (avionics racks), but poses acute crew hypercapnia/asphyxiation risk if discharged into common living areas.\n• **Halon 1301 (Banned in Space)**: Highly effective chemical inhibitor, but thermally decomposes into lethal hydrogen fluoride (HF) and hydrogen bromide (HBr) which permanently poison spacecraft ECLSS catalyst beds.",
+      "citations": [
+        "NASA GRC Fire Extinguishment Research",
+        "ISS Fine Water Mist Certification",
+        "NASA TP-2015-218567"
+      ],
+      "confidence": 0.96
+    },
+    {
+      "id": "kapton-wire-arc-tracking",
+      "keys": [
+        "kapton",
+        "wire",
+        "arc tracking",
+        "wiring",
+        "electrical arc",
+        "insulation"
+      ],
+      "questions": [
+        "Why did Kapton wire insulation cause electrical fires in aerospace history?",
+        "What is arc tracking in spacecraft wiring?",
+        "Is Kapton still used for spacecraft electrical wiring?"
+      ],
+      "answer": "Aromatic polyimide (Kapton) was extensively used in the Apollo and early Space Shuttle eras for lightweight wire insulation. However, when damaged or exposed to moisture, Kapton undergoes **flashover arc tracking**: high-voltage electrical arcs pyrolyze the polymer into conductive carbon graphite tracks. The conductive carbon track sustains continuous short-circuit arcing, which flash-burns wire bundles along entire conduits at velocities exceeding $1\\text{ m/s}$.\n\nModern spacecraft replace pure Kapton with cross-linked Tefzel (ETFE), PTFE, or composite polyimide/PTFE hybridized insulation.",
+      "citations": [
+        "NASA Reference Publication RP-1308 (Wiring Arc Tracking)",
+        "FAA Aircraft Wiring System Safety"
+      ],
+      "confidence": 0.97
+    },
+    {
+      "id": "infrared-invisible-flame-detection",
+      "keys": [
+        "infrared",
+        "sensors",
+        "multi-wavelength",
+        "flame radar",
+        "detect invisible",
+        "wavelength"
+      ],
+      "questions": [
+        "How do multi-wavelength infrared sensors detect invisible flames?",
+        "How does the Invisible Flame Radar work?",
+        "What sensor detects cool flames in microgravity?"
+      ],
+      "answer": "Invisible and cool flames emit virtually zero blackbody radiation in the human-visible spectrum (400–700 nm). However, combustion chemistry releases discrete molecular emission bands:\n\n• **CO₂ Asymmetric Stretch (4.26 μm)**: The primary signature of carbon oxidation.\n• **H₂O Vapor Radiative Band (2.7 μm)**: Emitted by steam in the hot gas plume.\n• **Formaldehyde Chemiluminescence (410–480 nm)**: Characteristic signature of low-temperature cool flame oxidation.\n\nMulti-wavelength optical flame sensors compare narrow-band filters centered on 4.26 μm with reference bands (4.0 μm and 4.4 μm) using differential optical density algorithms, instantly flagging non-luminous and cool flames with zero false alarms.",
+      "citations": [
+        "NASA GRC Optical Sensor Development",
+        "PSI-159 CFI-G",
+        "FlameAtlas Sensor Analysis"
+      ],
+      "confidence": 0.97
+    },
+    {
+      "id": "flame-color-temperature-physics",
+      "keys": [
+        "color",
+        "flame color",
+        "temperature",
+        "yellow vs blue",
+        "blue flame",
+        "soot radiation"
+      ],
+      "questions": [
+        "What does the color of a microgravity flame indicate about its temperature?",
+        "Why are Earth flames yellow while microgravity flames are blue?",
+        "What causes blue chemiluminescence in fire?"
+      ],
+      "answer": "Flame color is a direct diagnostic of chemical combustion efficiency and temperature:\n\n• **Yellow / Orange Flames (~1500–1800 K)**: Dominated by continuous blackbody incandescence of solid carbon soot nanoparticles (soot glow). Abundant on Earth due to buoyant drafting of fuel pyrolyzates.\n• **Blue Flames (~1100–1400 K)**: Dominated by molecular chemiluminescence from excited electronic states of free radicals: CH* (431 nm) and C₂* Swan bands (470–516 nm). Prevalent in microgravity because lower residence times and balanced diffusion prevent soot particle agglomeration.\n• **Invisible / Colorless (<800 K)**: Characteristic of cool flames. Reaction temperatures are too low to excite CH* radicals or create glowing soot, emitting only faint ultraviolet/blue formaldehyde emissions.",
+      "citations": [
+        "Gaydon - Spectroscopy of Flames",
+        "NASA CIR Project (Combustion Integrated Rack)",
+        "PSI-69 FLEX"
+      ],
+      "confidence": 0.98
     }
   ]
 }

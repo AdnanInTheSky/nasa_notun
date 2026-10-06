@@ -314,86 +314,181 @@ if (typeof window !== 'undefined') {
 }
 
 function injectMobileNav() {
-  if (typeof document === 'undefined' || document.getElementById('mobile-nav-drawer')) return;
-  const drawer = document.createElement('div');
-  drawer.id = 'mobile-nav-drawer';
-  drawer.setAttribute('x-show', '$store.app.mobileMenuOpen');
-  drawer.setAttribute('x-transition.opacity', '');
-  drawer.className = 'fixed inset-0 z-50 flex md:hidden bg-slate-950/80 backdrop-blur-sm';
-  drawer.style.display = 'none';
-  drawer.innerHTML = `
-    <div class="w-72 bg-slate-950 border-r border-slate-800 p-5 flex flex-col justify-between h-full"
-         @click.outside="$store.app.mobileMenuOpen = false">
-      <div>
-        <div class="flex items-center justify-between mb-6">
-          <a href="index.html" class="flex items-center gap-2.5 font-bold text-white text-base">
-            <i data-lucide="flame" class="w-5 h-5 text-orange-400"></i>
-            <span>FlameAtlas</span>
-          </a>
-          <button @click="$store.app.mobileMenuOpen = false" class="text-slate-400 hover:text-white p-1">✕</button>
-        </div>
-        <nav class="space-y-1 text-sm font-medium">
-          <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
-            <i data-lucide="gauge" class="w-4 h-4 text-orange-400"></i>
-            <span x-text="$store.app.kids ? 'Mission Map' : 'Mission Overview'"></span>
-          </a>
-          <a href="flame-lab.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
-            <i data-lucide="flask-conical" class="w-4 h-4 text-cyan-400"></i>
-            <span x-text="$store.app.kids ? 'Fire Lab 3D' : 'Flame Lab 3D'"></span>
-          </a>
-          <a href="space-craft.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
-            <i data-lucide="rocket" class="w-4 h-4 text-rose-400"></i>
-            <span x-text="$store.app.kids ? 'Spacecraft Fire Sim' : 'Spacecraft Simulation'"></span>
-          </a>
-          <a href="solar-watch.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
-            <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
-            <span x-text="$store.app.kids ? 'Sun Blasts' : 'Solar Flare Watch'"></span>
-          </a>
-          <a href="earth-impact.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
-            <i data-lucide="globe-2" class="w-4 h-4 text-emerald-400"></i>
-            <span x-text="$store.app.kids ? 'Storm vs Earth' : 'Solar Storm vs Earth'"></span>
-          </a>
-          <a href="material-ranker.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
-            <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
-            <span x-text="$store.app.kids ? 'Burn Race' : 'Material Ranker'"></span>
-          </a>
-          <a href="gravity-gap.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
-            <i data-lucide="orbit" class="w-4 h-4 text-sky-400"></i>
-            <span x-text="$store.app.kids ? 'Gravity Guess' : 'Gravity Gap-Filler'"></span>
-          </a>
-          <a href="flame-radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
-            <i data-lucide="radar" class="w-4 h-4 text-indigo-400"></i>
-            <span x-text="$store.app.kids ? 'Ghost Flames' : 'Invisible Flame Radar'"></span>
-          </a>
-          <a href="fire-gpt.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
-            <i data-lucide="message-square-text" class="w-4 h-4 text-pink-400"></i>
-            <span x-text="$store.app.kids ? 'Quiz Time' : 'FireGPT AI'"></span>
-          </a>
-          <a href="gap-map.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
-            <i data-lucide="map" class="w-4 h-4 text-yellow-400"></i>
-            <span x-text="$store.app.kids ? 'Plan Tests' : 'Research Gap Map'"></span>
-          </a>
-          <a href="sources.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
-            <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
-            <span x-text="$store.app.kids ? 'Space Cards' : 'Data Sources'"></span>
-          </a>
-          <a href="api-docs.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
-            <i data-lucide="code-2" class="w-4 h-4 text-cyan-400"></i>
-            <span>API & Data Explorer</span>
-          </a>
-        </nav>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(drawer);
+  if (typeof document === 'undefined') return;
 
+  const currentPath = (typeof window !== 'undefined' ? window.location.pathname.toLowerCase() : '');
+  const isPage = (name) => {
+    if (name === 'index') return currentPath === '/' || currentPath.endsWith('/') || currentPath.includes('index');
+    return currentPath.includes(name);
+  };
+
+  // 1. Mobile Drawer Navigation
+  if (!document.getElementById('mobile-nav-drawer')) {
+    const drawer = document.createElement('div');
+    drawer.id = 'mobile-nav-drawer';
+    drawer.setAttribute('x-show', '$store.app.mobileMenuOpen');
+    drawer.setAttribute('x-transition.opacity', '');
+    drawer.className = 'fixed inset-0 z-50 flex md:hidden bg-slate-950/85 backdrop-blur-md';
+    drawer.style.display = 'none';
+    drawer.innerHTML = `
+      <div class="w-80 max-w-[85vw] bg-slate-950 border-r border-slate-800 p-5 flex flex-col justify-between h-full overflow-y-auto"
+           @click.outside="$store.app.mobileMenuOpen = false">
+        <div>
+          <!-- Header -->
+          <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-800/80">
+            <a href="index.html" class="flex items-center gap-2.5 font-bold text-white text-base">
+              <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-400 p-0.5 flex items-center justify-center">
+                <i data-lucide="flame" class="w-4 h-4 text-white"></i>
+              </div>
+              <div>
+                <span class="block leading-tight">FlameAtlas</span>
+                <span class="text-[10px] text-slate-400 font-mono" x-text="$store.app.kids ? 'Kids Adventure' : 'NASA Space Apps'"></span>
+              </div>
+            </a>
+            <button @click="$store.app.mobileMenuOpen = false" class="text-slate-400 hover:text-white p-2 rounded-lg bg-slate-900 border border-slate-800">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- Quick Controls Pill in Drawer -->
+          <div class="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-900/80 border border-slate-800/80 mb-5 text-xs">
+            <button @click="$store.app.toggleKids()" class="flex-1 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 font-semibold transition-colors"
+                    :class="$store.app.kids ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'text-slate-400 hover:text-slate-200'">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-cyan-400"></i>
+              <span x-text="$store.app.kids ? 'Kids Mode' : 'Pro Mode'"></span>
+            </button>
+            <button @click="$store.app.toggleSound()" class="p-1.5 rounded-lg text-slate-400 hover:text-white">
+              <i :data-lucide="$store.app.sound ? 'volume-2' : 'volume-x'" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- Navigation Groups -->
+          <nav class="space-y-4 text-sm font-medium">
+            <div>
+              <p class="text-[11px] font-mono uppercase tracking-wider text-slate-500 px-3 mb-1.5">Core Missions</p>
+              <div class="space-y-1">
+                <a href="index.html" class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${isPage('index') ? 'bg-orange-500/15 text-orange-400 font-semibold border border-orange-500/25' : 'text-slate-300 hover:text-white hover:bg-slate-900'}">
+                  <i data-lucide="gauge" class="w-4 h-4 text-orange-400"></i>
+                  <span x-text="$store.app.kids ? 'Mission Map' : 'Mission Overview'"></span>
+                </a>
+                <a href="flame-lab.html" class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${isPage('flame-lab') ? 'bg-cyan-500/15 text-cyan-400 font-semibold border border-cyan-500/25' : 'text-slate-300 hover:text-white hover:bg-slate-900'}">
+                  <i data-lucide="flask-conical" class="w-4 h-4 text-cyan-400"></i>
+                  <span x-text="$store.app.kids ? 'Fire Lab 3D' : 'Flame Lab 3D'"></span>
+                </a>
+                <a href="space-craft.html" class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${isPage('space-craft') ? 'bg-rose-500/15 text-rose-400 font-semibold border border-rose-500/25' : 'text-slate-300 hover:text-white hover:bg-slate-900'}">
+                  <i data-lucide="rocket" class="w-4 h-4 text-rose-400"></i>
+                  <span x-text="$store.app.kids ? 'Spacecraft Fire Sim' : 'Spacecraft Simulation'"></span>
+                </a>
+                <a href="solar-watch.html" class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${isPage('solar-watch') ? 'bg-amber-500/15 text-amber-400 font-semibold border border-amber-500/25' : 'text-slate-300 hover:text-white hover:bg-slate-900'}">
+                  <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
+                  <span x-text="$store.app.kids ? 'Sun Blasts' : 'Solar Flare Watch'"></span>
+                </a>
+                <a href="earth-impact.html" class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${isPage('earth-impact') ? 'bg-emerald-500/15 text-emerald-400 font-semibold border border-emerald-500/25' : 'text-slate-300 hover:text-white hover:bg-slate-900'}">
+                  <i data-lucide="globe-2" class="w-4 h-4 text-emerald-400"></i>
+                  <span x-text="$store.app.kids ? 'Storm vs Earth' : 'Solar Storm vs Earth'"></span>
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <p class="text-[11px] font-mono uppercase tracking-wider text-slate-500 px-3 mb-1.5">Physics & Materials</p>
+              <div class="space-y-1">
+                <a href="material-ranker.html" class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${isPage('material-ranker') ? 'bg-purple-500/15 text-purple-400 font-semibold border border-purple-500/25' : 'text-slate-300 hover:text-white hover:bg-slate-900'}">
+                  <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
+                  <span x-text="$store.app.kids ? 'Burn Race' : 'Material Ranker'"></span>
+                </a>
+                <a href="gravity-gap.html" class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${isPage('gravity-gap') ? 'bg-sky-500/15 text-sky-400 font-semibold border border-sky-500/25' : 'text-slate-300 hover:text-white hover:bg-slate-900'}">
+                  <i data-lucide="orbit" class="w-4 h-4 text-sky-400"></i>
+                  <span x-text="$store.app.kids ? 'Gravity Guess' : 'Gravity Gap-Filler'"></span>
+                </a>
+                <a href="flame-radar.html" class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${isPage('flame-radar') ? 'bg-indigo-500/15 text-indigo-400 font-semibold border border-indigo-500/25' : 'text-slate-300 hover:text-white hover:bg-slate-900'}">
+                  <i data-lucide="radar" class="w-4 h-4 text-indigo-400"></i>
+                  <span x-text="$store.app.kids ? 'Ghost Flames' : 'Invisible Flame Radar'"></span>
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <p class="text-[11px] font-mono uppercase tracking-wider text-slate-500 px-3 mb-1.5">Intelligence & Data</p>
+              <div class="space-y-1">
+                <a href="fire-gpt.html" class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${isPage('fire-gpt') ? 'bg-pink-500/15 text-pink-400 font-semibold border border-pink-500/25' : 'text-slate-300 hover:text-white hover:bg-slate-900'}">
+                  <i data-lucide="message-square-text" class="w-4 h-4 text-pink-400"></i>
+                  <span x-text="$store.app.kids ? 'Quiz Time' : 'FireGPT AI'"></span>
+                </a>
+                <a href="gap-map.html" class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${isPage('gap-map') ? 'bg-yellow-500/15 text-yellow-400 font-semibold border border-yellow-500/25' : 'text-slate-300 hover:text-white hover:bg-slate-900'}">
+                  <i data-lucide="map" class="w-4 h-4 text-yellow-400"></i>
+                  <span x-text="$store.app.kids ? 'Plan Tests' : 'Research Gap Map'"></span>
+                </a>
+                <a href="sources.html" class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${isPage('sources') ? 'bg-blue-500/15 text-blue-400 font-semibold border border-blue-500/25' : 'text-slate-300 hover:text-white hover:bg-slate-900'}">
+                  <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
+                  <span x-text="$store.app.kids ? 'Space Cards' : 'Data Sources'"></span>
+                </a>
+                <a href="api-docs.html" class="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${isPage('api-docs') ? 'bg-cyan-500/15 text-cyan-400 font-semibold border border-cyan-500/25' : 'text-slate-300 hover:text-white hover:bg-slate-900'}">
+                  <i data-lucide="code-2" class="w-4 h-4 text-cyan-400"></i>
+                  <span>API & Data Explorer</span>
+                </a>
+              </div>
+            </div>
+          </nav>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-slate-800 text-[11px] text-slate-500 flex items-center justify-between">
+          <span>NASA Space Apps 2026</span>
+          <span class="mono">v2.0 Mobile</span>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(drawer);
+  }
+
+  // 2. Mobile Bottom Dock
+  if (!document.getElementById('mobile-bottom-dock')) {
+    const dock = document.createElement('nav');
+    dock.id = 'mobile-bottom-dock';
+    dock.className = 'mobile-bottom-dock md:hidden';
+    dock.innerHTML = `
+      <a href="index.html" class="mobile-dock-btn ${isPage('index') ? 'active' : ''}">
+        <i data-lucide="gauge"></i>
+        <span>Overview</span>
+      </a>
+      <a href="flame-lab.html" class="mobile-dock-btn ${isPage('flame-lab') ? 'active' : ''}">
+        <i data-lucide="flask-conical"></i>
+        <span>Lab 3D</span>
+      </a>
+      <a href="space-craft.html" class="mobile-dock-btn ${isPage('space-craft') ? 'active' : ''}">
+        <i data-lucide="rocket"></i>
+        <span>Sim</span>
+      </a>
+      <a href="solar-watch.html" class="mobile-dock-btn ${isPage('solar-watch') ? 'active' : ''}">
+        <i data-lucide="sun"></i>
+        <span>Solar</span>
+      </a>
+      <button type="button" @click="window.unifiedAssistant ? window.unifiedAssistant.open() : ($store.app.openAssistant && $store.app.openAssistant())" class="mobile-dock-btn ${isPage('fire-gpt') ? 'active' : ''}">
+        <i data-lucide="sparkles"></i>
+        <span>Aura AI</span>
+      </button>
+      <button type="button" @click="$store.app.toggleMobileMenu()" class="mobile-dock-btn">
+        <i data-lucide="menu"></i>
+        <span>More</span>
+      </button>
+    `;
+    document.body.appendChild(dock);
+  }
+
+  // 3. Inject Mobile Header Trigger
   const header = document.querySelector('header');
   if (header && !document.getElementById('mobile-menu-btn')) {
     const btn = document.createElement('button');
     btn.id = 'mobile-menu-btn';
     btn.setAttribute('@click', '$store.app.toggleMobileMenu()');
-    btn.className = 'md:hidden glass-pill p-2 text-slate-300 hover:text-white shrink-0 mr-1';
-    btn.innerHTML = `<i data-lucide="menu" class="w-4 h-4"></i>`;
+    btn.className = 'md:hidden glass-pill px-2.5 py-1.5 text-slate-200 hover:text-white shrink-0 mr-2 flex items-center gap-1.5';
+    btn.innerHTML = `
+      <div class="w-5 h-5 rounded-md bg-gradient-to-tr from-orange-600 to-amber-400 flex items-center justify-center">
+        <i data-lucide="flame" class="w-3 h-3 text-white"></i>
+      </div>
+      <span class="text-xs font-bold text-white tracking-tight">FlameAtlas</span>
+      <i data-lucide="menu" class="w-3.5 h-3.5 text-slate-400 ml-0.5"></i>
+    `;
     header.insertBefore(btn, header.firstChild);
   }
 }
