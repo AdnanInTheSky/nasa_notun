@@ -26,12 +26,3873 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Application Core Scripts -->
-  <script src="js/models.js"></script>
-  <script src="js/shared.js"></script>
-  <script src="js/space-craft-sim.js"></script>
-  <script src="js/space-craft-3d.js"></script>
-  <script src="js/unified-assistant.js"></script>
-  <link rel="stylesheet" href="styles/main.css">
+  <script>
+/**
+ * FlameAtlas Computational Models
+ * Stand-ins for /risk, /rank, /gravity, /regime, /gaps, and earth impact physics.
+ */
+
+const clamp = (v, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v));
+
+function seeded(seed) {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
+  return () => {
+    h += 0x6d2b79f5;
+    let t = h;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const gravityFactor = (g) => 0.72 + 0.55 * Math.sin((Math.PI * clamp(g)) / 1.25);
+
+function shapFor(material, { o2, pressure, gravity }) {
+  const o2Eff = (o2 - 21) * 0.018;
+  const pEff = -(14.7 - pressure) * 0.006 + (o2 > 30 ? 0.02 : 0);
+  const gEff = (gravityFactor(gravity) - 1) * 0.28;
+  const matEff = (material.base - 0.5) * 0.7;
+  const loiEff = -(material.loi - 21) * 0.004;
+  return [
+    { feature: 'Oxygen %', value: +o2Eff.toFixed(3) },
+    { feature: 'Material chemistry', value: +matEff.toFixed(3) },
+    { feature: 'Oxygen index (LOI)', value: +loiEff.toFixed(3) },
+    { feature: 'Gravity level', value: +gEff.toFixed(3) },
+    { feature: 'Pressure', value: +pEff.toFixed(3) },
+  ];
+}
+
+function materialRisk(material, cond) {
+  const sum = shapFor(material, cond).reduce((a, s) => a + s.value, 0);
+  return clamp(0.42 + sum);
+}
+
+function rankMaterials(materials, cond, ids = null) {
+  const subset = ids ? materials.filter((m) => ids.includes(m.id)) : materials;
+  return subset
+    .map((m) => {
+      const risk = materialRisk(m, cond);
+      const burnsAbove = Math.max(10, Math.round(m.loi - (cond.gravity > 0 ? 2 : 0) - (14.7 - cond.pressure) * 0.3));
+      return { ...m, risk, burnsAbove, selfExtinguishes: cond.o2 < burnsAbove };
+    })
+    .sort((a, b) => b.risk - a.risk);
+}
+
+function cabinRisk(materials, cond) {
+  const ranked = rankMaterials(materials, cond);
+  if (!ranked.length) return 50;
+  const avg = ranked.reduce((a, m) => a + m.risk, 0) / ranked.length;
+  return Math.round(clamp(avg * 1.15) * 100);
+}
+
+const riskLevel = (r) =>
+  r >= 0.7
+    ? { label: 'Critical', tone: 'critical' }
+    : r >= 0.5
+      ? { label: 'High', tone: 'high' }
+      : r >= 0.3
+        ? { label: 'Moderate', tone: 'moderate' }
+        : { label: 'Low', tone: 'low' };
+
+function gravityCurve(material) {
+  const scale = 0.6 + material.base * 3.2;
+  const pts = [];
+  for (let i = 0; i <= 50; i++) {
+    const g = i / 50;
+    const mean = scale * gravityFactor(g);
+    const dist = Math.min(g, 1 - g);
+    const sd = 0.05 * scale + dist * 0.9 * scale * 0.55;
+    pts.push({ g: +g.toFixed(2), mean: +mean.toFixed(3), band: [+(mean - sd).toFixed(3), +(mean + sd).toFixed(3)] });
+  }
+  return pts;
+}
+
+function gravityObservations(material) {
+  const rnd = seeded(material.id);
+  const scale = 0.6 + material.base * 3.2;
+  const obs = [];
+  [0, 0, 0.01, 0.02, 0.05].forEach((g) => obs.push({ g, obs: +(scale * gravityFactor(g) * (0.92 + rnd() * 0.16)).toFixed(3) }));
+  [0.95, 1, 1, 1].forEach((g) => obs.push({ g, obs: +(scale * gravityFactor(g) * (0.92 + rnd() * 0.16)).toFixed(3) }));
+  return obs;
+}
+
+function predictAt(material, g) {
+  const curve = gravityCurve(material);
+  const idx = Math.round(clamp(g) * 50);
+  return curve[idx];
+}
+
+const FUEL_SHIFT = { heptane: 0, decane: 1.5, dodecane: 3, methanol: -2.5 };
+const DILUENT_SHIFT = { n2: 0, co2: 4, he: 2 };
+
+function regimeAt(o2, atm, fuelId, diluentId) {
+  const shift = (FUEL_SHIFT[fuelId] || 0) + (DILUENT_SHIFT[diluentId] || 0);
+  const extinctLimit = 13 + shift - (atm - 1) * 2.2;
+  const coolWidth = 4.5 + (fuelId === 'methanol' ? -2.5 : 0) + (diluentId === 'co2' ? 1.8 : 0) + atm * 0.6;
+  if (o2 < extinctLimit) return 'extinct';
+  if (o2 < extinctLimit + coolWidth) return 'cool';
+  return 'hot';
+}
+
+function gapGrid(gapG = [1, 0.75, 0.5, 0.38, 0.16, 0.05, 0], gapO2 = [15, 18, 21, 24, 27, 30, 34, 38]) {
+  const rnd = seeded('gaps');
+  return gapG.map((g) =>
+    gapO2.map((o2) => {
+      let n = 0;
+      if (g === 0) n = Math.round(4 + rnd() * 22 * (o2 <= 30 ? 1 : 0.25));
+      else if (g === 1) n = Math.round(6 + rnd() * 30 * (o2 <= 34 ? 1 : 0.4));
+      else if (g === 0.05) n = o2 <= 24 ? Math.round(rnd() * 4) : 0;
+      else if (g === 0.16) n = o2 === 21 ? 1 : 0;
+      else n = 0;
+      return { g, o2, n };
+    })
+  );
+}
+
+// Earth Impact Physics
+const AU_KM = 1.496e8;
+const fluxFromLevel = (level) => 10 ** (level - 8);
+function classFromLevel(level) {
+  const flux = fluxFromLevel(level);
+  const letters = [
+    ['X', 1e-4],
+    ['M', 1e-5],
+    ['C', 1e-6],
+    ['B', 1e-7],
+    ['A', 1e-8],
+  ];
+  const [letter, base] = letters.find(([, b]) => flux >= b) || letters[4];
+  return `${letter}${(flux / base).toFixed(1)}`;
+}
+
+const HIT = { direct: 1, glancing: 0.5, miss: 0 };
+
+const lerpTable = (table, x) => {
+  if (x <= table[0][0]) return table[0][1];
+  for (let i = 1; i < table.length; i++) {
+    const [x1, y1] = table[i];
+    const [x0, y0] = table[i - 1];
+    if (x <= x1) return y0 + ((x - x0) / (x1 - x0)) * (y1 - y0);
+  }
+  return table[table.length - 1][1];
+};
+
+const scaleFrom = (value, steps) => steps.reduce((lvl, s, i) => (value >= s ? i + 1 : lvl), 0);
+
+function earthImpact(inp) {
+  const hit = HIT[inp.hit] ?? 0;
+  const flux = fluxFromLevel(inp.level);
+  const R = scaleFrom(flux, [1e-5, 5e-5, 1e-4, 1e-3, 2e-3]);
+  const pfu = 10 ** (1.5 * (inp.level - 2.6)) * (0.3 + 0.7 * hit) * (inp.speed / 1000);
+  const S = scaleFrom(pfu, [10, 100, 1e3, 1e4, 1e5]);
+  const v = inp.speed * hit + 400 * (1 - hit);
+  const n = inp.density * hit + 5 * (1 - hit);
+  const bz = inp.bz * hit;
+  const bs = Math.max(0, -bz);
+  const dst = hit > 0 ? -(0.01 * v * bs + 20 * hit) : -8;
+  const kp = Math.min(
+    9,
+    lerpTable(
+      [
+        [0, 1],
+        [-30, 3],
+        [-50, 5],
+        [-100, 6],
+        [-150, 7],
+        [-250, 8],
+        [-350, 9],
+      ].map(([d, k]) => [-d, k]),
+      -dst,
+    ),
+  );
+  const G = kp >= 9 ? 5 : kp >= 8 ? 4 : kp >= 7 ? 3 : kp >= 6 ? 2 : kp >= 5 ? 1 : 0;
+  const P = 1.6726e-6 * n * v * v;
+  const rmp = (10.22 + 1.29 * Math.tanh(0.184 * (bz + 8.14))) * P ** (-1 / 6.6);
+  const auroraLat = clamp(66.5 - 3.4 * kp - Math.max(0, (-dst - 400) / 80), 18, 70);
+  const cityAbs = Math.abs(inp.cityLat);
+  const aurora = cityAbs >= auroraLat ? 'overhead' : cityAbs >= auroraLat - 5 ? 'horizon' : 'no';
+  const vAvg = 400 + (inp.speed - 400) * 0.8;
+  const arrivalHours = AU_KM / vAvg / 3600;
+
+  const gpsErr = Math.round(1 + kp * kp * 0.55 + S * 2);
+  const drag = Math.round(8 * kp ** 1.6);
+  const geoExposed = rmp < 6.6;
+  const impacts = {
+    radio: { score: R * 20, detail: R ? `Shortwave radio fades on sunny side for ~${[0, 10, 30, 60, 120, 180][R]} min` : 'Radios work normally' },
+    gps: { score: clamp(gpsErr / 45) * 100, detail: `GPS can be off by about ${gpsErr} m` },
+    satellites: {
+      score: clamp(drag / 250 + (geoExposed ? 0.4 : 0) + S * 0.06) * 100,
+      detail: geoExposed ? `Shield squeezed inside GEO orbit! Satellites exposed. Drag +${drag}%` : `Air drag on low satellites +${drag}%`,
+    },
+    power: {
+      score: clamp(-dst / 700) * 100,
+      detail: -dst > 500 ? 'Big risk of blackouts from induced currents' : -dst > 200 ? 'Power grid operators on alert' : 'Power grids are fine',
+    },
+    astronauts: {
+      score: S * 20,
+      detail: S >= 3 ? 'Astronauts must shelter in shielded areas' : S >= 1 ? 'Extra radiation: spacewalks postponed' : 'Normal radiation levels',
+    },
+    flights: { score: (S >= 2 || R >= 3 ? 55 : 0) + S * 9, detail: S >= 2 || R >= 3 ? 'Polar flights rerouted to lower routes' : 'Flights normal' },
+  };
+  const overall = Math.round(
+    clamp(
+      (impacts.radio.score * 0.12 +
+        impacts.gps.score * 0.12 +
+        impacts.satellites.score * 0.2 +
+        impacts.power.score * 0.26 +
+        impacts.astronauts.score * 0.18 +
+        impacts.flights.score * 0.12) /
+        100,
+    ) * 100,
+  );
+
+  return {
+    R,
+    S,
+    G,
+    kp,
+    dst: Math.round(dst),
+    pfu,
+    rmp,
+    auroraLat,
+    aurora,
+    arrivalHours,
+    impacts,
+    overall,
+    geoExposed,
+    classType: classFromLevel(inp.level),
+    hit,
+  };
+}
+
+function inputsFromFlare(flare) {
+  const abs = Math.abs(flare.lon);
+  return {
+    level: Math.log10(flare.flux) + 8,
+    hit: !flare.hasCME ? 'miss' : abs < 35 ? 'direct' : abs < 70 ? 'glancing' : 'miss',
+    speed: flare.hasCME ? Math.round(500 + (Math.log10(flare.flux) + 6) * 400) : 420,
+    bz: flare.hasCME ? -12 : 0,
+    density: flare.hasCME ? 15 : 6,
+  };
+}
+
+// Flame Lab Physics
+const GRAVITY_SIZE = [
+  [0, 0.62],
+  [0.16, 1.0],
+  [0.38, 1.08],
+  [1, 0.95],
+];
+
+function computeFlame({ gravity, o2, material }) {
+  const g = clamp(gravity);
+  const sg = Math.sqrt(g);
+  const canBurn = o2 >= material.loi;
+  const oxy = clamp((o2 - material.loi) / 14 + 0.35, 0.3, 1.4);
+  const size = canBurn ? material.flam * oxy * lerpTable(GRAVITY_SIZE, g) : 0;
+  const blueness = 1 - clamp(sg * 1.15);
+
+  return {
+    material,
+    canBurn,
+    size,
+    radius: 0.22 + 0.33 * size,
+    stretch: 1 + 1.3 * sg,
+    taper: clamp(sg * 1.4),
+    blueness,
+    soot: 0.25 + 0.75 * (1 - blueness),
+    flow: 0.18 + 0.82 * sg,
+    smokeRise: 1.7 * g,
+    shape: g < 0.02 ? 'Round ball' : g < 0.5 ? 'Short and wide' : 'Tall teardrop',
+    colorName: blueness > 0.6 ? 'Blue and dim' : blueness > 0.25 ? 'Orange, blue base' : 'Bright yellow',
+    oxygenSpeed: g < 0.02 ? 'Slow drift' : g < 0.5 ? 'Gentle breeze' : 'Fast breeze',
+    smokeGoes: g < 0.02 ? 'Everywhere, slowly' : 'Up to the ceiling',
+  };
+}
+
+function dangerLevel(size, burning) {
+  if (!burning || size <= 0) return { label: 'Safe', tone: 'low', pct: 0 };
+  const pct = Math.round(clamp(size / 1.4) * 100);
+  if (size > 0.9) return { label: 'Danger!', tone: 'critical', pct };
+  if (size > 0.55) return { label: 'Watch out', tone: 'high', pct };
+  return { label: 'Small', tone: 'moderate', pct };
+}
+
+function explain(state, flame) {
+  const { status, gravity: g, o2, coolFlame, heatVision, fizzled, burnedOut } = state;
+  const m = flame.material;
+
+  if (status === 'extinguishing') {
+    return {
+      title: 'Whoosh! Carbon dioxide',
+      text: 'The extinguisher sprays CO₂, a heavy gas that pushes oxygen away from the fuel. No oxygen means the fire triangle is broken.',
+      word: { term: 'Suppressant', meaning: 'Anything that puts out a fire, like CO₂, water mist or foam.' },
+    };
+  }
+  if (status === 'out' && coolFlame && !heatVision) {
+    return {
+      title: 'Is it really out?',
+      text: 'It looks like the fire is gone… but in space some fuel drops keep burning as an invisible "cool flame". Switch on Heat vision to check!',
+      word: { term: 'Cool flame', meaning: 'A flame at about 500 °C instead of 1,500 °C. It gives off almost no light.' },
+    };
+  }
+  if (status === 'out' && coolFlame && heatVision) {
+    return {
+      title: 'Found it: a hidden cool flame!',
+      text: 'Heat vision shows the flame our eyes miss. NASA discovered these on the space station in the FLEX experiment. Astronauts need special sensors to spot them.',
+      word: { term: 'Infrared', meaning: 'A kind of light we feel as heat but cannot see. Heat cameras can see it.' },
+    };
+  }
+  if ((status === 'out' || status === 'fizzle') && fizzled) {
+    return {
+      title: "It won't stay lit!",
+      text: `${m.name} needs at least ${m.loi}% oxygen to keep burning. This air has only ${o2}%. ${m.loi > 25 ? 'That is why fire-safe materials protect astronauts.' : 'Try adding more oxygen.'}`,
+      word: { term: 'Oxygen index', meaning: 'The smallest amount of oxygen a material needs to keep burning.' },
+    };
+  }
+  if (status === 'out' && burnedOut) {
+    return {
+      title: 'All burned up',
+      text: 'The fire used up all of its fuel, so it stopped. Remove the fuel and a fire cannot keep going. Press Reset for a new sample.',
+      word: { term: 'Fuel', meaning: 'Anything that can burn: paper, cloth, plastic or liquid fuel.' },
+    };
+  }
+  if (status === 'out') {
+    return {
+      title: 'Fire is out. Great job!',
+      text: 'You stopped the fire. On a real spacecraft, astronauts would also switch off fans so fresh air stops feeding any leftover flames.',
+      word: { term: 'Ventilation', meaning: 'Fans that move air around. In space, fans are the only "wind".' },
+    };
+  }
+  if (status === 'burning' && g < 0.02) {
+    return {
+      title: 'A floating fire ball!',
+      text: 'In space, hot air does not rise because there is no "up". The flame spreads evenly in every direction and becomes a ball. Fresh oxygen only drifts in slowly, so the flame is small, cool and blue.',
+      word: { term: 'Microgravity', meaning: 'When things feel almost weightless, like on the space station.' },
+    };
+  }
+  if (status === 'burning' && g < 0.5) {
+    return {
+      title: 'A wide, hungry flame',
+      text: `Gravity here is weak, so hot air rises gently. That soft breeze feeds the fire with oxygen without cooling it much, so some materials burn even better than on Earth!${o2 > 25 ? ' The extra oxygen in the base makes it hungrier still.' : ''}`,
+      word: { term: 'Buoyancy', meaning: 'Hot air is lighter than cold air, so gravity lets it float upward.' },
+    };
+  }
+  if (status === 'burning') {
+    return {
+      title: 'Hot air rises!',
+      text: 'On Earth, gravity pulls heavy cold air down, and the light hot air from the fire rises up. This pulls the flame into a pointy teardrop. Tiny glowing bits of soot make it yellow.',
+      word: { term: 'Convection', meaning: 'Heat moving around because warm air or water rises and cool air sinks.' },
+    };
+  }
+  return {
+    title: 'Ready for an experiment',
+    text: 'Pick a place and something to burn, then press "Light it!" or click the sample. Every fire needs fuel, heat and oxygen. Together they make the fire triangle.',
+    word: { term: 'Fire triangle', meaning: 'Fuel + heat + oxygen. Take away any one and the fire goes out.' },
+  };
+}
+
+const FlameModels = {
+  clamp,
+  seeded,
+  shapFor,
+  materialRisk,
+  rankMaterials,
+  cabinRisk,
+  riskLevel,
+  gravityCurve,
+  gravityObservations,
+  predictAt,
+  regimeAt,
+  gapGrid,
+  fluxFromLevel,
+  classFromLevel,
+  HIT,
+  earthImpact,
+  inputsFromFlare,
+  computeFlame,
+  dangerLevel,
+  explain,
+};
+
+if (typeof window !== 'undefined') {
+  window.FlameModels = FlameModels;
+  Object.assign(window, FlameModels);
+}
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = FlameModels;
+}
+
+  </script>
+  <script>
+/**
+ * FlameAtlas Shared Core Logic
+ * Handles global state (Phase, Kids Mode, Sound, XP, Badges, Sparky, Toasts) with Alpine.js
+ */
+
+// Sound effects synthesizer via Web Audio
+let audioCtx = null;
+let soundEnabled = localStorage.getItem('flameatlas_sound') !== 'false';
+
+function getAudioContext() {
+  if (!soundEnabled || typeof window === 'undefined') return null;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  } catch (e) {
+    return null;
+  }
+}
+
+function playTone(freq, start, dur, { type = 'sine', vol = 0.12, slide = 0 } = {}) {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  try {
+    const t0 = ctx.currentTime + start;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t0);
+    if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(40, freq + slide), t0 + dur);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(vol, t0 + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.02);
+  } catch (e) {}
+}
+
+const sfx = {
+  pop: () => playTone(620, 0, 0.08, { type: 'triangle', vol: 0.06, slide: 200 }),
+  ding: () => {
+    playTone(880, 0, 0.18, { vol: 0.09 });
+    playTone(1320, 0.08, 0.25, { vol: 0.07 });
+  },
+  fanfare: () => [523, 659, 784, 1047].forEach((f, i) => playTone(f, i * 0.11, 0.3, { type: 'triangle', vol: 0.1 })),
+  whoosh: () => playTone(200, 0, 0.5, { type: 'sawtooth', vol: 0.04, slide: 900 }),
+  oops: () => playTone(300, 0, 0.25, { type: 'square', vol: 0.05, slide: -150 }),
+};
+
+if (typeof window !== 'undefined') window.sfx = sfx;
+
+// Sparky Robot Mascot SVG generator
+function renderSparkySvg(size = 72, mood = 'happy') {
+  return `
+    <svg viewBox="0 0 120 130" width="${size}" height="${(size * 130) / 120}" class="animate-float" aria-hidden="true">
+      <defs>
+        <linearGradient id="sp-body" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffffff"/>
+          <stop offset="1" stop-color="#cfd8ee"/>
+        </linearGradient>
+        <linearGradient id="sp-flame" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0" stop-color="#ff6a2b"/>
+          <stop offset="1" stop-color="#ffd23f"/>
+        </linearGradient>
+        <radialGradient id="sp-visor" cx="40%" cy="35%" r="70%">
+          <stop offset="0" stop-color="#4fe0ff"/>
+          <stop offset="1" stop-color="#1a3f8f"/>
+        </radialGradient>
+      </defs>
+      <!-- Antenna flame -->
+      <path d="M60 6 C66 14 70 18 66 26 C64 30 56 30 54 26 C50 18 56 14 60 6 Z" fill="url(#sp-flame)"/>
+      <rect x="57" y="26" width="6" height="10" rx="3" fill="#8a96b8"/>
+      <!-- Head -->
+      <rect x="22" y="34" width="76" height="56" rx="26" fill="url(#sp-body)" stroke="#8a96b8" stroke-width="2"/>
+      <rect x="31" y="44" width="58" height="36" rx="18" fill="url(#sp-visor)"/>
+      <!-- Eyes -->
+      <path d="M44 62 q6 -8 12 0" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M64 62 q6 -8 12 0" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <!-- Mouth & cheeks -->
+      <path d="M52 71 q8 6 16 0" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <circle cx="36" cy="72" r="4" fill="#ff8fa3" opacity="0.7"/>
+      <circle cx="84" cy="72" r="4" fill="#ff8fa3" opacity="0.7"/>
+      <!-- Torso -->
+      <rect x="36" y="92" width="48" height="30" rx="14" fill="url(#sp-body)" stroke="#8a96b8" stroke-width="2"/>
+      <circle cx="60" cy="106" r="7" fill="#ff6a2b"/>
+      <path d="M57 106 l3 -5 l3 5 l-3 3 z" fill="#ffd23f"/>
+      <!-- Arms -->
+      <rect x="20" y="96" width="16" height="9" rx="4.5" fill="#cfd8ee" stroke="#8a96b8" stroke-width="2"/>
+      <rect x="84" y="96" width="16" height="9" rx="4.5" fill="#cfd8ee" stroke="#8a96b8" stroke-width="2"/>
+    </svg>
+  `;
+}
+
+// Global Alpine Store
+function getFlameAtlasStore() {
+  return {
+    // Phases
+    phases: [
+      { id: 'moon', name: 'Moon Base', gravity: 0.16, o2: 34, pressure: 8.2, commDelay: '1.3 s', note: 'Proposed 8.2 psi / 34% O₂ habitat — materials ignite more easily.' },
+      { id: 'mars', name: 'Mars Habitat', gravity: 0.38, o2: 28, pressure: 9.5, commDelay: '14 min', note: 'Partial gravity allows buoyant convection; communication lag delays ground response.' },
+      { id: 'transit', name: 'Deep Space Transit', gravity: 0.0, o2: 21, pressure: 14.7, commDelay: 'Variable', note: 'Zero-g spherical flames, slow burning, high toxic soot buildup.' },
+      { id: 'iss', name: 'ISS Low Earth Orbit', gravity: 0.0, o2: 21, pressure: 14.7, commDelay: '< 1 s', note: 'Microgravity testbed with immediate ground support.' },
+      { id: 'gateway', name: 'Lunar Gateway', gravity: 0.0, o2: 30, pressure: 10.2, commDelay: '1.3 s', note: 'Outside Earth magnetosphere with intermittent crew presence.' }
+    ],
+    currentPhaseId: localStorage.getItem('flameatlas_phase') || 'moon',
+    get currentPhase() {
+      return this.phases.find((p) => p.id === this.currentPhaseId) || {
+        id: 'moon',
+        name: 'Moon',
+        gravity: 0.16,
+        o2: 34,
+        pressure: 8.2,
+        commDelay: '1.3 s',
+        note: 'Proposed 8.2 psi / 34% O₂ habitat — materials ignite more easily.'
+      };
+    },
+    setPhase(id) {
+      this.currentPhaseId = id;
+      localStorage.setItem('flameatlas_phase', id);
+      sfx.pop();
+      window.dispatchEvent(new CustomEvent('phase-changed', { detail: this.currentPhase }));
+    },
+
+    // Kids mode (defaults to true as per spec)
+    kids: localStorage.getItem('flameatlas_kids') !== 'false',
+    toggleKids() {
+      this.kids = !this.kids;
+      localStorage.setItem('flameatlas_kids', this.kids);
+      document.documentElement.toggleAttribute('data-kids', this.kids);
+      sfx.pop();
+    },
+
+    // Sound toggle
+    sound: soundEnabled,
+    toggleSound() {
+      this.sound = !this.sound;
+      soundEnabled = this.sound;
+      localStorage.setItem('flameatlas_sound', this.sound);
+    },
+
+    // Game stats & XP
+    xp: Number(localStorage.getItem('flameatlas_xp') || 0),
+    badges: JSON.parse(localStorage.getItem('flameatlas_badges') || '[]'),
+    stats: JSON.parse(localStorage.getItem('flameatlas_stats') || '{}'),
+    levels: [
+      { level: 1, title: 'Cadet', xp: 0 },
+      { level: 2, title: 'Spark Spotter', xp: 60 },
+      { level: 3, title: 'Flame Tracker', xp: 150 },
+      { level: 4, title: 'Fire Scientist', xp: 280 },
+      { level: 5, title: 'Habitat Guardian', xp: 450 },
+      { level: 6, title: 'Mission Fire Chief', xp: 680 }
+    ],
+    allBadges: [
+      { id: 'first-light', name: 'First Light', icon: 'flame', desc: 'Ignite your first simulated flame.' },
+      { id: 'space-ball', name: 'Fire Sphere', icon: 'circle-dot', desc: 'Create a spherical flame in zero gravity.' },
+      { id: 'moon-fire', name: 'Moon Flame', icon: 'moon', desc: 'Test material combustion under lunar gravity.' },
+      { id: 'firefighter', name: 'CO₂ Suppressor', icon: 'shield-alert', desc: 'Successfully extinguish a fire using CO₂.' },
+      { id: 'ghost-buster', name: 'Cool Flame Hunter', icon: 'eye', desc: 'Spot a hidden low-temp flame with infrared.' },
+      { id: 'alarm-raiser', name: 'Safety Sentinel', icon: 'bell-ring', desc: 'Trigger early warning cabin smoke sensors.' },
+      { id: 'risk-reader', name: 'Risk Analyst', icon: 'gauge', desc: 'Identify the highest-risk mission habitat.' },
+      { id: 'explorer', name: 'Mission Specialist', icon: 'compass', desc: 'Survey all five spaceflight mission environments.' }
+    ],
+    allMissions: [],
+
+    get currentLevel() {
+      let cur = this.levels[0];
+      for (const l of this.levels) {
+        if (this.xp >= l.xp) cur = l;
+      }
+      const next = this.levels.find((l) => l.xp > this.xp);
+      const progress = next ? (this.xp - cur.xp) / (next.xp - cur.xp) : 1;
+      return { ...cur, next, progress: Math.min(1, Math.max(0, progress)) };
+    },
+
+    addXp(amount, reason = '') {
+      const prevLevel = this.currentLevel.level;
+      this.xp += amount;
+      localStorage.setItem('flameatlas_xp', this.xp);
+      const newLevel = this.currentLevel.level;
+      if (reason) {
+        this.toast('xp', `+${amount} XP`, reason);
+        sfx.ding();
+      }
+      if (newLevel > prevLevel) {
+        setTimeout(() => {
+          this.toast('level', `Level Up! Level ${newLevel}`, this.currentLevel.title);
+          sfx.fanfare();
+        }, 300);
+      }
+    },
+
+    unlockBadge(badgeId) {
+      if (this.badges.includes(badgeId)) return false;
+      const b = this.allBadges.find((x) => x.id === badgeId);
+      if (!b) return false;
+      this.badges.push(badgeId);
+      localStorage.setItem('flameatlas_badges', JSON.stringify(this.badges));
+      this.toast('badge', 'Badge Unlocked!', b.name);
+      this.addXp(40);
+      sfx.fanfare();
+      if (typeof confetti === 'function') {
+        confetti({ particleCount: 90, spread: 75, origin: { y: 0.3 } });
+      }
+      return true;
+    },
+
+    bumpStat(key, by = 1) {
+      this.stats[key] = (this.stats[key] || 0) + by;
+      localStorage.setItem('flameatlas_stats', JSON.stringify(this.stats));
+      return this.stats[key];
+    },
+
+    // Trophy Room Modal
+    trophyOpen: false,
+    toggleTrophy() {
+      this.trophyOpen = !this.trophyOpen;
+      sfx.pop();
+    },
+
+    // Mobile Menu
+    mobileMenuOpen: false,
+    toggleMobileMenu() {
+      this.mobileMenuOpen = !this.mobileMenuOpen;
+      sfx.pop();
+    },
+
+    // Sparky Tips & Welcome
+    sparkyVisible: true,
+    sparkySpeechOpen: true,
+    welcomeOpen: false,
+    currentSectionKey: 'overview',
+    toggleSparky() {
+      this.sparkySpeechOpen = !this.sparkySpeechOpen;
+      sfx.pop();
+    },
+
+    // Toast notifications
+    toasts: [],
+    toast(kind, title, text) {
+      const id = Date.now() + Math.random();
+      this.toasts.push({ id, kind, title, text });
+      setTimeout(() => {
+        this.toasts = this.toasts.filter((t) => t.id !== id);
+      }, kind === 'badge' ? 4500 : 2500);
+    },
+
+    // Initializer
+    async init() {
+      document.documentElement.toggleAttribute('data-kids', this.kids);
+
+      // Check first visit welcome
+      if (!localStorage.getItem('flameatlas_welcomed')) {
+        this.welcomeOpen = true;
+      }
+
+      // Load data
+      try {
+        const [missionsRes, gameRes] = await Promise.all([
+          fetch('./data/missions.json'),
+          fetch('./data/game.json')
+        ]);
+        if (missionsRes.ok) this.phases = await missionsRes.json();
+        if (gameRes.ok) {
+          const gameData = await gameRes.json();
+          this.levels = gameData.levels || this.levels;
+          this.allBadges = gameData.badges || [];
+          this.allMissions = gameData.missions || [];
+          this.kidSections = gameData.kidSections || {};
+        }
+      } catch (e) {
+        console.warn('Fallback loading data:', e);
+      }
+    },
+
+    closeWelcome() {
+      this.welcomeOpen = false;
+      localStorage.setItem('flameatlas_welcomed', 'true');
+      sfx.pop();
+    }
+  };
+}
+
+let appStoreRegistered = false;
+function registerFlameAtlasStore() {
+  if (appStoreRegistered) return;
+  if (typeof Alpine !== 'undefined' && typeof Alpine.store === 'function') {
+    try {
+      Alpine.store('app', getFlameAtlasStore());
+      appStoreRegistered = true;
+      if (typeof window !== 'undefined') {
+        injectMobileNav();
+        setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 100);
+        setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 600);
+      }
+    } catch (e) {
+      console.warn('Store registration:', e);
+    }
+  }
+}
+
+// Multi-stage registration hooks
+document.addEventListener('alpine:init', registerFlameAtlasStore);
+if (typeof Alpine !== 'undefined' && typeof Alpine.store === 'function') {
+  registerFlameAtlasStore();
+}
+document.addEventListener('DOMContentLoaded', registerFlameAtlasStore);
+window.addEventListener('load', registerFlameAtlasStore);
+
+if (typeof window !== 'undefined') {
+  window.renderSparkySvg = renderSparkySvg;
+  window.getFlameAtlasStore = getFlameAtlasStore;
+  window.registerFlameAtlasStore = registerFlameAtlasStore;
+}
+
+function injectMobileNav() {
+  if (typeof document === 'undefined' || document.getElementById('mobile-nav-drawer')) return;
+  const drawer = document.createElement('div');
+  drawer.id = 'mobile-nav-drawer';
+  drawer.setAttribute('x-show', '$store.app.mobileMenuOpen');
+  drawer.setAttribute('x-transition.opacity', '');
+  drawer.className = 'fixed inset-0 z-50 flex md:hidden bg-slate-950/80 backdrop-blur-sm';
+  drawer.style.display = 'none';
+  drawer.innerHTML = `
+    <div class="w-72 bg-slate-950 border-r border-slate-800 p-5 flex flex-col justify-between h-full"
+         @click.outside="$store.app.mobileMenuOpen = false">
+      <div>
+        <div class="flex items-center justify-between mb-6">
+          <a href="index.html" class="flex items-center gap-2.5 font-bold text-white text-base">
+            <i data-lucide="flame" class="w-5 h-5 text-orange-400"></i>
+            <span>FlameAtlas</span>
+          </a>
+          <button @click="$store.app.mobileMenuOpen = false" class="text-slate-400 hover:text-white p-1">✕</button>
+        </div>
+        <nav class="space-y-1 text-sm font-medium">
+          <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="gauge" class="w-4 h-4 text-orange-400"></i>
+            <span x-text="$store.app.kids ? 'Mission Map' : 'Mission Overview'"></span>
+          </a>
+          <a href="flame-lab.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="flask-conical" class="w-4 h-4 text-cyan-400"></i>
+            <span x-text="$store.app.kids ? 'Fire Lab 3D' : 'Flame Lab 3D'"></span>
+          </a>
+          <a href="space-craft.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="rocket" class="w-4 h-4 text-rose-400"></i>
+            <span x-text="$store.app.kids ? 'Spacecraft Fire Sim' : 'Spacecraft Simulation'"></span>
+          </a>
+          <a href="solar-watch.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
+            <span x-text="$store.app.kids ? 'Sun Blasts' : 'Solar Flare Watch'"></span>
+          </a>
+          <a href="earth-impact.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="globe-2" class="w-4 h-4 text-emerald-400"></i>
+            <span x-text="$store.app.kids ? 'Storm vs Earth' : 'Solar Storm vs Earth'"></span>
+          </a>
+          <a href="material-ranker.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
+            <span x-text="$store.app.kids ? 'Burn Race' : 'Material Ranker'"></span>
+          </a>
+          <a href="gravity-gap.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="orbit" class="w-4 h-4 text-sky-400"></i>
+            <span x-text="$store.app.kids ? 'Gravity Guess' : 'Gravity Gap-Filler'"></span>
+          </a>
+          <a href="flame-radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="radar" class="w-4 h-4 text-indigo-400"></i>
+            <span x-text="$store.app.kids ? 'Ghost Flames' : 'Invisible Flame Radar'"></span>
+          </a>
+          <a href="fire-gpt.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="message-square-text" class="w-4 h-4 text-pink-400"></i>
+            <span x-text="$store.app.kids ? 'Quiz Time' : 'FireGPT AI'"></span>
+          </a>
+          <a href="gap-map.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="map" class="w-4 h-4 text-yellow-400"></i>
+            <span x-text="$store.app.kids ? 'Plan Tests' : 'Research Gap Map'"></span>
+          </a>
+          <a href="sources.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
+            <span x-text="$store.app.kids ? 'Space Cards' : 'Data Sources'"></span>
+          </a>
+          <a href="api-docs.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="code-2" class="w-4 h-4 text-cyan-400"></i>
+            <span>API & Data Explorer</span>
+          </a>
+        </nav>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(drawer);
+
+  const header = document.querySelector('header');
+  if (header && !document.getElementById('mobile-menu-btn')) {
+    const btn = document.createElement('button');
+    btn.id = 'mobile-menu-btn';
+    btn.setAttribute('@click', '$store.app.toggleMobileMenu()');
+    btn.className = 'md:hidden glass-pill p-2 text-slate-300 hover:text-white shrink-0 mr-1';
+    btn.innerHTML = `<i data-lucide="menu" class="w-4 h-4"></i>`;
+    header.insertBefore(btn, header.firstChild);
+  }
+}
+
+  </script>
+  <script>
+/**
+ * Spacecraft Fire, Material, Gravity, Electronics & Orbital Physics Simulation Engine
+ * FlameAtlas — Spacecraft Safety Module
+ * Based on NASA BASS, FLEX, Saffire-I~VI, and orbital mechanics.
+ */
+
+(function (window) {
+  'use strict';
+
+  // Constants
+  const G_CONST = 6.6743e-11; // Gravitational constant
+  const EARTH_MASS = 5.972e24; // kg
+  const EARTH_RADIUS = 6.371e6; // m
+  const MOON_MASS = 7.342e22; // kg
+  const MOON_ORBIT_DIST = 384400e3; // m
+  const MARS_MASS = 6.417e23; // kg
+  const MARS_RADIUS = 3.3895e6; // m
+
+  // Material Library with Combustion & Pyrolysis Kinetics
+  const MATERIAL_DATABASE = {
+    kapton: {
+      id: 'kapton',
+      name: 'Kapton Polyimide',
+      category: 'Avionics Wire Insulation',
+      loi: 37.0, // Critical Oxygen Index (%)
+      pyrolysisTemp: 520, // °C
+      ignitionTemp: 560, // °C
+      hrrPeak: 185, // Peak Heat Release Rate (kW/m²)
+      heatOfCombustion: 24.2, // MJ/kg
+      charFraction: 0.55,
+      toxicGas: 'CO (high), HCN (moderate), Smoke',
+      description: 'Used in electrical wire bundles. Emits toxic hydrogen cyanide when pyrolyzing; high LOI resists Earth air but burns in enriched O₂.'
+    },
+    li_ion: {
+      id: 'li_ion',
+      name: 'Lithium-Ion NMC 21700',
+      category: 'Energy Storage Cells',
+      loi: 0.0, // Self-oxidizing! Burns in 0% O2 / vacuum!
+      pyrolysisTemp: 160, // Thermal runaway threshold °C
+      ignitionTemp: 195, // °C
+      hrrPeak: 850, // Extreme Heat Release Rate (kW/m²)
+      heatOfCombustion: 38.5, // MJ/kg equivalent
+      charFraction: 0.15,
+      toxicGas: 'HF (lethal), H2 (explosive), CO, CH4',
+      description: 'Cathode decomposition releases atomic oxygen. Self-sustaining thermal runaway CANNOT be suffocated by vacuum or CO₂ alone; requires aggressive cooling.'
+    },
+    nomex: {
+      id: 'nomex',
+      name: 'Nomex HT90-40',
+      category: 'Bulkhead & Acoustic Panel',
+      loi: 28.5, // LOI %
+      pyrolysisTemp: 440,
+      ignitionTemp: 490,
+      hrrPeak: 120,
+      heatOfCombustion: 19.8,
+      charFraction: 0.65,
+      toxicGas: 'CO, CO2, moderate smoke',
+      description: 'Flame-resistant aramid. Forms an insulating char barrier. Self-extinguishes in standard ISS air but burns under partial gravity with enriched O₂.'
+    },
+    delrin: {
+      id: 'delrin',
+      name: 'Delrin (Polyoxymethylene)',
+      category: 'Structural Brackets & Gears',
+      loi: 15.0, // Very low LOI
+      pyrolysisTemp: 220,
+      ignitionTemp: 320,
+      hrrPeak: 450,
+      heatOfCombustion: 22.0,
+      charFraction: 0.05,
+      toxicGas: 'Formaldehyde (toxic), CO',
+      description: 'Highly flammable engineering thermoplastic. Burns with almost no visible soot and leaves virtually zero protective char.'
+    },
+    pmma: {
+      id: 'pmma',
+      name: 'PMMA (Acrylic Glass)',
+      category: 'Cupola Observation Windows',
+      loi: 17.3,
+      pyrolysisTemp: 280,
+      ignitionTemp: 390,
+      hrrPeak: 560,
+      heatOfCombustion: 26.5,
+      charFraction: 0.02,
+      toxicGas: 'Methyl methacrylate vapor, CO',
+      description: 'Melts and drips burning droplets. Generates severe pool fire dynamics in gravity, or spherical glowing bubbles in microgravity.'
+    },
+    ptfe: {
+      id: 'ptfe',
+      name: 'PTFE (Teflon)',
+      category: 'Fluid Lines & Valve Seals',
+      loi: 95.0, // Ultra fire-resistant
+      pyrolysisTemp: 480,
+      ignitionTemp: 650,
+      hrrPeak: 65,
+      heatOfCombustion: 5.1,
+      charFraction: 0.85,
+      toxicGas: 'Fluorocarbon fumes, HF (toxic polymer fever)',
+      description: 'Virtually non-flammable in standard spacecraft atmospheres. Emits toxic fluoropolymer fumes when heated above 400°C.'
+    }
+  };
+
+  // Spacecraft Simulation Class
+  class SpacecraftSimulation {
+    constructor() {
+      // Spacecraft Base Specifications
+      this.name = 'NSS Prometheus (Deep Space Cruiser)';
+      this.totalMassBase = 63100; // kg base dry mass
+      this.length = 32.0; // meters total length
+      this.centrifugeRadius = 14.0; // meters radius of rotating habitat ring
+      this.centrifugeRpm = 8.0; // RPM -> ~1.0 g at rim
+      this.spinEnabled = true;
+
+      // Celestial & Orbital Configuration
+      this.orbitalBody = 'earth'; // 'earth' or 'mars'
+      this.orbitalAltitude = 420000; // 420 km LEO (ISS orbit)
+      this.orbitalVelocity = 7660; // m/s
+      this.orbitalDecayRate = 0; // m/s altitude loss
+      this.orbitalDecayRisk = false;
+      this.orbitTimeRemaining = null; // seconds until atmospheric skip/decay
+
+      // Solar & Space Weather Status
+      this.solarActivity = 'quiet'; // 'quiet', 'active', 'flare_c', 'flare_m', 'flare_x', 'carrington'
+      this.flareActive = false;
+      this.flareIntensity = 0; // 0 to 100
+      this.flareClass = 'None';
+      this.cmeArrivalTime = 0;
+      this.shieldStrength = 85; // % deflector shield rating
+
+      // Spacecraft Compartments / Sections
+      this.sections = {
+        bridge: {
+          id: 'bridge',
+          name: 'Command Bridge & Astrogation',
+          code: 'SEC-A',
+          volume: 65, // m³
+          baseMass: 4200, // kg
+          fuelMass: 180, // kg combustible materials
+          materialId: 'pmma',
+          temperature: 22.0, // °C
+          pressure: 101.3, // kPa
+          o2: 21.0, // %
+          co_ppm: 5,
+          smokeDensity: 0.02, // OD/m
+          burning: false,
+          coolFlame: false,
+          fireSize: 0, // 0.0 to 1.0
+          heatReleaseRate: 0, // kW
+          charFraction: 0,
+          abandoned: false,
+          vented: false,
+          doorsSealed: false,
+          suppressantFlooded: false,
+          crewPresent: 2,
+          neighbors: ['centrifuge', 'science'],
+          // Electronics Subsystem
+          electronics: {
+            primary: {
+              name: 'Primary Flight Computer (PFC-1)',
+              bus: '120V Main DC',
+              voltage: 120.0,
+              nominalVoltage: 120.0,
+              current: 14.2, // A
+              temp: 34.0, // °C
+              shieldingDb: 48,
+              health: 100, // %
+              status: 'NOMINAL', // NOMINAL, OVERHEATING, DEGRADED, FRIED
+              online: true
+            },
+            backup: {
+              name: 'Emergency Astrogation Core (EAC-2)',
+              bus: '28V Rad-Hardened DC',
+              voltage: 28.0,
+              nominalVoltage: 28.0,
+              current: 3.8,
+              temp: 26.0,
+              shieldingDb: 72,
+              health: 100,
+              status: 'STANDBY', // STANDBY, ACTIVE, DEGRADED, FRIED
+              online: true,
+              autoFailover: true
+            }
+          }
+        },
+        centrifuge: {
+          id: 'centrifuge',
+          name: 'Habitation Centrifuge Ring',
+          code: 'SEC-B',
+          volume: 280,
+          baseMass: 16500,
+          fuelMass: 650,
+          materialId: 'nomex',
+          temperature: 21.5,
+          pressure: 101.3,
+          o2: 21.5,
+          co_ppm: 8,
+          smokeDensity: 0.01,
+          burning: false,
+          coolFlame: false,
+          fireSize: 0,
+          heatReleaseRate: 0,
+          charFraction: 0,
+          abandoned: false,
+          vented: false,
+          doorsSealed: false,
+          suppressantFlooded: false,
+          crewPresent: 4,
+          neighbors: ['bridge', 'science'],
+          // Rotating ring specific:
+          isCentrifuge: true,
+          ringMassOffset: 0, // dynamic unbalance in kg
+          wobbleAngle: 0, // degrees precession
+          electronics: {
+            primary: {
+              name: 'Centrifuge Drive & Hub Gyro (CDH-1)',
+              bus: '120V Main DC',
+              voltage: 120.0,
+              nominalVoltage: 120.0,
+              current: 32.5,
+              temp: 42.0,
+              shieldingDb: 40,
+              health: 100,
+              status: 'NOMINAL',
+              online: true
+            },
+            backup: {
+              name: 'Secondary Counter-Torque Driver (CTD-2)',
+              bus: '28V Rad-Hardened DC',
+              voltage: 28.0,
+              nominalVoltage: 28.0,
+              current: 11.4,
+              temp: 31.0,
+              shieldingDb: 68,
+              health: 100,
+              status: 'STANDBY',
+              online: true,
+              autoFailover: true
+            }
+          }
+        },
+        science: {
+          id: 'science',
+          name: 'Science Lab & ECLSS',
+          code: 'SEC-C',
+          volume: 95,
+          baseMass: 7800,
+          fuelMass: 320,
+          materialId: 'delrin',
+          temperature: 20.0,
+          pressure: 82.7, // Gateway 8.2 psi baseline
+          o2: 24.5, // Enriched oxygen atmosphere!
+          co_ppm: 6,
+          smokeDensity: 0.01,
+          burning: false,
+          coolFlame: false,
+          fireSize: 0,
+          heatReleaseRate: 0,
+          charFraction: 0,
+          abandoned: false,
+          vented: false,
+          doorsSealed: false,
+          suppressantFlooded: false,
+          crewPresent: 1,
+          neighbors: ['bridge', 'centrifuge', 'avionics'],
+          electronics: {
+            primary: {
+              name: 'ECLSS Atmospheric Scrubber (ARS-1)',
+              bus: '120V Main DC',
+              voltage: 120.0,
+              nominalVoltage: 120.0,
+              current: 18.0,
+              temp: 36.0,
+              shieldingDb: 42,
+              health: 100,
+              status: 'NOMINAL',
+              online: true
+            },
+            backup: {
+              name: 'Auxiliary Life Support Logic (ALS-2)',
+              bus: '28V Rad-Hardened DC',
+              voltage: 28.0,
+              nominalVoltage: 28.0,
+              current: 5.5,
+              temp: 28.0,
+              shieldingDb: 70,
+              health: 100,
+              status: 'STANDBY',
+              online: true,
+              autoFailover: true
+            }
+          }
+        },
+        avionics: {
+          id: 'avionics',
+          name: 'Avionics Bay & DSN Comms',
+          code: 'SEC-D',
+          volume: 45,
+          baseMass: 3900,
+          fuelMass: 140,
+          materialId: 'kapton',
+          temperature: 24.0,
+          pressure: 101.3,
+          o2: 20.9,
+          co_ppm: 4,
+          smokeDensity: 0.01,
+          burning: false,
+          coolFlame: false,
+          fireSize: 0,
+          heatReleaseRate: 0,
+          charFraction: 0,
+          abandoned: false,
+          vented: false,
+          doorsSealed: false,
+          suppressantFlooded: false,
+          crewPresent: 0,
+          neighbors: ['science', 'reactor'],
+          electronics: {
+            primary: {
+              name: 'Main Bus PDU & DSN Transceiver (PDU-1)',
+              bus: '120V Main DC',
+              voltage: 120.0,
+              nominalVoltage: 120.0,
+              current: 28.4,
+              temp: 45.0,
+              shieldingDb: 55,
+              health: 100,
+              status: 'NOMINAL',
+              online: true
+            },
+            backup: {
+              name: 'Safe-Mode Optic Hub & DSN Backup (SMH-2)',
+              bus: '28V Rad-Hardened DC',
+              voltage: 28.0,
+              nominalVoltage: 28.0,
+              current: 6.2,
+              temp: 29.0,
+              shieldingDb: 78,
+              health: 100,
+              status: 'STANDBY',
+              online: true,
+              autoFailover: true
+            }
+          }
+        },
+        reactor: {
+          id: 'reactor',
+          name: 'Power Core & Battery Vault',
+          code: 'SEC-E',
+          volume: 70,
+          baseMass: 12200,
+          fuelMass: 450,
+          materialId: 'li_ion', // High thermal runaway risk!
+          temperature: 32.0,
+          pressure: 90.0,
+          o2: 17.5, // Inerted nitrogen rich
+          co_ppm: 12,
+          smokeDensity: 0.03,
+          burning: false,
+          coolFlame: false,
+          fireSize: 0,
+          heatReleaseRate: 0,
+          charFraction: 0,
+          abandoned: false,
+          vented: false,
+          doorsSealed: false,
+          suppressantFlooded: false,
+          crewPresent: 0,
+          neighbors: ['avionics', 'propulsion'],
+          electronics: {
+            primary: {
+              name: 'Reactor Magnetic Shunt & BMS (BMS-1)',
+              bus: '120V Main DC',
+              voltage: 120.0,
+              nominalVoltage: 120.0,
+              current: 44.0,
+              temp: 48.0,
+              shieldingDb: 62,
+              health: 100,
+              status: 'NOMINAL',
+              online: true
+            },
+            backup: {
+              name: 'Emergency Pyro Shunt Logic (EPS-2)',
+              bus: '28V Rad-Hardened DC',
+              voltage: 28.0,
+              nominalVoltage: 28.0,
+              current: 7.5,
+              temp: 33.0,
+              shieldingDb: 80,
+              health: 100,
+              status: 'STANDBY',
+              online: true,
+              autoFailover: true
+            }
+          }
+        },
+        propulsion: {
+          id: 'propulsion',
+          name: 'Cargo Bay & Ion Propulsion',
+          code: 'SEC-F',
+          volume: 160,
+          baseMass: 18500,
+          fuelMass: 380,
+          materialId: 'ptfe',
+          temperature: 15.0,
+          pressure: 101.3,
+          o2: 20.2,
+          co_ppm: 5,
+          smokeDensity: 0.01,
+          burning: false,
+          coolFlame: false,
+          fireSize: 0,
+          heatReleaseRate: 0,
+          charFraction: 0,
+          abandoned: false,
+          vented: false,
+          doorsSealed: false,
+          suppressantFlooded: false,
+          crewPresent: 0,
+          neighbors: ['reactor'],
+          electronics: {
+            primary: {
+              name: 'Ion Grid & RCS Vector Controller (IVC-1)',
+              bus: '120V Main DC',
+              voltage: 120.0,
+              nominalVoltage: 120.0,
+              current: 36.0,
+              temp: 38.0,
+              shieldingDb: 42,
+              health: 100,
+              status: 'NOMINAL',
+              online: true
+            },
+            backup: {
+              name: 'Cold-Gas RCS Pneumatic Override (RCS-2)',
+              bus: '28V Rad-Hardened DC',
+              voltage: 28.0,
+              nominalVoltage: 28.0,
+              current: 5.0,
+              temp: 22.0,
+              shieldingDb: 74,
+              health: 100,
+              status: 'STANDBY',
+              online: true,
+              autoFailover: true
+            }
+          }
+        }
+      };
+
+      // Gravity Calculations & Metrics
+      this.gravityMetrics = {
+        artificialG: 1.0, // Centrifugal g at rim
+        effectiveG: 1.0, // Active local g
+        planetaryG: 8.68, // External planetary gravitational acceleration (m/s²)
+        lunarG: 0.00003, // Moon tidal pull (m/s²)
+        netOrbitalG: 0.0, // Freefall residual micro-g (10^-6 g)
+        centerOfMassShift: 0.0, // meters offset from geometric axis
+        bearingStress: 12.0, // % mechanical stress on centrifuge ring
+        wobbleRms: 0.02, // deg/s nutation
+        flameRegime: 'buoyant' // 'buoyant', 'micro_ball', 'cool_diffusive', 'extinct'
+      };
+
+      // Event Logs & Chatbot Emergency Queue
+      this.eventLogs = [];
+      this.alerts = [];
+      this.time = 0; // seconds
+      this.stepDt = 0.5; // step size in seconds
+
+      this.logEvent('System initialized. All 6 compartments nominal. Centrifuge ring rotating at 8.0 RPM (1.0g).');
+    }
+
+    logEvent(text, level = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      this.eventLogs.unshift({ timestamp, text, level });
+      if (this.eventLogs.length > 50) this.eventLogs.pop();
+    }
+
+    addAlert(title, message, level = 'warning', sectionId = null) {
+      const id = Date.now() + Math.random();
+      const alert = { id, title, message, level, sectionId, timestamp: new Date().toLocaleTimeString() };
+      this.alerts.unshift(alert);
+      if (this.alerts.length > 10) this.alerts.pop();
+      return alert;
+    }
+
+    clearAlert(id) {
+      this.alerts = this.alerts.filter((a) => a.id !== id);
+    }
+
+    // -------------------------------------------------------------
+    // Gravity Physics Engine: Artificial Spin + External Planetary
+    // -------------------------------------------------------------
+    updateGravityPhysics(dt) {
+      const secB = this.sections.centrifuge;
+      const secE = this.sections.reactor;
+
+      // 1. Artificial Centrifuge Gravity Calculation
+      // If the spin motor electronics (both primary & backup) are fried, or if centrifuge is abandoned:
+      const pB = secB.electronics.primary;
+      const bB = secB.electronics.backup;
+      const motorOperational = (pB.health > 0 && pB.online) || (bB.health > 0 && bB.online && bB.status === 'ACTIVE');
+
+      if (!this.spinEnabled || !motorOperational || secB.abandoned) {
+        // Spin decay due to bearing friction & power loss
+        if (this.centrifugeRpm > 0.05) {
+          this.centrifugeRpm = Math.max(0, this.centrifugeRpm - 0.25 * dt);
+          if (this.centrifugeRpm === 0) {
+            this.logEvent('Habitation centrifuge has completely stopped spinning. Zero gravity established throughout ship.', 'warning');
+          }
+        }
+      } else {
+        // Target 8.0 RPM for nominal 1.0g
+        if (this.centrifugeRpm < 8.0) {
+          this.centrifugeRpm = Math.min(8.0, this.centrifugeRpm + 0.5 * dt);
+        }
+      }
+
+      // Angular velocity omega = RPM * 2*pi / 60
+      const omega = (this.centrifugeRpm * 2 * Math.PI) / 60;
+      const centAcc = omega * omega * this.centrifugeRadius;
+      this.gravityMetrics.artificialG = +(centAcc / 9.80665).toFixed(3);
+
+      // Local effective gravity in the ship (0g in spine modules, artificialG in ring)
+      this.gravityMetrics.effectiveG = this.gravityMetrics.artificialG;
+
+      // 2. Dynamic Mass Balance & Center of Mass (CoM) Shift
+      // Calculate current mass of each module
+      let totalMass = 0;
+      let weightedZ = 0;
+      let ringAsymmetry = 0;
+
+      const zPositions = {
+        bridge: 6.0,
+        centrifuge: 2.0,
+        science: -1.5,
+        avionics: -4.5,
+        reactor: -8.0,
+        propulsion: -13.0
+      };
+
+      for (const [key, sec] of Object.entries(this.sections)) {
+        // Air mass = pressure / (R_spec * T) * volume
+        const airDensity = (sec.pressure * 1000) / (287.05 * (sec.temperature + 273.15));
+        const currentAirMass = sec.vented ? 0 : Math.max(0, airDensity * sec.volume);
+        const currentFuelMass = sec.fuelMass;
+        const currentModuleMass = sec.baseMass + currentAirMass + currentFuelMass;
+
+        totalMass += currentModuleMass;
+        weightedZ += currentModuleMass * zPositions[key];
+
+        // Centrifuge ring asymmetry calculation
+        if (sec.id === 'centrifuge') {
+          // If vented or burning unevenly
+          const nominalAirMass = (101300 / (287.05 * 294.65)) * sec.volume; // ~336 kg
+          const airLost = nominalAirMass - currentAirMass;
+          const fuelLost = 650 - currentFuelMass;
+          ringAsymmetry = airLost + fuelLost;
+          if (sec.abandoned) ringAsymmetry += 2500; // equipment jettison/lockout imbalance
+        }
+      }
+
+      const nominalCoM_Z = -1.82; // baseline Z center of mass
+      const actualCoM_Z = weightedZ / totalMass;
+      const comShift = Math.abs(actualCoM_Z - nominalCoM_Z);
+      this.gravityMetrics.centerOfMassShift = +comShift.toFixed(3);
+
+      // Bearing strain due to dynamic centrifuge unbalance
+      // Unbalance force F = delta_m * omega^2 * R
+      const unbalanceForce = ringAsymmetry * omega * omega * this.centrifugeRadius;
+      const baseBearingStress = 10.0;
+      const dynamicStress = (unbalanceForce / 45000) * 100;
+      this.gravityMetrics.bearingStress = Math.min(100, Math.round(baseBearingStress + dynamicStress));
+      this.gravityMetrics.wobbleRms = +(Math.min(12.0, (dynamicStress / 100) * 4.5 * (this.centrifugeRpm / 8.0))).toFixed(2);
+
+      if (this.gravityMetrics.bearingStress > 85 && this.centrifugeRpm > 3.0) {
+        if (Math.random() < 0.1) {
+          this.addAlert('CENTRIFUGE BEARING STRAIN CRITICAL', `Dynamic unbalance from mass loss is inducing ${this.gravityMetrics.wobbleRms}°/s nutation. Slow centrifuge down immediately!`, 'danger', 'centrifuge');
+        }
+      }
+
+      // 3. Planetary and Lunar Orbital Gravity
+      const r_earth = EARTH_RADIUS + this.orbitalAltitude;
+      const g_earth = (G_CONST * EARTH_MASS) / (r_earth * r_earth);
+      this.gravityMetrics.planetaryG = +g_earth.toFixed(3);
+
+      // Microgravity gradient / tidal acceleration across 32m spacecraft
+      const g_tidal = (2 * G_CONST * EARTH_MASS * this.length) / (r_earth * r_earth * r_earth);
+      this.gravityMetrics.lunarG = +(g_tidal * 1e5).toFixed(4); // micro-m/s²
+      this.gravityMetrics.netOrbitalG = +(g_tidal / 9.81).toFixed(7);
+
+      // 4. Orbital Decay Mechanics
+      // If propulsion section is abandoned or IVC-1 is fried, station-keeping burns cannot be executed
+      const secF = this.sections.propulsion;
+      const propOperational = (secF.electronics.primary.health > 0 && secF.electronics.primary.online) ||
+        (secF.electronics.backup.health > 0 && secF.electronics.backup.online && secF.electronics.backup.status === 'ACTIVE');
+
+      if (!propOperational || secF.abandoned) {
+        this.orbitalDecayRisk = true;
+        // Low earth orbit atmospheric drag decays altitude without RCS burns
+        const dragFactor = this.orbitalAltitude < 300000 ? 85 : 18;
+        this.orbitalAltitude = Math.max(120000, this.orbitalAltitude - dragFactor * dt);
+        this.orbitalVelocity = Math.sqrt((G_CONST * EARTH_MASS) / (EARTH_RADIUS + this.orbitalAltitude));
+
+        // Calculate time to atmospheric burnup (120 km threshold)
+        const altitudeRemaining = this.orbitalAltitude - 120000;
+        this.orbitTimeRemaining = Math.max(0, Math.round(altitudeRemaining / dragFactor));
+
+        if (this.orbitalAltitude < 250000) {
+          this.addAlert('ORBITAL DECAY WARNING', `Propulsion offline! Altitude dropping at ${dragFactor} m/s under Earth gravity. Re-entry in ~${Math.round(this.orbitTimeRemaining / 60)} min!`, 'danger', 'propulsion');
+        }
+      } else {
+        this.orbitalDecayRisk = false;
+        this.orbitTimeRemaining = null;
+      }
+
+      // 5. Determine Flame Regime from gravity & atmosphere
+      if (this.gravityMetrics.effectiveG < 0.05) {
+        this.gravityMetrics.flameRegime = 'micro_ball';
+      } else {
+        this.gravityMetrics.flameRegime = 'buoyant';
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Fire Spread & Material Kinetics Engine
+    // -------------------------------------------------------------
+    updateFirePhysics(dt) {
+      for (const [key, sec] of Object.entries(this.sections)) {
+        const mat = MATERIAL_DATABASE[sec.materialId] || MATERIAL_DATABASE.nomex;
+
+        // If vented to space: P -> 0, O2 -> 0.
+        // Vacuum purge extinguishes all standard fires!
+        // EXCEPTION: Li-Ion thermal runaway (self-oxidizing cathode breakdown)!
+        if (sec.vented) {
+          sec.pressure = Math.max(0, sec.pressure - 25.0 * dt);
+          sec.o2 = Math.max(0, sec.o2 - 6.0 * dt);
+
+          if (sec.materialId !== 'li_ion') {
+            if (sec.burning) {
+              sec.burning = false;
+              sec.fireSize = 0;
+              sec.heatReleaseRate = 0;
+              this.logEvent(`Vacuum purge successful in ${sec.name}. Flame extinguished by oxygen starvation.`, 'success');
+              this.addAlert('FIRE PURGED BY VACUUM', `${sec.name} depressurized. Flame starved of oxidizer.`, 'info', sec.id);
+            }
+          } else {
+            // Li-ion continues thermal runaway even in vacuum unless cooled!
+            if (sec.burning && sec.temperature > mat.pyrolysisTemp) {
+              sec.fireSize = Math.max(0.15, sec.fireSize - 0.01 * dt);
+            }
+          }
+        }
+
+        // Fire Suppression Flooding (CO2 / Novec)
+        if (sec.suppressantFlooded) {
+          sec.o2 = Math.max(0, sec.o2 - 3.5 * dt);
+          if (sec.o2 < mat.loi && sec.materialId !== 'li_ion') {
+            sec.burning = false;
+            sec.fireSize = Math.max(0, sec.fireSize - 0.2 * dt);
+            if (sec.fireSize === 0) {
+              sec.suppressantFlooded = false;
+              this.logEvent(`Suppressant gas successfully extinguished fire in ${sec.name}.`, 'success');
+            }
+          }
+        }
+
+        if (sec.burning && sec.fuelMass > 0) {
+          const g = sec.id === 'centrifuge' ? this.gravityMetrics.artificialG : 0.0;
+          const isMicroG = g < 0.05;
+
+          // Check if environment can sustain combustion
+          const canSustain = sec.materialId === 'li_ion' || sec.o2 >= (isMicroG ? mat.loi + 2.0 : mat.loi);
+
+          if (!canSustain) {
+            // Flame starves
+            sec.fireSize = Math.max(0, sec.fireSize - 0.1 * dt);
+            if (sec.fireSize <= 0.02) {
+              sec.burning = false;
+              sec.fireSize = 0;
+              sec.heatReleaseRate = 0;
+              this.logEvent(`Flame in ${sec.name} self-extinguished: O₂ level (${sec.o2.toFixed(1)}%) below material LOI (${mat.loi}%).`, 'info');
+              continue;
+            }
+          } else {
+            // Fire growth equation: V_spread depends on g, O2, pressure, and material HRR
+            // Under microgravity, diffusion limitation slows down burn
+            const gFactor = isMicroG ? 0.35 : 0.75 + 0.45 * Math.sqrt(g);
+            const o2Factor = Math.max(0.1, (sec.o2 - mat.loi) / 10.0 + 0.6);
+            const pFactor = Math.sqrt(Math.max(0.1, sec.pressure / 101.3));
+
+            const growthRate = (mat.hrrPeak / 300.0) * gFactor * o2Factor * pFactor * 0.08;
+            sec.fireSize = Math.min(1.0, sec.fireSize + growthRate * dt);
+
+            // Heat Release Rate (kW)
+            sec.heatReleaseRate = Math.round(sec.fireSize * mat.hrrPeak * (sec.o2 / 21.0) * pFactor);
+
+            // Fuel consumption
+            const fuelConsumedRate = (sec.heatReleaseRate / (mat.heatOfCombustion * 1000)) * dt; // kg
+            sec.fuelMass = Math.max(0, sec.fuelMass - fuelConsumedRate);
+            sec.charFraction = Math.min(mat.charFraction, sec.charFraction + 0.005 * dt);
+
+            // Oxygen consumption: Thornton's rule ~13.1 MJ per kg O2 consumed
+            const o2ConsumedMass = (sec.heatReleaseRate * dt) / 13100; // kg O2
+            const compartmentAirMass = ((sec.pressure * 1000) / (287.05 * (sec.temperature + 273.15))) * sec.volume;
+            const deltaO2Pct = (o2ConsumedMass / Math.max(1, compartmentAirMass * 0.23)) * 21.0;
+            sec.o2 = Math.max(0, sec.o2 - deltaO2Pct);
+
+            // Temperature elevation in compartment
+            // dT = (Q_rel - Q_loss) / (m_air * c_v + m_struct * c_s)
+            const heatInput = sec.heatReleaseRate * dt; // kJ
+            const thermalMass = compartmentAirMass * 0.718 + sec.baseMass * 0.9; // kJ/K
+            const deltaTemp = (heatInput * 0.65) / thermalMass;
+            sec.temperature = Math.min(1150, +(sec.temperature + deltaTemp * 8.0).toFixed(1));
+
+            // Toxic gas generation
+            sec.co_ppm = Math.min(2500, Math.round(sec.co_ppm + sec.fireSize * 18 * dt));
+            sec.smokeDensity = Math.min(1.5, +(sec.smokeDensity + sec.fireSize * 0.015 * dt).toFixed(3));
+
+            // Cool flame transition in microgravity
+            if (isMicroG && sec.o2 < mat.loi + 4.0 && sec.fireSize > 0.1 && sec.fireSize < 0.4) {
+              sec.coolFlame = true;
+            } else {
+              sec.coolFlame = false;
+            }
+
+            // High heat damages electronics in section
+            this.applyThermalDamageToElectronics(sec, dt);
+
+            // Fire spread across bulkheads to adjacent modules!
+            if (sec.temperature > 320 && !sec.doorsSealed) {
+              for (const nKey of sec.neighbors) {
+                const neighbor = this.sections[nKey];
+                if (neighbor && !neighbor.burning && !neighbor.vented) {
+                  // Conduction heating
+                  neighbor.temperature += (sec.temperature - neighbor.temperature) * 0.005 * dt;
+                  const nMat = MATERIAL_DATABASE[neighbor.materialId];
+                  if (neighbor.temperature >= nMat.ignitionTemp && neighbor.o2 >= nMat.loi) {
+                    neighbor.burning = true;
+                    neighbor.fireSize = 0.15;
+                    this.logEvent(`CRITICAL: Flashover! Fire propagated from ${sec.name} through open bulkhead into ${neighbor.name}!`, 'danger');
+                    this.addAlert('FLASHOVER DETECTED', `Fire spread into ${neighbor.name} due to radiant heat!`, 'danger', neighbor.id);
+                  }
+                }
+              }
+            }
+          }
+        } else {
+          // Fire is not active - gradual cooling
+          if (sec.temperature > 22.0) {
+            sec.temperature = Math.max(22.0, +(sec.temperature - 0.8 * dt).toFixed(1));
+          }
+          if (sec.co_ppm > 8) {
+            sec.co_ppm = Math.max(8, Math.round(sec.co_ppm - 2 * dt));
+          }
+          if (sec.smokeDensity > 0.01) {
+            sec.smokeDensity = Math.max(0.01, +(sec.smokeDensity - 0.004 * dt).toFixed(3));
+          }
+        }
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Electronics Subsystems, Redundancy & Damage Engine
+    // -------------------------------------------------------------
+    applyThermalDamageToElectronics(sec, dt) {
+      const p = sec.electronics.primary;
+      const b = sec.electronics.backup;
+
+      // Primary heating
+      if (sec.temperature > 70.0) {
+        p.temp = Math.min(180, p.temp + (sec.temperature - p.temp) * 0.03 * dt);
+        if (p.temp > 85.0 && p.health > 0) {
+          p.health = Math.max(0, p.health - (p.temp - 85) * 0.08 * dt);
+          if (p.health < 60 && p.status === 'NOMINAL') p.status = 'OVERHEATING';
+          if (p.health < 20 && p.status !== 'DEGRADED') p.status = 'DEGRADED';
+          if (p.health <= 0) {
+            p.status = 'FRIED';
+            p.online = false;
+            p.voltage = 0;
+            this.logEvent(`PRIMARY ELECTRONICS FAILURE: ${p.name} in ${sec.name} burnt out from excessive thermal load.`, 'danger');
+            this.handlePrimaryFailover(sec);
+          }
+        }
+      }
+
+      // Secondary heating (rad-hardened with thermal isolation)
+      if (sec.temperature > 120.0 && b.health > 0) {
+        b.temp = Math.min(160, b.temp + (sec.temperature - b.temp) * 0.015 * dt);
+        if (b.temp > 115.0) {
+          b.health = Math.max(0, b.health - (b.temp - 115) * 0.05 * dt);
+          if (b.health <= 0) {
+            b.status = 'FRIED';
+            b.online = false;
+            b.voltage = 0;
+            this.logEvent(`TOTAL ELECTRONICS BLACKOUT in ${sec.name}! Backup computer ${b.name} destroyed. Section abandonment mandatory.`, 'danger');
+            this.triggerMandatoryAbandonment(sec);
+          }
+        }
+      }
+    }
+
+    handlePrimaryFailover(sec) {
+      const b = sec.electronics.backup;
+      if (b.online && b.health > 0 && b.autoFailover) {
+        b.status = 'ACTIVE';
+        this.logEvent(`AUTOMATIC FAILOVER: Redundant backup ${b.name} took over control of ${sec.name}.`, 'warning');
+        this.addAlert('FAILOVER ACTIVE', `${b.name} operating on emergency 28V DC bus in ${sec.name}.`, 'warning', sec.id);
+      } else {
+        this.triggerMandatoryAbandonment(sec);
+      }
+    }
+
+    triggerMandatoryAbandonment(sec) {
+      if (sec.abandoned) return;
+      this.logEvent(`EMERGENCY ORDER: ${sec.name} has lost all electronic control systems. EVACUATION AND ABANDONMENT REQUIRED.`, 'danger');
+      this.addAlert('MANDATORY SECTION ABANDONMENT', `Total electronics failure in ${sec.name}! Seal blast doors and abandon compartment to protect ship integrity.`, 'danger', sec.id);
+    }
+
+    abandonSection(sectionId) {
+      const sec = this.sections[sectionId];
+      if (!sec) return false;
+
+      sec.abandoned = true;
+      sec.doorsSealed = true;
+      sec.crewPresent = 0; // Crew evacuated
+
+      this.logEvent(`Section ${sec.code} (${sec.name}) has been officially ABANDONED. Bulkhead blast doors locked.`, 'warning');
+      this.addAlert('SECTION ABANDONED', `${sec.name} isolated. Mass unbalance applied to spacecraft dynamics.`, 'warning', sec.id);
+
+      return true;
+    }
+
+    ventSectionToVacuum(sectionId) {
+      const sec = this.sections[sectionId];
+      if (!sec) return false;
+
+      sec.vented = true;
+      sec.doorsSealed = true;
+
+      this.logEvent(`EMERGENCY DECOMPRESSION: ${sec.name} vented directly to outer space. Atmosphere escaping to vacuum.`, 'danger');
+      this.addAlert('VACUUM PURGE ACTIVE', `${sec.name} explosive decompression in progress. Depressurizing to 0.0 kPa.`, 'info', sec.id);
+
+      return true;
+    }
+
+    suppressSection(sectionId) {
+      const sec = this.sections[sectionId];
+      if (!sec) return false;
+
+      sec.suppressantFlooded = true;
+      this.logEvent(`CO2/Novec fire suppression released into ${sec.name}. Oxygen dilution initiated.`, 'info');
+      return true;
+    }
+
+    igniteSection(sectionId, materialId = null) {
+      const sec = this.sections[sectionId];
+      if (!sec || sec.vented) return false;
+
+      if (materialId) sec.materialId = materialId;
+      sec.burning = true;
+      sec.fireSize = 0.25;
+      sec.temperature = Math.max(sec.temperature, 260.0);
+
+      this.logEvent(`FIRE ALARM TRIGGERED in ${sec.name}! Fuel: ${MATERIAL_DATABASE[sec.materialId]?.name || 'Unknown'}.`, 'danger');
+      this.addAlert('FIRE DETECTED', `Active thermal plume detected in ${sec.name}.`, 'danger', sec.id);
+      return true;
+    }
+
+    resetSection(sectionId) {
+      const sec = this.sections[sectionId];
+      if (!sec) return false;
+
+      sec.burning = false;
+      sec.coolFlame = false;
+      sec.fireSize = 0;
+      sec.heatReleaseRate = 0;
+      sec.temperature = 22.0;
+      sec.pressure = 101.3;
+      sec.o2 = 21.0;
+      sec.co_ppm = 8;
+      sec.smokeDensity = 0.01;
+      sec.fuelMass = 250;
+      sec.charFraction = 0;
+      sec.abandoned = false;
+      sec.vented = false;
+      sec.doorsSealed = false;
+      sec.suppressantFlooded = false;
+
+      // Restore electronics
+      sec.electronics.primary.health = 100;
+      sec.electronics.primary.status = 'NOMINAL';
+      sec.electronics.primary.online = true;
+      sec.electronics.primary.voltage = sec.electronics.primary.nominalVoltage;
+      sec.electronics.primary.temp = 32.0;
+
+      sec.electronics.backup.health = 100;
+      sec.electronics.backup.status = 'STANDBY';
+      sec.electronics.backup.online = true;
+      sec.electronics.backup.voltage = sec.electronics.backup.nominalVoltage;
+      sec.electronics.backup.temp = 25.0;
+
+      this.logEvent(`Section ${sec.name} overhauled, repressurized, and returned to flight status.`, 'info');
+      return true;
+    }
+
+    // -------------------------------------------------------------
+    // Solar Flare & EMP Physics Engine
+    // -------------------------------------------------------------
+    triggerSolarFlare(flareClass = 'X10') {
+      this.flareActive = true;
+      this.flareClass = flareClass;
+
+      let intensity = 50;
+      let empPeak = 80; // V/m induced
+      let protonFlux = 1000;
+
+      switch (flareClass) {
+        case 'C5':
+          intensity = 15;
+          empPeak = 20;
+          protonFlux = 50;
+          break;
+        case 'M3':
+          intensity = 40;
+          empPeak = 65;
+          protonFlux = 450;
+          break;
+        case 'X1':
+          intensity = 70;
+          empPeak = 110;
+          protonFlux = 2500;
+          break;
+        case 'X10':
+          intensity = 90;
+          empPeak = 190;
+          protonFlux = 12000;
+          break;
+        case 'Carrington_X45':
+          intensity = 100;
+          empPeak = 380;
+          protonFlux = 85000;
+          break;
+      }
+
+      this.flareIntensity = intensity;
+      this.logEvent(`SOLAR WARNING: Class ${flareClass} Solar Flare erupted from active sunspot cluster. CME shockwave approaching at 1,850 km/s!`, 'warning');
+      this.addAlert('SOLAR FLARE INCOMING', `Class ${flareClass} proton storm & EMP front will impact ship in T-3 seconds!`, 'warning');
+
+      // Execute impact after brief arrival delay
+      setTimeout(() => {
+        this.processSolarImpact(empPeak, protonFlux);
+      }, 2500);
+    }
+
+    processSolarImpact(empPeak, protonFlux) {
+      this.logEvent(`SOLAR CME IMPACT: High-energy solar protons and EMP shockwave striking spacecraft hull!`, 'danger');
+
+      // Effective EMP field reaching inside modules after hull shielding
+      const shieldDeflection = this.shieldStrength / 100.0;
+      const netEmp = empPeak * (1.0 - shieldDeflection * 0.65);
+
+      for (const [key, sec] of Object.entries(this.sections)) {
+        const p = sec.electronics.primary;
+        const b = sec.electronics.backup;
+
+        // Calculate induced voltage spike across circuit boards
+        // Spike ~ netEmp * couplingFactor / shielding
+        const shieldRatio = Math.pow(10, p.shieldingDb / 20.0);
+        const voltageSpike = (netEmp * 420.0) / shieldRatio;
+
+        p.voltage = +(p.nominalVoltage + voltageSpike).toFixed(1);
+
+        // If voltage spike exceeds component dielectric breakdown threshold (> 155V)
+        if (p.voltage > 155.0) {
+          p.health = Math.max(0, p.health - Math.round((p.voltage - 155.0) * 1.8));
+          p.temp += 28.0;
+
+          if (p.health <= 0) {
+            p.status = 'FRIED';
+            p.online = false;
+            p.voltage = 0;
+            this.logEvent(`ELECTRICAL SURGE: ${p.name} in ${sec.name} FRIED by solar EMP voltage spike!`, 'danger');
+
+            // Arc fire ignition risk! Fried electronics can spark and ignite Kapton insulation
+            if (!sec.burning && !sec.vented && Math.random() < 0.65) {
+              sec.burning = true;
+              sec.fireSize = 0.2;
+              sec.temperature += 65.0;
+              this.logEvent(`IGNITION: Electrical arcing in ${sec.name} wire harness ignited surrounding insulation!`, 'danger');
+              this.addAlert('ARC FIRE IGNITED', `Solar EMP arcing ignited electrical fire in ${sec.name}!`, 'danger', sec.id);
+            }
+
+            this.handlePrimaryFailover(sec);
+          } else {
+            p.status = 'DEGRADED';
+          }
+        }
+
+        // Extremely high Carrington-class flare can overcome even backup rad-hardened GaN
+        if (netEmp > 160) {
+          const bShieldRatio = Math.pow(10, b.shieldingDb / 20.0);
+          const bSpike = (netEmp * 280.0) / bShieldRatio;
+          b.voltage = +(b.nominalVoltage + bSpike).toFixed(1);
+
+          if (b.voltage > 42.0) {
+            b.health = Math.max(0, b.health - Math.round((b.voltage - 42.0) * 2.5));
+            if (b.health <= 0) {
+              b.status = 'FRIED';
+              b.online = false;
+              b.voltage = 0;
+              this.logEvent(`CATASTROPHIC EMP: Redundant backup ${b.name} in ${sec.name} fried by coronal proton saturation!`, 'danger');
+              this.triggerMandatoryAbandonment(sec);
+            }
+          }
+        }
+      }
+
+      this.flareActive = false;
+    }
+
+    // -------------------------------------------------------------
+    // Master Simulation Step
+    // -------------------------------------------------------------
+    step(dt = 0.5) {
+      this.time += dt;
+      this.updateGravityPhysics(dt);
+      this.updateFirePhysics(dt);
+
+      // Return concise telemetry snapshot
+      return this.getTelemetrySnapshot();
+    }
+
+    getTelemetrySnapshot() {
+      let activeFires = 0;
+      let totalHrr = 0;
+      let friedCount = 0;
+      let abandonedCount = 0;
+
+      for (const sec of Object.values(this.sections)) {
+        if (sec.burning) {
+          activeFires++;
+          totalHrr += sec.heatReleaseRate;
+        }
+        if (sec.electronics.primary.status === 'FRIED') friedCount++;
+        if (sec.abandoned) abandonedCount++;
+      }
+
+      return {
+        time: this.time,
+        activeFires,
+        totalHrr,
+        friedCount,
+        abandonedCount,
+        artificialG: this.gravityMetrics.artificialG,
+        effectiveG: this.gravityMetrics.effectiveG,
+        bearingStress: this.gravityMetrics.bearingStress,
+        wobbleRms: this.gravityMetrics.wobbleRms,
+        comShift: this.gravityMetrics.centerOfMassShift,
+        flameRegime: this.gravityMetrics.flameRegime,
+        orbitalAltitude: Math.round(this.orbitalAltitude / 1000), // km
+        orbitalVelocity: Math.round(this.orbitalVelocity), // m/s
+        orbitalDecayRisk: this.orbitalDecayRisk,
+        orbitTimeRemaining: this.orbitTimeRemaining
+      };
+    }
+  }
+
+  // -------------------------------------------------------------
+  // AI Emergency Chatbot Engine (AURA / Spacecraft FireGPT)
+  // -------------------------------------------------------------
+  class AuraChatbot {
+    constructor(simulation) {
+      this.sim = simulation;
+      this.history = [];
+    }
+
+    generateEmergencyBriefing() {
+      const sim = this.sim;
+      const burningSections = Object.values(sim.sections).filter((s) => s.burning);
+      const friedSections = Object.values(sim.sections).filter((s) => s.electronics.primary.status === 'FRIED');
+      const abandonedSections = Object.values(sim.sections).filter((s) => s.abandoned);
+
+      if (burningSections.length === 0 && friedSections.length === 0) {
+        return {
+          title: 'SYSTEMS NOMINAL',
+          status: 'GREEN',
+          message: 'All 6 spacecraft sections report nominal atmosphere and thermal parameters. Habitation Centrifuge Ring is spinning steadily at 8.0 RPM generating 1.0g. No thermal anomalies or electrical surges detected.',
+          actions: ['Run diagnostic sweep', 'Inspect fire sensors', 'Review emergency protocols']
+        };
+      }
+
+      let text = '';
+      if (burningSections.length > 0) {
+        text += `🔥 CRITICAL THERMAL EVENT DETECTED in ${burningSections.length} module(s): `;
+        text += burningSections.map((s) => `${s.name} (${s.temperature.toFixed(0)}°C, O₂: ${s.o2.toFixed(1)}%, Fuel: ${MATERIAL_DATABASE[s.materialId]?.name})`).join('; ') + '. ';
+      }
+
+      if (friedSections.length > 0) {
+        text += `⚡ ELECTRONICS BLACKOUT in: ` + friedSections.map((s) => s.name).join(', ') + '. ';
+      }
+
+      if (sim.gravityMetrics.bearingStress > 70) {
+        text += `⚠️ DYNAMIC UNBALANCE: Centrifuge bearing stress at ${sim.gravityMetrics.bearingStress}%. Mass shift is inducing ${sim.gravityMetrics.wobbleRms}°/s nutation. `;
+      }
+
+      if (sim.orbitalDecayRisk) {
+        text += `🚨 ORBITAL DECAY IN PROGRESS: Propulsion offline! Spacecraft losing altitude under Earth gravity. Re-entry in ~${Math.round(sim.orbitTimeRemaining / 60)} minutes! `;
+      }
+
+      return {
+        title: 'EMERGENCY ADVISORY IN EFFECT',
+        status: burningSections.length > 0 ? 'RED' : 'YELLOW',
+        message: text,
+        burningCount: burningSections.length,
+        friedCount: friedSections.length
+      };
+    }
+
+    ask(query) {
+      const q = query.toLowerCase();
+      const sim = this.sim;
+
+      // 1. Where is the fire?
+      if (q.includes('where') && (q.includes('fire') || q.includes('flame') || q.includes('burn'))) {
+        const burning = Object.values(sim.sections).filter((s) => s.burning);
+        if (burning.length === 0) {
+          return {
+            reply: 'No active fires are detected anywhere on board the NSS Prometheus. All thermal infrared sensors report cabin temperatures within nominal range (15°C–32°C).',
+            citations: ['NASA PSI-26 BASS', 'Flight Rule ECLSS-104']
+          };
+        }
+        const details = burning.map((s) => {
+          const mat = MATERIAL_DATABASE[s.materialId];
+          const g = s.id === 'centrifuge' ? sim.gravityMetrics.artificialG : 0.0;
+          const flameShape = g < 0.05 ? 'spherical blue diffusion flame (microgravity)' : 'elongated flickering orange teardrop (buoyant artificial gravity)';
+          return `• **${s.name} (${s.code})**:\n  - Temperature: **${s.temperature.toFixed(0)}°C** | HRR: **${s.heatReleaseRate} kW**\n  - Oxygen: **${s.o2.toFixed(1)}%** | Pressure: **${s.pressure.toFixed(1)} kPa**\n  - Fuel: **${mat.name}** (${mat.category})\n  - Flame physics: ${flameShape}\n  - Toxic gases: CO ${s.co_ppm} ppm, Smoke ${s.smokeDensity.toFixed(2)} OD/m`;
+        }).join('\n\n');
+
+        return {
+          reply: `⚠️ **Active Fire Report:**\n\n${details}\n\n**Immediate recommendation**: Turn off ventilation dampers to prevent smoke spread, isolate power buses to stop arcing, and evaluate whether to flood with CO₂ or execute Emergency Vacuum Venting.`,
+          citations: ['NASA Saffire-IV Flight Data', 'NASA PSI-69 FLEX', 'Apollo 1 Post-Mortem Analysis']
+        };
+      }
+
+      // 2. How to resolve / put out fire
+      if (q.includes('how') && (q.includes('resolve') || q.includes('extinguish') || q.includes('put out') || q.includes('suppress'))) {
+        const burning = Object.values(sim.sections).filter((s) => s.burning);
+        if (burning.length === 0) {
+          return {
+            reply: 'Standard spacecraft fire response protocol:\n1. **Stop Forced Air**: Immediately shut down ECLSS recirculator fans to prevent forced convection from feeding oxygen to the flame front.\n2. **Isolate Power**: Trip primary 120V bus breakers in the affected zone to remove electrical ignition sources.\n3. **Suppress or Vent**: Deploy portable CO₂/Fine Water Mist extinguishers. If fire involves self-oxidizing batteries or spreads uncontrollably, seal blast doors and execute **Emergency Vacuum Depressurization** to space.\n4. **Monitor for Cool Flames**: In microgravity, flames can linger invisibly at ~500°C. Do not repressurize until infrared thermal cameras confirm zero heat signature.',
+            citations: ['NASA SP-2016-ECLSS', 'ISS Emergency Fire Response Handbook']
+          };
+        }
+
+        const target = burning[0];
+        const mat = MATERIAL_DATABASE[target.materialId];
+        let strat = '';
+
+        if (target.materialId === 'li_ion') {
+          strat = `⚠️ **CRITICAL WARNING FOR LITHIUM-ION THERMAL RUNAWAY IN ${target.code}:**\nLithium-ion NMC cells decompose exothermically and release atomic oxygen internally (LOI = 0%). Standard vacuum purging or CO₂ flooding **will NOT** stop cathode decomposition!\n\n**Mandatory Protocol:**\n1. Evacuate crew immediately and lock Bulkhead blast doors.\n2. Execute **Vacuum Purge** to remove flammable hydrogen and toxic HF gases and prevent hull over-pressurization.\n3. Keep emergency coolant shunts active to draw thermal energy below the 160°C thermal runaway propagation threshold.\n4. Abandon section if structural bulkheads exceed 500°C.`;
+        } else {
+          strat = `**Suppression Strategy for ${target.name}:**\n• **Material**: ${mat.name} (LOI: ${mat.loi}%).\n• **Current O₂**: ${target.o2.toFixed(1)}%.\n• **Option A — CO₂ Flooding**: Inject inert suppressant gas to drive O₂ below ${mat.loi}%. The flame will starve without needing to vent cabin air.\n• **Option B — Emergency Vacuum Purge**: Open decompression valves to space ($101.3 \\to 0\\text{ kPa}$). The absence of oxidizer will instantly suffocate the fire.\n• **Caution**: Venting air dumps mass, which will shift spacecraft Center of Mass by ~${(target.volume * 1.2 / 1000).toFixed(2)}m and induce centrifuge spin wobble!`;
+        }
+
+        return {
+          reply: strat,
+          citations: ['NASA Saffire-I Flight Experiment', 'NASA PSI-62 Material Tests']
+        };
+      }
+
+      // 3. Solar flare & fried electronics
+      if (q.includes('solar') || q.includes('flare') || q.includes('fried') || q.includes('emp')) {
+        return {
+          reply: `☀️ **Solar Flare & EMP Mechanics on NSS Prometheus:**\n\nWhen an X-class Solar Flare or Coronal Mass Ejection (CME) hits the spacecraft:\n1. **Electromagnetic Pulse (EMP)**: Time-varying magnetic flux induces high-voltage surges ($>180\\text{V}$) across electrical wiring traces.\n2. **Dielectric Breakdown**: Primary 120V bus semiconductors experience gate oxide puncture, rendering primary flight computers **FRIED**.\n3. **Secondary Electrical Arcing**: Fried wire harnesses spark violently, igniting adjacent Kapton polyimide insulation ($T_{ign} = 560^\\circ\\text{C}$).\n4. **Redundant Backup Electronics**: Our secondary computers operate on an isolated 28V DC bus with Gallium-Nitride (GaN) radiation-hardened semiconductors and up to 80 dB attenuation shielding. They automatically engage via **Failover** within 120 milliseconds.\n5. **Extreme Flare Vulnerability**: Carrington-class events (X45+) can overwhelm even backup shielding, forcing a mandatory section abandonment.`,
+          citations: ['NASA DONKI Space Weather Service', 'CCMC Space Weather Model', 'NOAA Space Weather Scales']
+        };
+      }
+
+      // 4. Gravity effect & Centrifuge
+      if (q.includes('gravity') || q.includes('centrifuge') || q.includes('wobble') || q.includes('spin') || q.includes('orbit')) {
+        const gArt = sim.gravityMetrics.artificialG;
+        const rpm = sim.centrifugeRpm;
+        const stress = sim.gravityMetrics.bearingStress;
+        const gPlan = sim.gravityMetrics.planetaryG;
+
+        return {
+          reply: `🌐 **Gravitational Dynamics Breakdown:**\n\n1. **Internal Artificial Gravity ($a_c = \\omega^2 R$):**\n   - Current Centrifuge Rotation: **${rpm.toFixed(1)} RPM** at 14m radius $\\implies$ **${gArt.toFixed(2)}g**.\n   - In the spine modules (Bridge, Science, Reactor): Net gravity is **0.00g** (freefall microgravity).\n\n2. **Combustion Sensitivity to Gravity:**\n   - In **0.0g**, buoyancy is zero ($Gr = 0$). Hot air does not rise. Flames form tranquil **spherical blue balls** governed by molecular diffusion. Combustion is slow but soot accumulates.\n   - In **1.0g** (Centrifuge), buoyant convection pulls hot air inward toward the hub, entraining fresh O₂ and elongating flames into **turbulent teardrops** with $3\\times$ faster spread rates!\n\n3. **Mass Redistribution & Centrifuge Wobble:**\n   - When a compartment is vented or abandoned, gas and equipment mass is lost. This shifts the Center of Mass by **${sim.gravityMetrics.centerOfMassShift}m**.\n   - Unbalance force creates bearing strain (**${stress}%**) and precession nutation (**${sim.gravityMetrics.wobbleRms}°/s**).\n\n4. **External Planetary Gravity (${sim.orbitalBody.toUpperCase()}):**\n   - Spacecraft feels external gravitational acceleration of **${gPlan.toFixed(2)} m/s²**.\n   - In orbit, centrifugal forward velocity (${sim.orbitalVelocity} m/s) cancels planet gravity, creating weightlessness. However, if propulsion electronics fry, atmospheric drag causes **orbital decay** toward atmospheric skip/burnup!`,
+          citations: ['NASA BASS (Burning and Suppression of Solids)', 'NASA PSI-159 CFI-G', 'Orbital Mechanics for Engineering Students']
+        };
+      }
+
+      // 5. Section abandonment
+      if (q.includes('abandon') || q.includes('door') || q.includes('evacuate') || q.includes('seal')) {
+        return {
+          reply: `🚪 **Section Abandonment Protocol (NASA Flight Rule 14.8):**\n\nWhen a compartment loses both its Primary and Secondary electronics, or when fire temperatures exceed 400°C:\n1. All crew must immediately evacuate into the forward or aft safe-havens.\n2. **Hermetic Blast Doors** seal across bulkheads, isolating air circulation.\n3. The compartment is declared **ABANDONED**.\n4. To protect structural integrity from thermal conduction, flight controllers may execute an **Emergency Vacuum Vent** to space.\n5. Abandoning the Centrifuge or Propulsion bay removes significant stabilizing mass and requires recalculating the attitude control gyro matrices.`,
+          citations: ['Mir Station Fire Post-Mortem (1997)', 'NASA Spaceflight Operations Guidelines']
+        };
+      }
+
+      // Default comprehensive assistant answer
+      return {
+        reply: `I am AURA (Autonomous Utility & Rescue Assistant), flight controller AI for the NSS Prometheus.\n\nI am continuously monitoring real-time telemetry across our 6 modules:\n• **Fire Spread & Pyrolysis Kinetics**: Tracking fuel mass, O₂ depletion, and toxic CO/HCN ppm.\n• **Electronics Grid**: Monitoring 120V Primary & 28V Rad-Hardened Backup health, voltages, and EMP susceptibility.\n• **Centrifuge & Orbital Gravity**: Computing centrifugal artificial gravity, mass balance wobble, and planetary orbital decay.\n\nYou can ask me:\n- *"Where is the fire and what's burning?"*\n- *"How do I resolve the thermal runaway in the Reactor?"*\n- *"Why did the solar flare fry our avionics?"*\n- *"How does zero gravity change flame shape?"*\n- *"What happens if we abandon the centrifuge ring?"*`,
+        citations: ['NASA PSI Repository', 'NASA NTRS 20150023456']
+      };
+    }
+  }
+
+  // Export to window
+  window.MATERIAL_DATABASE = MATERIAL_DATABASE;
+  window.SpacecraftSimulation = SpacecraftSimulation;
+  window.AuraChatbot = AuraChatbot;
+
+})(window);
+
+  </script>
+  <script>
+/**
+ * 3D Spacecraft Three.js Visualization Engine
+ * Features:
+ * - Full modular spacecraft (Command Bridge, Centrifuge Ring, Science Lab, Avionics, Power Core, Propulsion)
+ * - Rotating Centrifuge Ring synced to simulation RPM & wobble precession
+ * - Fire particles: 0g spherical blue diffusion ball vs >0g elongated buoyant teardrop plume
+ * - Fried electronics electrical sparks
+ * - Vacuum venting decompression gas jets
+ * - Solar Flare CME shockwave sweeping across space
+ * - Earth / Mars planet globe with atmosphere glow & Moon
+ * - Orbital gravitational pull vectors pointing toward celestial bodies
+ * - 4 Visual Modes: Exterior Hull, X-Ray Cutaway, Thermal IR Heat-Vision, Electrical Bus Grid
+ */
+
+(function (window) {
+  'use strict';
+
+  function initSpacecraft3D(containerEl, simulation) {
+    let width = containerEl.clientWidth || 900;
+    let height = containerEl.clientHeight || 550;
+
+    // Scene setup
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#02040b');
+    scene.fog = new THREE.FogExp2('#02040b', 0.0035);
+
+    // Camera
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    camera.position.set(22, 14, 28);
+
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    containerEl.appendChild(renderer.domElement);
+
+    // OrbitControls
+    let controls = null;
+    if (typeof THREE.OrbitControls !== 'undefined') {
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.08;
+      controls.minDistance = 6;
+      controls.maxDistance = 120;
+      controls.target.set(0, 0, -2);
+    }
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xdde6ff, 0.65);
+    scene.add(ambientLight);
+
+    // Sun directional light
+    const sunLight = new THREE.DirectionalLight(0xfff5e6, 2.2);
+    sunLight.position.set(80, 45, 120);
+    sunLight.castShadow = true;
+    scene.add(sunLight);
+
+    // Secondary rim bounce light from planet
+    const earthBounce = new THREE.DirectionalLight(0x4488ff, 0.8);
+    earthBounce.position.set(-60, -30, -50);
+    scene.add(earthBounce);
+
+    // Master Spacecraft Group
+    const shipGroup = new THREE.Group();
+    scene.add(shipGroup);
+
+    // Celestial Group (Earth/Mars, Moon, Sun flare)
+    const celestialGroup = new THREE.Group();
+    scene.add(celestialGroup);
+
+    // -------------------------------------------------------------
+    // Procedural Planet & Celestial Sphere
+    // -------------------------------------------------------------
+    function createEarthTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1024;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+
+      // Ocean base
+      ctx.fillStyle = '#081c3b';
+      ctx.fillRect(0, 0, 1024, 512);
+
+      // Continent shapes
+      ctx.fillStyle = '#1e3f20';
+      // Americas
+      ctx.beginPath();
+      ctx.arc(280, 200, 90, 0, Math.PI * 2);
+      ctx.arc(330, 320, 80, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Eurasia & Africa
+      ctx.fillStyle = '#2d4a22';
+      ctx.beginPath();
+      ctx.arc(620, 180, 110, 0, Math.PI * 2);
+      ctx.arc(580, 300, 95, 0, Math.PI * 2);
+      ctx.arc(780, 260, 75, 0, Math.PI * 2); // Asia
+      ctx.arc(840, 380, 55, 0, Math.PI * 2); // Australia
+      ctx.fill();
+
+      // Swirling white clouds
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+      for (let i = 0; i < 40; i++) {
+        const x = (i * 27) % 1024;
+        const y = 80 + Math.sin(i * 0.8) * 160;
+        ctx.beginPath();
+        ctx.ellipse(x, y, 90, 18, Math.PI / 8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      return new THREE.CanvasTexture(canvas);
+    }
+
+    const planetGeo = new THREE.SphereGeometry(24, 48, 48);
+    const planetMat = new THREE.MeshStandardMaterial({
+      map: createEarthTexture(),
+      roughness: 0.65,
+      metalness: 0.1
+    });
+    const planetMesh = new THREE.Mesh(planetGeo, planetMat);
+    planetMesh.position.set(-65, -45, -75);
+    celestialGroup.add(planetMesh);
+
+    // Planet atmosphere rim glow
+    const atmosGeo = new THREE.SphereGeometry(25.2, 48, 48);
+    const atmosMat = new THREE.MeshBasicMaterial({
+      color: 0x4fc3f7,
+      transparent: true,
+      opacity: 0.22,
+      side: THREE.BackSide,
+      blending: THREE.AdditiveBlending
+    });
+    const atmosMesh = new THREE.Mesh(atmosGeo, atmosMat);
+    atmosMesh.position.copy(planetMesh.position);
+    celestialGroup.add(atmosMesh);
+
+    // Moon Globe
+    const moonGeo = new THREE.SphereGeometry(4.2, 32, 32);
+    const moonMat = new THREE.MeshStandardMaterial({ color: 0xb0b8c4, roughness: 0.9 });
+    const moonMesh = new THREE.Mesh(moonGeo, moonMat);
+    moonMesh.position.set(70, 35, -110);
+    celestialGroup.add(moonMesh);
+
+    // Distant Starfield Dome
+    const starGeo = new THREE.BufferGeometry();
+    const starCount = 1800;
+    const starPositions = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount * 3; i += 3) {
+      const u = Math.random();
+      const v = Math.random();
+      const theta = u * 2.0 * Math.PI;
+      const phi = Math.acos(2.0 * v - 1.0);
+      const r = 260 + Math.random() * 40;
+      starPositions[i] = r * Math.sin(phi) * Math.cos(theta);
+      starPositions[i + 1] = r * Math.sin(phi) * Math.sin(theta);
+      starPositions[i + 2] = r * Math.cos(phi);
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 1.2, transparent: true, opacity: 0.85 });
+    const stars = new THREE.Points(starGeo, starMat);
+    scene.add(stars);
+
+    // -------------------------------------------------------------
+    // Gravitational Vectors (Lines from Craft to Planet & Moon)
+    // -------------------------------------------------------------
+    const gravityLinesGroup = new THREE.Group();
+    scene.add(gravityLinesGroup);
+
+    // Line to Earth
+    const earthLineGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, 0),
+      planetMesh.position.clone().multiplyScalar(0.28)
+    ]);
+    const earthLineMat = new THREE.LineDashedMaterial({
+      color: 0x3fd4ff,
+      dashSize: 1.2,
+      gapSize: 0.6,
+      transparent: true,
+      opacity: 0.75
+    });
+    const earthLine = new THREE.Line(earthLineGeo, earthLineMat);
+    earthLine.computeLineDistances();
+    gravityLinesGroup.add(earthLine);
+
+    // Line to Moon
+    const moonLineGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, 0),
+      moonMesh.position.clone().multiplyScalar(0.22)
+    ]);
+    const moonLineMat = new THREE.LineDashedMaterial({
+      color: 0xa78bfa,
+      dashSize: 0.8,
+      gapSize: 0.8,
+      transparent: true,
+      opacity: 0.6
+    });
+    const moonLine = new THREE.Line(moonLineGeo, moonLineMat);
+    moonLine.computeLineDistances();
+    gravityLinesGroup.add(moonLine);
+
+    // -------------------------------------------------------------
+    // Spacecraft Modular Architecture Construction
+    // -------------------------------------------------------------
+    const moduleMeshes = {};
+    const moduleInteriorMeshes = {};
+    const moduleThermalMeshes = {};
+    const moduleElectricalConduits = {};
+
+    // Standard materials
+    const hullMat = new THREE.MeshStandardMaterial({
+      color: 0x94a3b8,
+      metalness: 0.8,
+      roughness: 0.35
+    });
+    const darkHullMat = new THREE.MeshStandardMaterial({
+      color: 0x1e293b,
+      metalness: 0.6,
+      roughness: 0.5
+    });
+    const goldFoilMat = new THREE.MeshStandardMaterial({
+      color: 0xf59e0b,
+      metalness: 0.9,
+      roughness: 0.25
+    });
+    const glassMat = new THREE.MeshPhysicalMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.45,
+      roughness: 0.1,
+      transmission: 0.8
+    });
+    const interiorMat = new THREE.MeshStandardMaterial({
+      color: 0x334155,
+      roughness: 0.7
+    });
+
+    // 1. Central Structural Spine Truss
+    const spineGeo = new THREE.CylinderGeometry(0.8, 0.8, 28, 16);
+    const spineMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.85, roughness: 0.3 });
+    const spine = new THREE.Mesh(spineGeo, spineMat);
+    spine.rotation.x = Math.PI / 2;
+    spine.position.set(0, 0, -2.5);
+    shipGroup.add(spine);
+
+    // Modular section definition coordinates along Z axis:
+    // SEC-A: Bridge (Z = +6.0)
+    // SEC-B: Centrifuge (Z = +2.0)
+    // SEC-C: Science (Z = -1.5)
+    // SEC-D: Avionics (Z = -4.5)
+    // SEC-E: Reactor (Z = -8.0)
+    // SEC-F: Propulsion (Z = -13.0)
+
+    // -------------------------------------------------------------
+    // SEC-A: Command Bridge & Astrogation
+    // -------------------------------------------------------------
+    const bridgeGroup = new THREE.Group();
+    bridgeGroup.position.set(0, 0, 7.5);
+    shipGroup.add(bridgeGroup);
+
+    const bridgeConeGeo = new THREE.ConeGeometry(1.8, 3.8, 18);
+    const bridgeHull = new THREE.Mesh(bridgeConeGeo, hullMat.clone());
+    bridgeHull.rotation.x = Math.PI / 2;
+    bridgeGroup.add(bridgeHull);
+
+    // Cupola observation multi-window ring
+    const cupolaGeo = new THREE.SphereGeometry(0.9, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+    const cupola = new THREE.Mesh(cupolaGeo, glassMat);
+    cupola.rotation.x = Math.PI / 2;
+    cupola.position.set(0, 0, 2.0);
+    bridgeGroup.add(cupola);
+
+    // Interior cockpit consoles
+    const bridgeInteriorGeo = new THREE.BoxGeometry(1.2, 0.8, 1.6);
+    const bridgeInterior = new THREE.Mesh(bridgeInteriorGeo, interiorMat.clone());
+    bridgeInterior.visible = false;
+    bridgeGroup.add(bridgeInterior);
+
+    moduleMeshes.bridge = bridgeHull;
+    moduleInteriorMeshes.bridge = bridgeInterior;
+
+    // -------------------------------------------------------------
+    // SEC-B: Habitation Centrifuge Ring (Rotating!)
+    // -------------------------------------------------------------
+    const centrifugeGroup = new THREE.Group();
+    centrifugeGroup.position.set(0, 0, 2.0);
+    shipGroup.add(centrifugeGroup);
+
+    // Stationary Hub Collar
+    const hubCollarGeo = new THREE.CylinderGeometry(1.4, 1.4, 1.6, 24);
+    const hubCollar = new THREE.Mesh(hubCollarGeo, darkHullMat);
+    hubCollar.rotation.x = Math.PI / 2;
+    centrifugeGroup.add(hubCollar);
+
+    // Rotating sub-group for the ring and spokes
+    const ringRotatingGroup = new THREE.Group();
+    centrifugeGroup.add(ringRotatingGroup);
+
+    // Torus Habitat Ring (Radius 14m in sim, scaled to 7.0 for visual balance)
+    const ringRadius = 7.0;
+    const tubeRadius = 0.9;
+    const ringGeo = new THREE.TorusGeometry(ringRadius, tubeRadius, 20, 48);
+    const ringHull = new THREE.Mesh(ringGeo, hullMat.clone());
+    ringRotatingGroup.add(ringHull);
+
+    // 4 Connecting Spokes / Transit Tunnels
+    for (let i = 0; i < 4; i++) {
+      const angle = (i * Math.PI) / 2;
+      const spokeGeo = new THREE.CylinderGeometry(0.32, 0.32, ringRadius, 12);
+      const spoke = new THREE.Mesh(spokeGeo, darkHullMat);
+      spoke.rotation.z = angle;
+      spoke.position.set((Math.cos(angle) * ringRadius) / 2, (Math.sin(angle) * ringRadius) / 2, 0);
+      ringRotatingGroup.add(spoke);
+    }
+
+    // Interior habitat pod markers
+    const ringInteriorGeo = new THREE.TorusGeometry(ringRadius, tubeRadius * 0.75, 12, 32);
+    const ringInterior = new THREE.Mesh(ringInteriorGeo, interiorMat.clone());
+    ringInterior.visible = false;
+    ringRotatingGroup.add(ringInterior);
+
+    moduleMeshes.centrifuge = ringHull;
+    moduleInteriorMeshes.centrifuge = ringInterior;
+
+    // -------------------------------------------------------------
+    // SEC-C: Science Lab & ECLSS
+    // -------------------------------------------------------------
+    const scienceGroup = new THREE.Group();
+    scienceGroup.position.set(0, 0, -1.8);
+    shipGroup.add(scienceGroup);
+
+    const scienceGeo = new THREE.CylinderGeometry(2.0, 2.0, 3.6, 20);
+    const scienceHull = new THREE.Mesh(scienceGeo, hullMat.clone());
+    scienceHull.rotation.x = Math.PI / 2;
+    scienceGroup.add(scienceHull);
+
+    // External radiator fins
+    for (let i = -1; i <= 1; i += 2) {
+      const finGeo = new THREE.BoxGeometry(0.08, 2.4, 2.8);
+      const fin = new THREE.Mesh(finGeo, darkHullMat);
+      fin.position.set(i * 2.3, 0, 0);
+      scienceGroup.add(fin);
+    }
+
+    const scienceInteriorGeo = new THREE.CylinderGeometry(1.6, 1.6, 3.0, 16);
+    const scienceInterior = new THREE.Mesh(scienceInteriorGeo, interiorMat.clone());
+    scienceInterior.rotation.x = Math.PI / 2;
+    scienceInterior.visible = false;
+    scienceGroup.add(scienceInterior);
+
+    moduleMeshes.science = scienceHull;
+    moduleInteriorMeshes.science = scienceInterior;
+
+    // -------------------------------------------------------------
+    // SEC-D: Avionics Bay & DSN Comms Array
+    // -------------------------------------------------------------
+    const avionicsGroup = new THREE.Group();
+    avionicsGroup.position.set(0, 0, -5.2);
+    shipGroup.add(avionicsGroup);
+
+    const avionicsGeo = new THREE.CylinderGeometry(1.8, 1.8, 2.6, 6); // Hexagonal pod
+    const avionicsHull = new THREE.Mesh(avionicsGeo, goldFoilMat.clone());
+    avionicsHull.rotation.x = Math.PI / 2;
+    avionicsGroup.add(avionicsHull);
+
+    // High-gain parabolic antenna dish
+    const dishMastGeo = new THREE.CylinderGeometry(0.12, 0.12, 2.5, 8);
+    const dishMast = new THREE.Mesh(dishMastGeo, darkHullMat);
+    dishMast.position.set(0, 2.2, 0);
+    avionicsGroup.add(dishMast);
+
+    const dishGeo = new THREE.SphereGeometry(1.6, 24, 16, 0, Math.PI * 2, 0, Math.PI / 3);
+    const dishMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.7, roughness: 0.3, side: THREE.DoubleSide });
+    const dish = new THREE.Mesh(dishGeo, dishMat);
+    dish.rotation.x = -Math.PI / 3;
+    dish.position.set(0, 3.4, 0.8);
+    avionicsGroup.add(dish);
+
+    // Massive Articulated Solar Array Wings
+    const solarWingGroup = new THREE.Group();
+    avionicsGroup.add(solarWingGroup);
+    for (let side = -1; side <= 1; side += 2) {
+      const mastGeo = new THREE.CylinderGeometry(0.15, 0.15, 3.0, 8);
+      const mast = new THREE.Mesh(mastGeo, darkHullMat);
+      mast.rotation.z = Math.PI / 2;
+      mast.position.set(side * 3.2, 0, 0);
+      solarWingGroup.add(mast);
+
+      // Solar Panel Grid (Blue photovoltaic look)
+      const panelGeo = new THREE.BoxGeometry(5.5, 0.08, 2.4);
+      const panelMat = new THREE.MeshStandardMaterial({
+        color: 0x1d4ed8,
+        metalness: 0.9,
+        roughness: 0.2
+      });
+      const panel = new THREE.Mesh(panelGeo, panelMat);
+      panel.position.set(side * 7.0, 0, 0);
+      solarWingGroup.add(panel);
+    }
+
+    const avionicsInteriorGeo = new THREE.BoxGeometry(1.5, 1.5, 2.0);
+    const avionicsInterior = new THREE.Mesh(avionicsInteriorGeo, interiorMat.clone());
+    avionicsInterior.visible = false;
+    avionicsGroup.add(avionicsInterior);
+
+    moduleMeshes.avionics = avionicsHull;
+    moduleInteriorMeshes.avionics = avionicsInterior;
+
+    // -------------------------------------------------------------
+    // SEC-E: Power Core & Battery Vault
+    // -------------------------------------------------------------
+    const reactorGroup = new THREE.Group();
+    reactorGroup.position.set(0, 0, -8.8);
+    shipGroup.add(reactorGroup);
+
+    const reactorGeo = new THREE.CylinderGeometry(2.1, 2.1, 3.8, 16);
+    const reactorHull = new THREE.Mesh(reactorGeo, darkHullMat.clone());
+    reactorHull.rotation.x = Math.PI / 2;
+    reactorGroup.add(reactorHull);
+
+    // Glowing blue nuclear/battery containment rings
+    for (let i = -1; i <= 1; i++) {
+      const glowRingGeo = new THREE.TorusGeometry(2.15, 0.08, 12, 32);
+      const glowRingMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+      const glowRing = new THREE.Mesh(glowRingGeo, glowRingMat);
+      glowRing.position.set(0, 0, i * 1.1);
+      reactorGroup.add(glowRing);
+    }
+
+    const reactorInteriorGeo = new THREE.CylinderGeometry(1.8, 1.8, 3.2, 16);
+    const reactorInterior = new THREE.Mesh(reactorInteriorGeo, interiorMat.clone());
+    reactorInterior.rotation.x = Math.PI / 2;
+    reactorInterior.visible = false;
+    reactorGroup.add(reactorInterior);
+
+    moduleMeshes.reactor = reactorHull;
+    moduleInteriorMeshes.reactor = reactorInterior;
+
+    // -------------------------------------------------------------
+    // SEC-F: Cargo Bay & Ion Propulsion Block
+    // -------------------------------------------------------------
+    const propulsionGroup = new THREE.Group();
+    propulsionGroup.position.set(0, 0, -13.2);
+    shipGroup.add(propulsionGroup);
+
+    const propulsionGeo = new THREE.CylinderGeometry(1.9, 2.4, 4.2, 18);
+    const propulsionHull = new THREE.Mesh(propulsionGeo, hullMat.clone());
+    propulsionHull.rotation.x = Math.PI / 2;
+    propulsionGroup.add(propulsionHull);
+
+    // 4 Ion Thruster Nozzles with glowing cyan plasma plumes
+    const plasmaPlumes = [];
+    const nozzleOffsets = [
+      [-0.8, -0.8],
+      [0.8, -0.8],
+      [-0.8, 0.8],
+      [0.8, 0.8]
+    ];
+    for (const [nx, ny] of nozzleOffsets) {
+      const nozzleGeo = new THREE.CylinderGeometry(0.4, 0.55, 0.9, 16);
+      const nozzle = new THREE.Mesh(nozzleGeo, darkHullMat);
+      nozzle.rotation.x = Math.PI / 2;
+      nozzle.position.set(nx, ny, -2.4);
+      propulsionGroup.add(nozzle);
+
+      // Cyan Ion Exhaust Plume Cone
+      const plumeGeo = new THREE.ConeGeometry(0.42, 2.8, 16);
+      const plumeMat = new THREE.MeshBasicMaterial({
+        color: 0x22d3ee,
+        transparent: true,
+        opacity: 0.65,
+        blending: THREE.AdditiveBlending
+      });
+      const plume = new THREE.Mesh(plumeGeo, plumeMat);
+      plume.rotation.x = -Math.PI / 2;
+      plume.position.set(nx, ny, -4.0);
+      propulsionGroup.add(plume);
+      plasmaPlumes.push(plume);
+    }
+
+    const propInteriorGeo = new THREE.CylinderGeometry(1.6, 2.0, 3.6, 16);
+    const propInterior = new THREE.Mesh(propInteriorGeo, interiorMat.clone());
+    propInterior.rotation.x = Math.PI / 2;
+    propInterior.visible = false;
+    propulsionGroup.add(propInterior);
+
+    moduleMeshes.propulsion = propulsionHull;
+    moduleInteriorMeshes.propulsion = propInterior;
+
+    // -------------------------------------------------------------
+    // Electrical Conduit Lines (Primary 120V & Backup 28V)
+    // -------------------------------------------------------------
+    const primaryConduitGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 1.0, 7.5),
+      new THREE.Vector3(0, 1.0, 2.0),
+      new THREE.Vector3(0, 1.0, -1.8),
+      new THREE.Vector3(0, 1.0, -5.2),
+      new THREE.Vector3(0, 1.0, -8.8),
+      new THREE.Vector3(0, 1.0, -13.2)
+    ]);
+    const primaryConduitMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 2 });
+    const primaryConduit = new THREE.Line(primaryConduitGeo, primaryConduitMat);
+    shipGroup.add(primaryConduit);
+
+    const backupConduitGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, -1.0, 7.5),
+      new THREE.Vector3(0, -1.0, 2.0),
+      new THREE.Vector3(0, -1.0, -1.8),
+      new THREE.Vector3(0, -1.0, -5.2),
+      new THREE.Vector3(0, -1.0, -8.8),
+      new THREE.Vector3(0, -1.0, -13.2)
+    ]);
+    const backupConduitMat = new THREE.LineBasicMaterial({ color: 0x34d399, linewidth: 2 });
+    const backupConduit = new THREE.Line(backupConduitGeo, backupConduitMat);
+    shipGroup.add(backupConduit);
+
+    // -------------------------------------------------------------
+    // 3D Fire & Smoke Particle Engine (0g Ball vs >0g Teardrop)
+    // -------------------------------------------------------------
+    const moduleFireFX = {};
+    const sectionCoords = {
+      bridge: new THREE.Vector3(0, 0, 7.5),
+      centrifuge: new THREE.Vector3(0, 7.0, 2.0), // at top of ring
+      science: new THREE.Vector3(0, 0, -1.8),
+      avionics: new THREE.Vector3(0, 0, -5.2),
+      reactor: new THREE.Vector3(0, 0, -8.8),
+      propulsion: new THREE.Vector3(0, 0, -13.2)
+    };
+
+    for (const [key, pos] of Object.entries(sectionCoords)) {
+      const fxGroup = new THREE.Group();
+      fxGroup.position.copy(pos);
+      shipGroup.add(fxGroup);
+
+      // Microgravity spherical flame ball mesh
+      const ballGeo = new THREE.SphereGeometry(0.85, 20, 20);
+      const ballMat = new THREE.MeshBasicMaterial({
+        color: 0x38bdf8, // Calm blue luminescent ball in 0g
+        transparent: true,
+        opacity: 0.0,
+        blending: THREE.AdditiveBlending
+      });
+      const flameBall = new THREE.Mesh(ballGeo, ballMat);
+      fxGroup.add(flameBall);
+
+      // Buoyant elongated teardrop flame cone
+      const teardropGeo = new THREE.ConeGeometry(0.9, 2.4, 20);
+      const teardropMat = new THREE.MeshBasicMaterial({
+        color: 0xff6a2b, // Fiery orange/yellow in gravity
+        transparent: true,
+        opacity: 0.0,
+        blending: THREE.AdditiveBlending
+      });
+      const flameTeardrop = new THREE.Mesh(teardropGeo, teardropMat);
+      flameTeardrop.position.y = 0.8;
+      fxGroup.add(flameTeardrop);
+
+      // Core point light
+      const fireLight = new THREE.PointLight(0xff7722, 0, 10);
+      fxGroup.add(fireLight);
+
+      // Smoke billow particles
+      const smokeCount = 35;
+      const smokeGeo = new THREE.BufferGeometry();
+      const smokePos = new Float32Array(smokeCount * 3);
+      for (let i = 0; i < smokeCount * 3; i += 3) {
+        smokePos[i] = (Math.random() - 0.5) * 1.5;
+        smokePos[i + 1] = Math.random() * 2.5;
+        smokePos[i + 2] = (Math.random() - 0.5) * 1.5;
+      }
+      smokeGeo.setAttribute('position', new THREE.BufferAttribute(smokePos, 3));
+      const smokeMat = new THREE.PointsMaterial({
+        color: 0x222222,
+        size: 1.4,
+        transparent: true,
+        opacity: 0.0
+      });
+      const smokeParticles = new THREE.Points(smokeGeo, smokeMat);
+      fxGroup.add(smokeParticles);
+
+      // Electrical arcing sparks (for fried electronics)
+      const sparkCount = 20;
+      const sparkGeo = new THREE.BufferGeometry();
+      const sparkPos = new Float32Array(sparkCount * 3);
+      for (let i = 0; i < sparkCount * 3; i += 3) {
+        sparkPos[i] = (Math.random() - 0.5) * 1.8;
+        sparkPos[i + 1] = (Math.random() - 0.5) * 1.8;
+        sparkPos[i + 2] = (Math.random() - 0.5) * 1.8;
+      }
+      sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3));
+      const sparkMat = new THREE.PointsMaterial({
+        color: 0x67e8f9,
+        size: 0.8,
+        transparent: true,
+        opacity: 0.0,
+        blending: THREE.AdditiveBlending
+      });
+      const sparkParticles = new THREE.Points(sparkGeo, sparkMat);
+      fxGroup.add(sparkParticles);
+
+      // Decompression jet stream cone (when vented to vacuum)
+      const ventGeo = new THREE.ConeGeometry(0.7, 4.5, 16);
+      const ventMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.0,
+        blending: THREE.AdditiveBlending
+      });
+      const ventCone = new THREE.Mesh(ventGeo, ventMat);
+      ventCone.position.set(2.4, 0, 0);
+      ventCone.rotation.z = -Math.PI / 2;
+      fxGroup.add(ventCone);
+
+      moduleFireFX[key] = {
+        group: fxGroup,
+        flameBall,
+        flameTeardrop,
+        fireLight,
+        smokeParticles,
+        sparkParticles,
+        ventCone
+      };
+    }
+
+    // -------------------------------------------------------------
+    // Solar Flare CME Shockwave Wavefront
+    // -------------------------------------------------------------
+    const cmeWaveGeo = new THREE.SphereGeometry(18, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2);
+    const cmeWaveMat = new THREE.MeshBasicMaterial({
+      color: 0xf59e0b,
+      transparent: true,
+      opacity: 0.0,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending
+    });
+    const cmeWave = new THREE.Mesh(cmeWaveGeo, cmeWaveMat);
+    cmeWave.rotation.x = Math.PI / 2;
+    cmeWave.position.set(0, 0, 80);
+    scene.add(cmeWave);
+
+    // -------------------------------------------------------------
+    // View Modes: Hull, X-Ray, Thermal IR, Electrical Bus
+    // -------------------------------------------------------------
+    let currentViewMode = 'hull'; // 'hull', 'xray', 'thermal', 'electrical'
+
+    function setViewMode(mode) {
+      currentViewMode = mode;
+      for (const [key, hull] of Object.entries(moduleMeshes)) {
+        const interior = moduleInteriorMeshes[key];
+
+        if (mode === 'hull') {
+          hull.material.transparent = false;
+          hull.material.opacity = 1.0;
+          hull.material.wireframe = false;
+          if (interior) interior.visible = false;
+          primaryConduit.visible = true;
+          backupConduit.visible = true;
+        } else if (mode === 'xray') {
+          hull.material.transparent = true;
+          hull.material.opacity = 0.22;
+          hull.material.wireframe = false;
+          if (interior) interior.visible = true;
+          primaryConduit.visible = true;
+          backupConduit.visible = true;
+        } else if (mode === 'thermal') {
+          // Heat-vision false-color mode: blue (cool), yellow/orange (warm), white (hot fire)
+          hull.material.transparent = false;
+          hull.material.wireframe = false;
+          if (interior) interior.visible = false;
+          primaryConduit.visible = false;
+          backupConduit.visible = false;
+        } else if (mode === 'electrical') {
+          hull.material.transparent = true;
+          hull.material.opacity = 0.15;
+          hull.material.wireframe = true;
+          if (interior) interior.visible = true;
+          primaryConduit.visible = true;
+          backupConduit.visible = true;
+        }
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Camera Focus / Jump to Section
+    // -------------------------------------------------------------
+    function focusSection(sectionId) {
+      if (!sectionCoords[sectionId]) return;
+      const targetPos = sectionCoords[sectionId].clone();
+
+      if (typeof gsap !== 'undefined') {
+        gsap.to(camera.position, {
+          x: targetPos.x + 10,
+          y: targetPos.y + 6,
+          z: targetPos.z + 12,
+          duration: 1.2,
+          ease: 'power2.inOut'
+        });
+        if (controls) {
+          gsap.to(controls.target, {
+            x: targetPos.x,
+            y: targetPos.y,
+            z: targetPos.z,
+            duration: 1.2,
+            ease: 'power2.inOut'
+          });
+        }
+      } else {
+        camera.position.set(targetPos.x + 10, targetPos.y + 6, targetPos.z + 12);
+        if (controls) controls.target.copy(targetPos);
+      }
+    }
+
+    // Reset camera to wide view
+    function resetCamera() {
+      if (typeof gsap !== 'undefined') {
+        gsap.to(camera.position, { x: 22, y: 14, z: 28, duration: 1.2, ease: 'power2.inOut' });
+        if (controls) gsap.to(controls.target, { x: 0, y: 0, z: -2, duration: 1.2, ease: 'power2.inOut' });
+      } else {
+        camera.position.set(22, 14, 28);
+        if (controls) controls.target.set(0, 0, -2);
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Render Loop & Animation Synchronization
+    // -------------------------------------------------------------
+    let clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const delta = clock.getDelta();
+      const time = clock.getElapsedTime();
+
+      // 1. Habitation Centrifuge Ring Rotation synced to RPM
+      // Angular velocity omega = RPM * 2*pi / 60 (rad/s)
+      const omega = (simulation.centrifugeRpm * 2 * Math.PI) / 60;
+      ringRotatingGroup.rotation.z += omega * delta;
+
+      // Centrifuge unbalance wobble precession (nutation)
+      if (simulation.gravityMetrics.wobbleRms > 0) {
+        const wobbleRad = (simulation.gravityMetrics.wobbleRms * Math.PI) / 180;
+        centrifugeGroup.rotation.x = Math.sin(time * 3.5) * wobbleRad;
+        centrifugeGroup.rotation.y = Math.cos(time * 2.8) * wobbleRad;
+      } else {
+        centrifugeGroup.rotation.x = 0;
+        centrifugeGroup.rotation.y = 0;
+      }
+
+      // 2. Celestial rotations
+      planetMesh.rotation.y += 0.02 * delta;
+      moonMesh.rotation.y += 0.01 * delta;
+
+      // 3. Ion Thruster Plasma Plume Flicker
+      const propSec = simulation.sections.propulsion;
+      const propFiring = !propSec.abandoned && propSec.electronics.primary.online;
+      for (const plume of plasmaPlumes) {
+        if (propFiring) {
+          plume.visible = true;
+          const flicker = 0.55 + Math.sin(time * 24 + Math.random()) * 0.25;
+          plume.scale.set(1 + Math.sin(time * 18) * 0.08, 1 + Math.cos(time * 22) * 0.15, 1);
+          plume.material.opacity = flicker;
+        } else {
+          plume.visible = false;
+        }
+      }
+
+      // 4. Update Fire, Smoke, Sparks, and Vent FX per module
+      for (const [key, sec] of Object.entries(simulation.sections)) {
+        const fx = moduleFireFX[key];
+        const hull = moduleMeshes[key];
+        if (!fx) continue;
+
+        // Effective gravity in this module
+        const localG = key === 'centrifuge' ? simulation.gravityMetrics.artificialG : 0.0;
+        const isMicroG = localG < 0.05;
+
+        // Fire rendering
+        if (sec.burning && sec.fireSize > 0) {
+          const sz = sec.fireSize;
+          fx.fireLight.intensity = sz * 2.5;
+
+          if (isMicroG) {
+            // Microgravity: Spherical blue diffusion flame ball!
+            fx.flameBall.visible = true;
+            fx.flameTeardrop.visible = false;
+
+            const pulse = 1.0 + Math.sin(time * 4) * 0.08;
+            fx.flameBall.scale.set(sz * pulse, sz * pulse, sz * pulse);
+            fx.flameBall.material.opacity = Math.min(0.85, sz * 0.9);
+            // If cool flame, very faint infrared blue/purple
+            fx.flameBall.material.color.setHex(sec.coolFlame ? 0x818cf8 : 0x38bdf8);
+            fx.fireLight.color.setHex(sec.coolFlame ? 0x6366f1 : 0x0ea5e9);
+          } else {
+            // Artificial Gravity (>0g): Elongated flickering orange/yellow teardrop!
+            fx.flameBall.visible = false;
+            fx.flameTeardrop.visible = true;
+
+            const flickerX = 1.0 + Math.sin(time * 14) * 0.12;
+            const flickerY = 1.0 + Math.sin(time * 18 + 1.2) * 0.22;
+            fx.flameTeardrop.scale.set(sz * flickerX, sz * flickerY * (1 + Math.sqrt(localG) * 0.6), sz * flickerX);
+            fx.flameTeardrop.material.opacity = Math.min(0.9, sz * 1.1);
+            fx.flameTeardrop.material.color.setHex(0xff6a2b);
+            fx.fireLight.color.setHex(0xff7722);
+          }
+
+          // Smoke particles
+          fx.smokeParticles.visible = true;
+          fx.smokeParticles.material.opacity = Math.min(0.65, sec.smokeDensity * 1.8);
+
+          // Animate smoke rising or diffusing
+          const posAttr = fx.smokeParticles.geometry.attributes.position;
+          for (let i = 1; i < posAttr.array.length; i += 3) {
+            posAttr.array[i] += (isMicroG ? 0.005 : 0.025 * localG);
+            if (posAttr.array[i] > 3.0) posAttr.array[i] = 0;
+          }
+          posAttr.needsUpdate = true;
+        } else {
+          fx.flameBall.visible = false;
+          fx.flameTeardrop.visible = false;
+          fx.fireLight.intensity = 0;
+          fx.smokeParticles.visible = false;
+        }
+
+        // Fried electronics electrical sparking FX
+        const pFried = sec.electronics.primary.status === 'FRIED';
+        if (pFried && Math.random() < 0.25) {
+          fx.sparkParticles.visible = true;
+          fx.sparkParticles.material.opacity = 0.85;
+          const sPos = fx.sparkParticles.geometry.attributes.position;
+          for (let i = 0; i < sPos.array.length; i++) {
+            sPos.array[i] += (Math.random() - 0.5) * 0.35;
+          }
+          sPos.needsUpdate = true;
+        } else {
+          fx.sparkParticles.visible = false;
+        }
+
+        // Decompression vacuum vent gas jet
+        if (sec.vented && sec.pressure > 2.0) {
+          fx.ventCone.visible = true;
+          fx.ventCone.material.opacity = Math.min(0.85, (sec.pressure / 101.3) * 0.9);
+          fx.ventCone.scale.set(1, 1 + Math.sin(time * 20) * 0.2, 1);
+        } else {
+          fx.ventCone.visible = false;
+        }
+
+        // Thermal View Mode Color Override
+        if (currentViewMode === 'thermal' && hull) {
+          if (sec.burning) {
+            hull.material.color.setHex(0xffffff); // Hot incandescent white
+          } else if (sec.temperature > 80) {
+            hull.material.color.setHex(0xf43f5e); // Hot red/pink
+          } else if (sec.temperature > 40) {
+            hull.material.color.setHex(0xfb923c); // Warm orange
+          } else if (sec.temperature > 26) {
+            hull.material.color.setHex(0xfacc15); // Moderate yellow
+          } else {
+            hull.material.color.setHex(0x1e3a8a); // Cool ambient blue
+          }
+        } else if (currentViewMode === 'hull' && hull) {
+          // Normal hull color, with red border/tint if abandoned or on fire
+          if (sec.abandoned) {
+            hull.material.color.setHex(0x451a1a); // Dark warning red/brown
+          } else if (sec.burning) {
+            hull.material.color.setHex(0x7f1d1d);
+          } else if (key === 'avionics') {
+            hull.material.color.setHex(0xf59e0b); // Gold foil
+          } else if (key === 'reactor') {
+            hull.material.color.setHex(0x1e293b);
+          } else {
+            hull.material.color.setHex(0x94a3b8);
+          }
+        }
+      }
+
+      // 5. Solar Flare CME Wavefront sweeping animation
+      if (simulation.flareActive) {
+        cmeWave.visible = true;
+        cmeWave.position.z -= 45 * delta;
+        cmeWave.material.opacity = Math.min(0.7, cmeWave.material.opacity + 0.1);
+        if (cmeWave.position.z < -40) {
+          cmeWave.position.z = 80;
+        }
+      } else {
+        cmeWave.material.opacity = Math.max(0, cmeWave.material.opacity - 0.05);
+        if (cmeWave.material.opacity === 0) cmeWave.visible = false;
+      }
+
+      // 6. Update OrbitControls
+      if (controls) controls.update();
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    // Window resize handler
+    function handleResize() {
+      if (!containerEl) return;
+      width = containerEl.clientWidth;
+      height = containerEl.clientHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    }
+    window.addEventListener('resize', handleResize);
+
+    return {
+      scene,
+      camera,
+      renderer,
+      controls,
+      setViewMode,
+      focusSection,
+      resetCamera,
+      destroy() {
+        window.removeEventListener('resize', handleResize);
+        if (renderer.domElement && renderer.domElement.parentNode) {
+          renderer.domElement.parentNode.removeChild(renderer.domElement);
+        }
+      }
+    };
+  }
+
+  window.initSpacecraft3D = initSpacecraft3D;
+})(window);
+
+  </script>
+  <script>
+/**
+ * FlameAtlas Unified Assistant Engine (FireGPT + Aura Assistant)
+ * 
+ * Unifies FireGPT (NASA research explainer) and AURA (spacecraft flight & tactical AI)
+ * into a single unified assistant system available across all pages.
+ * 
+ * Data Flow:
+ * 1. User question
+ * 2. Check Common Intents file (/data/intents.json) as the first source of truth
+ *    - Page-specific intents & current page context
+ *    - Tactical telemetry rules (AURA spacecraft kinetics)
+ *    - General microgravity combustion knowledge base
+ * 3. If found -> Return verified response + citations
+ * 4. If not found -> Call serverless OpenAI API (/api/openai) as fallback
+ * 5. Return AI-generated response
+ */
+
+(function (window, document) {
+  'use strict';
+
+  // Helper: Markdown formatter for chat bubbles
+  function formatMarkdown(text) {
+    if (!text) return '';
+    let html = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    // Bold **text**
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // Italic *text*
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    // Inline code `text`
+    html = html.replace(/`(.*?)`/g, '<code class="px-1 py-0.5 rounded bg-slate-800 text-pink-300 font-mono text-[11px]">$1</code>');
+    // Bullet lists
+    html = html.replace(/^• (.*)$/gm, '<li class="ml-3 list-disc">$1</li>');
+    html = html.replace(/^- (.*)$/gm, '<li class="ml-3 list-disc">$1</li>');
+    // Newlines
+    html = html.replace(/\n\n/g, '<div class="h-2"></div>');
+    html = html.replace(/\n/g, '<br/>');
+
+    return html;
+  }
+
+  // Detect current page identifier
+  function getCurrentPageKey() {
+    if (typeof window === 'undefined') return 'index.html';
+    const path = window.location.pathname;
+    const filename = path.substring(path.lastIndexOf('/') + 1) || 'index.html';
+    return filename.toLowerCase();
+  }
+
+  // Unified Assistant Core Class
+  class UnifiedAssistantCore {
+    constructor() {
+      this.intentsData = null;
+      this.loaded = false;
+      this.activeSim = null;
+      this.initPromise = this.loadIntents();
+    }
+
+    async loadIntents() {
+      try {
+        const res = await fetch('./data/intents.json');
+        if (res.ok) {
+          this.intentsData = await res.json();
+          this.loaded = true;
+          return this.intentsData;
+        }
+      } catch (e) {
+        console.warn('Failed to load ./data/intents.json, attempting fallback:', e);
+      }
+
+      // Emergency fallback structure if network fails
+      this.intentsData = {
+        name: 'FlameAtlas In-Memory Fallback',
+        page_intents: {},
+        kb: [
+          {
+            keys: ['nomex', 'moon', '34'],
+            answer: 'In a 34% O₂ / 8.2 psi Moon habitat, Nomex HT90-40 is expected to sustain upward flame spread. BASS samples self-extinguished in ISS air but spread once O₂ exceeded ~30%.',
+            citations: ['PSI-26 BASS', 'NTRS 20150023456']
+          },
+          {
+            keys: ['cool flame', 'invisible'],
+            answer: 'Cool flames are low-temperature (~500–800 K) reactions that emit almost no visible light. FLEX observed n-heptane droplets continuing to burn in a cool-flame regime after the hot flame extinguished.',
+            citations: ['PSI-69 FLEX', 'PSI-159 CFI-G']
+          }
+        ]
+      };
+      this.loaded = true;
+      return this.intentsData;
+    }
+
+    // Attach active simulation if on spacecraft page
+    attachSimulation(sim) {
+      this.activeSim = sim;
+    }
+
+    // Retrieve page explanation
+    getPageExplanation(pageKey) {
+      const page = pageKey || getCurrentPageKey();
+      if (!this.intentsData || !this.intentsData.page_intents) return null;
+      const config = this.intentsData.page_intents[page];
+      if (config) {
+        const explainIntent = config.intents ? config.intents.find(i => i.id.includes('explain')) : null;
+        return {
+          pageName: config.pageName,
+          summary: config.summary,
+          details: explainIntent ? explainIntent.answer : config.summary,
+          citations: explainIntent ? explainIntent.citations : ['NASA Open Science', 'ECLSS Standards'],
+          suggested: config.suggested || []
+        };
+      }
+      return null;
+    }
+
+    // Suggested queries for current page
+    getSuggestedQueries(pageKey) {
+      const page = pageKey || getCurrentPageKey();
+      if (this.intentsData && this.intentsData.page_intents && this.intentsData.page_intents[page]) {
+        return this.intentsData.page_intents[page].suggested || [];
+      }
+      return (this.intentsData && this.intentsData.suggested_global) || [
+        'Explain this page',
+        'Why does fire burn as a sphere in 0g?',
+        'Will Nomex burn in 34% oxygen?',
+        'How do cool flames work?'
+      ];
+    }
+
+    // Check dynamic spacecraft telemetry (AURA engine integration)
+    checkDynamicTelemetry(query) {
+      if (!this.activeSim) return null;
+      const q = query.toLowerCase();
+      const sim = this.activeSim;
+
+      // 1. Where is the fire query
+      if (q.includes('where') && (q.includes('fire') || q.includes('flame') || q.includes('burn'))) {
+        const burning = Object.values(sim.sections || {}).filter((s) => s.burning);
+        if (burning.length === 0) {
+          return {
+            reply: '🛰️ **Spacecraft Telemetry Status: GREEN**\n\nNo active fires are detected anywhere on board the NSS Prometheus. All thermal infrared sensors report cabin temperatures within nominal range (15°C–32°C). Habitation Centrifuge Ring is spinning steadily at 8.0 RPM generating 1.0g.',
+            citations: ['NASA PSI-26 BASS', 'Flight Rule ECLSS-104'],
+            source: 'AURA Real-Time Telemetry Bus'
+          };
+        }
+        const materials = window.MATERIAL_DATABASE || {};
+        const details = burning.map((s) => {
+          const mat = materials[s.materialId] || { name: 'Unknown fuel', category: 'General' };
+          const g = s.id === 'centrifuge' ? (sim.gravityMetrics?.artificialG || 1.0) : 0.0;
+          const flameShape = g < 0.05 ? 'spherical blue diffusion flame (microgravity)' : 'elongated flickering orange teardrop (buoyant artificial gravity)';
+          return `• **${s.name} (${s.code})**:\n  - Temperature: **${s.temperature.toFixed(0)}°C** | HRR: **${s.heatReleaseRate || 0} kW**\n  - Oxygen: **${s.o2.toFixed(1)}%** | Pressure: **${s.pressure.toFixed(1)} kPa**\n  - Fuel: **${mat.name}** (${mat.category})\n  - Flame physics: ${flameShape}\n  - Toxic gases: CO ${s.co_ppm || 0} ppm, Smoke ${(s.smokeDensity || 0).toFixed(2)} OD/m`;
+        }).join('\n\n');
+
+        return {
+          reply: `⚠️ **Active Compartment Fire Alert:**\n\n${details}\n\n**Immediate recommendation**: Turn off ventilation dampers to prevent smoke spread, isolate power buses to stop arcing, and evaluate whether to flood with CO₂ or execute Emergency Vacuum Venting.`,
+          citations: ['NASA Saffire-IV Flight Data', 'NASA PSI-69 FLEX', 'Apollo 1 Post-Mortem Analysis'],
+          source: 'AURA Dynamic Sensor Telemetry'
+        };
+      }
+
+      // 2. Battery thermal runaway query
+      if (q.includes('power core') || q.includes('battery') || (q.includes('thermal runaway') && q.includes('how'))) {
+        return {
+          reply: `⚠️ **CRITICAL PROTOCOL FOR BATTERY THERMAL RUNAWAY:**\nLithium-ion NMC cells decompose exothermically and release atomic oxygen internally (LOI = 0%). Standard vacuum purging or CO₂ flooding **will NOT** stop cathode decomposition!\n\n**Mandatory Protocol:**\n1. Evacuate crew immediately and lock Bulkhead blast doors.\n2. Execute **Vacuum Purge** to remove flammable hydrogen and toxic HF gases and prevent hull over-pressurization.\n3. Keep emergency coolant shunts active to draw thermal energy below the 160°C thermal runaway propagation threshold.\n4. Abandon section if structural bulkheads exceed 500°C.`,
+          citations: ['NASA Battery Safety Standard JSC 20793', 'NASA Saffire-I Flight Experiment'],
+          source: 'AURA Tactical Emergency Response'
+        };
+      }
+
+      return null;
+    }
+
+    // Match query against Common Intents file
+    matchCommonIntents(query, pageKey) {
+      if (!this.intentsData) return null;
+      const q = query.toLowerCase().trim();
+      const activePage = pageKey || getCurrentPageKey();
+
+      let best = null;
+      let bestScore = 0;
+
+      // 1. Check current page intents first (highest priority)
+      if (this.intentsData.page_intents && this.intentsData.page_intents[activePage]?.intents) {
+        for (const entry of this.intentsData.page_intents[activePage].intents) {
+          let score = 0;
+          for (const k of entry.keys) {
+            if (q.includes(k.toLowerCase())) score += 3;
+          }
+          if (entry.questions) {
+            for (const pq of entry.questions) {
+              if (q.includes(pq.toLowerCase()) || pq.toLowerCase().includes(q)) score += 5;
+            }
+          }
+          if (score > bestScore) {
+            bestScore = score;
+            best = entry;
+          }
+        }
+      }
+
+      // 2. Check all other page intents
+      if (this.intentsData.page_intents) {
+        for (const [pk, pObj] of Object.entries(this.intentsData.page_intents)) {
+          if (pk === activePage || !pObj.intents) continue;
+          for (const entry of pObj.intents) {
+            let score = 0;
+            for (const k of entry.keys) {
+              if (q.includes(k.toLowerCase())) score += 1.5;
+            }
+            if (entry.questions) {
+              for (const pq of entry.questions) {
+                if (q.includes(pq.toLowerCase()) || pq.toLowerCase().includes(q)) score += 3.5;
+              }
+            }
+            if (score > bestScore) {
+              bestScore = score;
+              best = entry;
+            }
+          }
+        }
+      }
+
+      // 3. Check general knowledge base (kb)
+      if (Array.isArray(this.intentsData.kb)) {
+        for (const entry of this.intentsData.kb) {
+          let score = 0;
+          for (const k of entry.keys) {
+            if (q.includes(k.toLowerCase())) score += 2;
+          }
+          if (score > bestScore) {
+            bestScore = score;
+            best = entry;
+          }
+        }
+      }
+
+      if (best && bestScore >= 2.5) {
+        return {
+          reply: best.answer,
+          citations: best.citations || ['NASA PSI Repository'],
+          source: 'Common Intents Engine (/data/intents.json)',
+          confidence: best.confidence || 0.85
+        };
+      }
+
+      return null;
+    }
+
+    // Call serverless OpenAI API fallback (/api/openai)
+    async callOpenAiFallback(query, pageKey, history = []) {
+      const pageInfo = this.getPageExplanation(pageKey);
+      const pageTitle = pageInfo ? pageInfo.pageName : pageKey;
+
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 12000);
+
+        const res = await fetch('/api/openai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: query,
+            pageContext: pageTitle,
+            history: history
+          }),
+          signal: ctrl.signal
+        });
+        clearTimeout(timer);
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ok && data.reply) {
+            return {
+              reply: data.reply,
+              citations: data.citations || ['OpenAI AI Synthesis', 'NASA PSI / NTRS Open Science'],
+              source: data.source || 'OpenAI API (Serverless Fallback)',
+              model: data.model
+            };
+          }
+        }
+      } catch (err) {
+        console.warn('OpenAI serverless fallback request failed:', err);
+      }
+
+      // Graceful local fallback if offline or backend server not running
+      return {
+        reply: `I could not find an exact match for "${query}" in the Common Intents database, and the serverless OpenAI fallback is currently offline.\n\nFireGPT answers from indexed NASA Physical Sciences Informatics (PSI), NTRS reports, and spacecraft ECLSS flight rules. Try asking:\n• *"Explain this page"*\n• *"Will Nomex burn in 34% oxygen on the Moon?"*\n• *"Why are cool flames invisible?"*\n• *"How does zero gravity change flame shape?"*\n• *"What is the section abandonment protocol?"*`,
+        citations: ['NASA PSI Repository', 'NASA NTRS 20150023456', 'Flight Rule 14.8'],
+        source: 'FireGPT Offline NASA Fallback'
+      };
+    }
+
+    // Main unified answer pipeline
+    async ask(query, history = []) {
+      await this.initPromise;
+      const cleanQ = (query || '').trim();
+      if (!cleanQ) return null;
+
+      const pageKey = getCurrentPageKey();
+
+      // Check "explain page" intent directly
+      if (cleanQ.toLowerCase() === 'explain this page' || cleanQ.toLowerCase() === 'explain page' || cleanQ.toLowerCase().includes('what is this page')) {
+        const pageExplain = this.getPageExplanation(pageKey);
+        if (pageExplain) {
+          return {
+            reply: `📄 **${pageExplain.pageName} Overview:**\n\n${pageExplain.details}`,
+            citations: pageExplain.citations,
+            source: 'Common Intents Engine (/data/intents.json)'
+          };
+        }
+      }
+
+      // Step 1: Check dynamic telemetry if on spacecraft simulation
+      const telemetryResult = this.checkDynamicTelemetry(cleanQ);
+      if (telemetryResult) return telemetryResult;
+
+      // Step 2: Check Common Intents as First Source of Truth
+      const intentResult = this.matchCommonIntents(cleanQ, pageKey);
+      if (intentResult) return intentResult;
+
+      // Step 3: Fallback to Serverless OpenAI API
+      const openAiResult = await this.callOpenAiFallback(cleanQ, pageKey, history);
+      return openAiResult;
+    }
+  }
+
+  // Create singleton instance
+  const assistantCore = new UnifiedAssistantCore();
+
+  // Backward compatibility wrapper for AURA Chatbot in space-craft.html
+  class UnifiedAuraChatbotAdapter {
+    constructor(simulation) {
+      this.sim = simulation;
+      assistantCore.attachSimulation(simulation);
+    }
+
+    generateEmergencyBriefing() {
+      const sim = this.sim;
+      const burningSections = Object.values(sim.sections || {}).filter((s) => s.burning);
+      const friedSections = Object.values(sim.sections || {}).filter((s) => s.electronics?.primary?.status === 'FRIED');
+
+      if (burningSections.length === 0 && friedSections.length === 0) {
+        return {
+          title: 'SYSTEMS NOMINAL',
+          status: 'GREEN',
+          message: 'All 6 spacecraft sections report nominal atmosphere and thermal parameters. Habitation Centrifuge Ring is spinning steadily at 8.0 RPM generating 1.0g. No thermal anomalies or electrical surges detected.',
+          actions: ['Run diagnostic sweep', 'Inspect fire sensors', 'Review emergency protocols']
+        };
+      }
+
+      let text = '';
+      if (burningSections.length > 0) {
+        const materials = window.MATERIAL_DATABASE || {};
+        text += `🔥 CRITICAL THERMAL EVENT in ${burningSections.length} module(s): `;
+        text += burningSections.map((s) => `${s.name} (${s.temperature.toFixed(0)}°C, O₂: ${s.o2.toFixed(1)}%, Fuel: ${materials[s.materialId]?.name || 'Solid'})`).join('; ') + '. ';
+      }
+
+      if (friedSections.length > 0) {
+        text += `⚡ ELECTRONICS BLACKOUT in: ` + friedSections.map((s) => s.name).join(', ') + '. ';
+      }
+
+      if (sim.gravityMetrics?.bearingStress > 70) {
+        text += `⚠️ DYNAMIC UNBALANCE: Centrifuge bearing stress at ${sim.gravityMetrics.bearingStress}%. Mass shift is inducing ${sim.gravityMetrics.wobbleRms}°/s nutation. `;
+      }
+
+      if (sim.orbitalDecayRisk) {
+        text += `🚨 ORBITAL DECAY IN PROGRESS: Propulsion offline! Spacecraft losing altitude under Earth gravity. Re-entry in ~${Math.round((sim.orbitTimeRemaining || 300) / 60)} minutes! `;
+      }
+
+      return {
+        title: 'EMERGENCY ADVISORY IN EFFECT',
+        status: burningSections.length > 0 ? 'RED' : 'YELLOW',
+        message: text,
+        burningCount: burningSections.length,
+        friedCount: friedSections.length
+      };
+    }
+
+    ask(query) {
+      // Synchronous return for space-craft.html compatibility
+      const telemetry = assistantCore.checkDynamicTelemetry(query);
+      if (telemetry) return telemetry;
+
+      const intent = assistantCore.matchCommonIntents(query, 'space-craft.html');
+      if (intent) return intent;
+
+      return {
+        reply: `Tactical telemetry processed. Citing NASA flight protocols for: "${query}".\n\nIf you need deep generative analysis, the unified FireGPT assistant floating widget or serverless backend is standing by.`,
+        citations: ['NASA PSI-26 BASS', 'Flight Rule ECLSS-104']
+      };
+    }
+  }
+
+  // Alpine Store & Global Component for Unified Assistant
+  function registerUnifiedAssistantStore() {
+    if (typeof Alpine === 'undefined' || typeof Alpine.store !== 'function') return;
+    if (Alpine.store('assistant')) return;
+
+    const pageKey = getCurrentPageKey();
+    const pageExplain = assistantCore.getPageExplanation(pageKey);
+    const initialPageName = pageExplain ? pageExplain.pageName : 'Mission Control';
+
+    Alpine.store('assistant', {
+      isOpen: false,
+      isMinimized: false,
+      busy: false,
+      queryInput: '',
+      pageName: initialPageName,
+      suggested: assistantCore.getSuggestedQueries(pageKey),
+      messages: [
+        {
+          id: 'welcome',
+          role: 'bot',
+          text: `👋 **Welcome to FireGPT — Unified Flight & Science Assistant.**\n\nI combine NASA Physical Sciences Informatics (PSI) research with AURA's real-time spacecraft flight intelligence.\n\n📍 **Active Context**: *${initialPageName}*\n\nTap **Explain This Page** below or ask me anything about microgravity flames, spacecraft hazards, or space weather!`,
+          citations: ['NASA PSI Repository', 'NTRS 20150023456'],
+          source: 'Common Intents Engine (/data/intents.json)',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ],
+
+      toggle() {
+        this.isOpen = !this.isOpen;
+        if (this.isOpen) {
+          this.refreshContext();
+          if (window.sfx && typeof window.sfx.pop === 'function') window.sfx.pop();
+          setTimeout(() => {
+            if (window.lucide) window.lucide.createIcons();
+            const el = document.getElementById('unified-assistant-messages');
+            if (el) el.scrollTop = el.scrollHeight;
+          }, 100);
+        }
+      },
+
+      openWithPrompt(promptText) {
+        this.isOpen = true;
+        this.isMinimized = false;
+        this.refreshContext();
+        if (window.sfx && typeof window.sfx.pop === 'function') window.sfx.pop();
+        if (promptText) {
+          this.submit(promptText);
+        }
+        setTimeout(() => {
+          if (window.lucide) window.lucide.createIcons();
+          const el = document.getElementById('unified-assistant-messages');
+          if (el) el.scrollTop = el.scrollHeight;
+        }, 100);
+      },
+
+      refreshContext() {
+        const pk = getCurrentPageKey();
+        const pinfo = assistantCore.getPageExplanation(pk);
+        this.pageName = pinfo ? pinfo.pageName : 'Mission Control';
+        this.suggested = assistantCore.getSuggestedQueries(pk);
+      },
+
+      explainPage() {
+        this.submit('Explain this page');
+      },
+
+      async submit(queryToRun) {
+        const q = (queryToRun || this.queryInput).trim();
+        if (!q || this.busy) return;
+        this.queryInput = '';
+        this.busy = true;
+
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        this.messages.push({
+          id: Date.now(),
+          role: 'user',
+          text: q,
+          time: timeStr
+        });
+
+        this.scrollToBottom();
+
+        // Query unified assistant pipeline
+        const historyForApi = this.messages.map(m => ({ role: m.role, text: m.text }));
+        const response = await assistantCore.ask(q, historyForApi);
+
+        this.busy = false;
+        this.messages.push({
+          id: Date.now() + 1,
+          role: 'bot',
+          text: response.reply,
+          citations: response.citations || [],
+          source: response.source || 'Unified Assistant',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+
+        // XP Reward & Sound
+        if (Alpine.store('app') && typeof Alpine.store('app').addXp === 'function') {
+          Alpine.store('app').addXp(10, 'FireGPT inquiry');
+        }
+        if (window.sfx && typeof window.sfx.ding === 'function') {
+          window.sfx.ding();
+        }
+
+        this.scrollToBottom();
+        setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 80);
+      },
+
+      scrollToBottom() {
+        setTimeout(() => {
+          const el = document.getElementById('unified-assistant-messages');
+          if (el) el.scrollTop = el.scrollHeight;
+        }, 60);
+      }
+    });
+  }
+
+  // Inject UI widget into DOM
+  function injectAssistantWidget() {
+    if (typeof document === 'undefined' || document.getElementById('unified-assistant-container')) return;
+
+    const container = document.createElement('div');
+    container.id = 'unified-assistant-container';
+    container.innerHTML = `
+      <!-- Floating Launcher Button -->
+      <div class="fixed bottom-5 right-5 z-40 flex items-center gap-2">
+        <button @click="$store.assistant.toggle()"
+                class="group relative flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-slate-900/90 hover:bg-slate-800 text-white border border-pink-500/40 shadow-xl shadow-pink-500/15 backdrop-blur-md transition-all hover:scale-105 active:scale-95 focus:outline-none">
+          <div class="relative flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-tr from-pink-600 to-rose-500 text-white shadow-md">
+            <i data-lucide="bot" class="w-4 h-4"></i>
+            <span class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-950 animate-pulse"></span>
+          </div>
+          <div class="text-left hidden sm:block">
+            <div class="text-xs font-bold leading-tight flex items-center gap-1.5">
+              <span>FireGPT</span>
+              <span class="text-[9px] px-1.5 py-0.2 rounded bg-pink-500/20 text-pink-300 font-mono">Unified</span>
+            </div>
+            <div class="text-[10px] text-slate-400 leading-tight">NASA Explainer & AURA</div>
+          </div>
+        </button>
+      </div>
+
+      <!-- Unified Assistant Modal / Drawer -->
+      <div x-show="$store.assistant.isOpen"
+           x-transition:enter="transition ease-out duration-300"
+           x-transition:enter-start="opacity-0 translate-y-6 scale-95"
+           x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+           x-transition:leave="transition ease-in duration-200"
+           x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+           x-transition:leave-end="opacity-0 translate-y-6 scale-95"
+           class="fixed bottom-20 right-4 sm:right-6 z-50 w-[95vw] sm:w-[440px] max-w-[460px] h-[580px] max-h-[85vh] flex flex-col rounded-2xl bg-slate-950/95 border border-pink-500/30 shadow-2xl shadow-pink-500/20 backdrop-blur-xl overflow-hidden font-sans text-slate-100"
+           style="display: none;">
+
+        <!-- Header -->
+        <div class="px-4 py-3 bg-gradient-to-r from-slate-900/90 via-slate-900/60 to-pink-950/30 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-pink-600 to-rose-500 flex items-center justify-center text-white shadow-md shadow-pink-500/20">
+              <i data-lucide="bot" class="w-4.5 h-4.5"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-sm text-white leading-none">FireGPT Unified Assistant</span>
+                <span class="text-[9px] px-1.5 py-0.5 rounded-full bg-pink-500/20 text-pink-300 font-mono">v2.0</span>
+              </div>
+              <div class="text-[11px] text-slate-400 leading-tight mt-0.5">
+                First source: <span class="text-cyan-400 font-mono">/data/intents.json</span> · Fallback: <span class="text-rose-400 font-mono">/api/openai</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1">
+            <button @click="$store.assistant.explainPage()" title="Explain current page"
+                    class="px-2 py-1 rounded-lg bg-pink-500/10 hover:bg-pink-500/20 text-pink-300 border border-pink-500/30 text-xs flex items-center gap-1 transition-colors">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+              <span class="text-[10px] font-semibold hidden xs:inline">Explain Page</span>
+            </button>
+            <button @click="$store.assistant.toggle()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Active Context Sub-Bar -->
+        <div class="px-4 py-2 bg-slate-900/80 border-b border-slate-800/80 flex items-center justify-between text-xs">
+          <div class="flex items-center gap-1.5 text-slate-300">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="text-slate-400 text-[11px]">Context:</span>
+            <span class="font-semibold text-slate-200" x-text="$store.assistant.pageName"></span>
+          </div>
+          <a href="fire-gpt.html" class="text-[11px] text-pink-400 hover:text-pink-300 flex items-center gap-1 underline underline-offset-2">
+            <span>Full Portal & Quiz</span>
+            <i data-lucide="external-link" class="w-3 h-3"></i>
+          </a>
+        </div>
+
+        <!-- Messages Area -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-3.5 custom-scroll" id="unified-assistant-messages">
+          <template x-for="msg in $store.assistant.messages" :key="msg.id">
+            <div class="flex flex-col space-y-1" :class="msg.role === 'user' ? 'items-end' : 'items-start'">
+              <div class="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono px-1">
+                <span x-text="msg.role === 'user' ? 'Astronaut / Commander' : 'FireGPT Flight AI'"></span>
+                <span>·</span>
+                <span x-text="msg.time"></span>
+              </div>
+
+              <div class="max-w-[88%] rounded-2xl p-3 text-xs leading-relaxed"
+                   :class="msg.role === 'user' ? 'bg-gradient-to-tr from-pink-600 to-rose-600 text-white font-medium rounded-tr-none shadow-md shadow-pink-500/10' : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-tl-none space-y-2'">
+                <div x-html="window.formatAssistantMarkdown(msg.text)"></div>
+
+                <!-- Source & Citations Metadata -->
+                <div x-show="msg.role === 'bot' && (msg.citations || msg.source)" class="pt-2 border-t border-slate-800/80 space-y-1.5">
+                  <div x-show="msg.source" class="text-[9px] text-slate-400 font-mono flex items-center gap-1">
+                    <span class="text-slate-500">Source:</span>
+                    <span class="text-cyan-400" x-text="msg.source"></span>
+                  </div>
+
+                  <div x-show="msg.citations && msg.citations.length" class="flex flex-wrap items-center gap-1">
+                    <span class="text-[9px] text-slate-500 font-mono">Cites:</span>
+                    <template x-for="cit in msg.citations" :key="cit">
+                      <span class="px-1.5 py-0.2 rounded bg-slate-950 border border-slate-800 text-[9px] text-pink-300 font-mono" x-text="cit"></span>
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <!-- Loading Indicator -->
+          <div x-show="$store.assistant.busy" class="flex items-center gap-2 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400 italic">
+            <span class="w-2.5 h-2.5 rounded-full bg-pink-400 animate-ping"></span>
+            <span>Checking common intents & NASA PSI index...</span>
+          </div>
+        </div>
+
+        <!-- Suggested Prompt Chips -->
+        <div class="px-3 py-1.5 bg-slate-900/40 border-t border-slate-800/60 flex items-center gap-1.5 overflow-x-auto scrollbar-none text-[11px]">
+          <span class="text-slate-500 font-mono shrink-0">Ask:</span>
+          <template x-for="chip in $store.assistant.suggested" :key="chip">
+            <button @click="$store.assistant.submit(chip)"
+                    class="px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-pink-500/40 text-slate-300 hover:text-white shrink-0 transition-colors whitespace-nowrap text-[10px]">
+              <span x-text="chip"></span>
+            </button>
+          </template>
+        </div>
+
+        <!-- Input Bar -->
+        <form @submit.prevent="$store.assistant.submit()" class="p-3 bg-slate-950 border-t border-slate-800 flex gap-2">
+          <input type="text" x-model="$store.assistant.queryInput"
+                 placeholder="Ask about microgravity fire, spacecraft status, NOMEX, cool flames..."
+                 class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pink-500/80 transition-colors">
+          <button type="submit" :disabled="$store.assistant.busy || !$store.assistant.queryInput.trim()"
+                  class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-bold text-xs disabled:opacity-40 transition-all flex items-center gap-1.5 shrink-0">
+            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">Send</span>
+          </button>
+        </form>
+      </div>
+    `;
+
+    document.body.appendChild(container);
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 100);
+  }
+
+  // Global helper to open assistant with prompt
+  function openFireGpt(promptText) {
+    if (typeof Alpine !== 'undefined' && Alpine.store && Alpine.store('assistant')) {
+      Alpine.store('assistant').openWithPrompt(promptText);
+    }
+  }
+
+  // Register on window
+  window.formatAssistantMarkdown = formatMarkdown;
+  window.UnifiedAssistantCore = UnifiedAssistantCore;
+  window.unifiedAssistant = assistantCore;
+  window.AuraChatbot = UnifiedAuraChatbotAdapter;
+  window.openFireGpt = openFireGpt;
+  window.openAuraChat = openFireGpt; // alias for space-craft.html compatibility
+
+  // Multi-stage hook initialization
+  document.addEventListener('alpine:init', () => {
+    registerUnifiedAssistantStore();
+  });
+
+  if (typeof Alpine !== 'undefined' && typeof Alpine.store === 'function') {
+    registerUnifiedAssistantStore();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    registerUnifiedAssistantStore();
+    injectAssistantWidget();
+  });
+
+  window.addEventListener('load', () => {
+    registerUnifiedAssistantStore();
+    injectAssistantWidget();
+  });
+
+})(window, document);
+
+  </script>
+  <style>
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #060911;
+  --bg-glow: #0d1224;
+  --surface: rgba(17, 23, 40, 0.75);
+  --surface-solid: #111728;
+  --surface-2: #172036;
+  --surface-3: #1e2944;
+  --border: rgba(148, 163, 184, 0.14);
+  --border-strong: rgba(148, 163, 184, 0.28);
+
+  --text: #e8edf7;
+  --text-muted: #94a0ba;
+  --text-dim: #6b7690;
+
+  --flame: #ff6a2b;
+  --flame-2: #ffb23f;
+  --flame-soft: rgba(255, 106, 43, 0.15);
+  --cyan: #3fd4ff;
+  --cyan-soft: rgba(63, 212, 255, 0.15);
+  --violet: #a78bfa;
+  --violet-soft: rgba(167, 139, 250, 0.16);
+
+  --risk-low: #34d399;
+  --risk-moderate: #facc15;
+  --risk-high: #fb923c;
+  --risk-critical: #f43f5e;
+
+  --font-sans: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 20px;
+}
+
+html {
+  background-color: #060911;
+}
+
+html[data-kids] {
+  --font-sans: 'Fredoka', 'Space Grotesk', system-ui, sans-serif;
+  --radius: 18px;
+  --radius-lg: 26px;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text);
+  background-color: #060911;
+  background: radial-gradient(1200px 600px at 85% -10%, rgba(255, 106, 43, 0.12), transparent 60%),
+    radial-gradient(900px 500px at -10% 20%, rgba(63, 212, 255, 0.08), transparent 60%), var(--bg);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-feature-settings: 'tnum';
+}
+
+/* Starfield */
+.starfield {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: 
+    radial-gradient(1px 1px at 12% 22%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 72% 12%, rgba(255, 255, 255, 0.35), transparent),
+    radial-gradient(1px 1px at 42% 78%, rgba(255, 255, 255, 0.3), transparent),
+    radial-gradient(1.5px 1.5px at 88% 64%, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 22% 58%, rgba(255, 255, 255, 0.25), transparent),
+    radial-gradient(1px 1px at 58% 38%, rgba(255, 255, 255, 0.3), transparent);
+  background-size: 600px 600px;
+  opacity: 0.6;
+}
+
+/* Custom range slider */
+.range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--cyan) 0%, var(--cyan) var(--fill, 0%), var(--surface-3) var(--fill, 0%));
+  outline: none;
+}
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 4px solid var(--cyan);
+  box-shadow: 0 0 0 6px rgba(63, 212, 255, 0.2);
+  cursor: grab;
+  transition: transform 0.15s ease-out;
+}
+.range::-webkit-slider-thumb:active {
+  transform: scale(1.15);
+  cursor: grabbing;
+}
+html[data-kids] .range {
+  height: 10px;
+}
+html[data-kids] .range::-webkit-slider-thumb {
+  width: 26px;
+  height: 26px;
+}
+
+/* Cards & Shells */
+.glass-panel {
+  background: var(--surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 50px -24px rgba(0, 0, 0, 0.7);
+}
+
+.glass-pill {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+/* Toast container */
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+.toast-msg {
+  pointer-events: auto;
+  min-width: 260px;
+  max-width: 380px;
+  background: #151d33;
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: slideToast 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes slideToast {
+  from { opacity: 0; transform: translateY(16px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Sparky Floating Guide */
+.sparky-widget {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+.sparky-bubble {
+  max-width: 280px;
+  background: #162039;
+  border: 1px solid rgba(63, 212, 255, 0.3);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  border-radius: 16px;
+  border-bottom-left-radius: 4px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.4;
+  position: relative;
+}
+.sparky-avatar {
+  width: 72px;
+  height: 78px;
+  cursor: pointer;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.5));
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.sparky-avatar:hover {
+  transform: scale(1.08) rotate(3deg);
+}
+
+/* 3D Canvas Container */
+.scene-container {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  background: #02030a;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+/* Animations */
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.animate-float {
+  animation: floatY 3s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 15px rgba(255, 106, 43, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(255, 106, 43, 0.6); }
+}
+.pulse-flame {
+  animation: pulseGlow 2s infinite ease-in-out;
+}
+
+  </style>
 
   <style>
     /* Custom Pulse & Glow Effects */

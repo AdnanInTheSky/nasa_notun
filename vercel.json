@@ -1,5 +1,6 @@
 {
-  "outputDirectory": "dist",
+  "buildCommand": null,
+  "framework": null,
   "cleanUrls": true,
   "trailingSlash": false
 }

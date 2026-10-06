@@ -17,11 +17,1959 @@
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Application Core Scripts -->
-  <script src="js/models.js"></script>
-  <script src="js/shared.js"></script>
-  <script src="js/earth-scene-3d.js"></script>
-  <script src="js/unified-assistant.js"></script>
-  <link rel="stylesheet" href="styles/main.css">
+  <script>
+/**
+ * FlameAtlas Computational Models
+ * Stand-ins for /risk, /rank, /gravity, /regime, /gaps, and earth impact physics.
+ */
+
+const clamp = (v, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v));
+
+function seeded(seed) {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
+  return () => {
+    h += 0x6d2b79f5;
+    let t = h;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const gravityFactor = (g) => 0.72 + 0.55 * Math.sin((Math.PI * clamp(g)) / 1.25);
+
+function shapFor(material, { o2, pressure, gravity }) {
+  const o2Eff = (o2 - 21) * 0.018;
+  const pEff = -(14.7 - pressure) * 0.006 + (o2 > 30 ? 0.02 : 0);
+  const gEff = (gravityFactor(gravity) - 1) * 0.28;
+  const matEff = (material.base - 0.5) * 0.7;
+  const loiEff = -(material.loi - 21) * 0.004;
+  return [
+    { feature: 'Oxygen %', value: +o2Eff.toFixed(3) },
+    { feature: 'Material chemistry', value: +matEff.toFixed(3) },
+    { feature: 'Oxygen index (LOI)', value: +loiEff.toFixed(3) },
+    { feature: 'Gravity level', value: +gEff.toFixed(3) },
+    { feature: 'Pressure', value: +pEff.toFixed(3) },
+  ];
+}
+
+function materialRisk(material, cond) {
+  const sum = shapFor(material, cond).reduce((a, s) => a + s.value, 0);
+  return clamp(0.42 + sum);
+}
+
+function rankMaterials(materials, cond, ids = null) {
+  const subset = ids ? materials.filter((m) => ids.includes(m.id)) : materials;
+  return subset
+    .map((m) => {
+      const risk = materialRisk(m, cond);
+      const burnsAbove = Math.max(10, Math.round(m.loi - (cond.gravity > 0 ? 2 : 0) - (14.7 - cond.pressure) * 0.3));
+      return { ...m, risk, burnsAbove, selfExtinguishes: cond.o2 < burnsAbove };
+    })
+    .sort((a, b) => b.risk - a.risk);
+}
+
+function cabinRisk(materials, cond) {
+  const ranked = rankMaterials(materials, cond);
+  if (!ranked.length) return 50;
+  const avg = ranked.reduce((a, m) => a + m.risk, 0) / ranked.length;
+  return Math.round(clamp(avg * 1.15) * 100);
+}
+
+const riskLevel = (r) =>
+  r >= 0.7
+    ? { label: 'Critical', tone: 'critical' }
+    : r >= 0.5
+      ? { label: 'High', tone: 'high' }
+      : r >= 0.3
+        ? { label: 'Moderate', tone: 'moderate' }
+        : { label: 'Low', tone: 'low' };
+
+function gravityCurve(material) {
+  const scale = 0.6 + material.base * 3.2;
+  const pts = [];
+  for (let i = 0; i <= 50; i++) {
+    const g = i / 50;
+    const mean = scale * gravityFactor(g);
+    const dist = Math.min(g, 1 - g);
+    const sd = 0.05 * scale + dist * 0.9 * scale * 0.55;
+    pts.push({ g: +g.toFixed(2), mean: +mean.toFixed(3), band: [+(mean - sd).toFixed(3), +(mean + sd).toFixed(3)] });
+  }
+  return pts;
+}
+
+function gravityObservations(material) {
+  const rnd = seeded(material.id);
+  const scale = 0.6 + material.base * 3.2;
+  const obs = [];
+  [0, 0, 0.01, 0.02, 0.05].forEach((g) => obs.push({ g, obs: +(scale * gravityFactor(g) * (0.92 + rnd() * 0.16)).toFixed(3) }));
+  [0.95, 1, 1, 1].forEach((g) => obs.push({ g, obs: +(scale * gravityFactor(g) * (0.92 + rnd() * 0.16)).toFixed(3) }));
+  return obs;
+}
+
+function predictAt(material, g) {
+  const curve = gravityCurve(material);
+  const idx = Math.round(clamp(g) * 50);
+  return curve[idx];
+}
+
+const FUEL_SHIFT = { heptane: 0, decane: 1.5, dodecane: 3, methanol: -2.5 };
+const DILUENT_SHIFT = { n2: 0, co2: 4, he: 2 };
+
+function regimeAt(o2, atm, fuelId, diluentId) {
+  const shift = (FUEL_SHIFT[fuelId] || 0) + (DILUENT_SHIFT[diluentId] || 0);
+  const extinctLimit = 13 + shift - (atm - 1) * 2.2;
+  const coolWidth = 4.5 + (fuelId === 'methanol' ? -2.5 : 0) + (diluentId === 'co2' ? 1.8 : 0) + atm * 0.6;
+  if (o2 < extinctLimit) return 'extinct';
+  if (o2 < extinctLimit + coolWidth) return 'cool';
+  return 'hot';
+}
+
+function gapGrid(gapG = [1, 0.75, 0.5, 0.38, 0.16, 0.05, 0], gapO2 = [15, 18, 21, 24, 27, 30, 34, 38]) {
+  const rnd = seeded('gaps');
+  return gapG.map((g) =>
+    gapO2.map((o2) => {
+      let n = 0;
+      if (g === 0) n = Math.round(4 + rnd() * 22 * (o2 <= 30 ? 1 : 0.25));
+      else if (g === 1) n = Math.round(6 + rnd() * 30 * (o2 <= 34 ? 1 : 0.4));
+      else if (g === 0.05) n = o2 <= 24 ? Math.round(rnd() * 4) : 0;
+      else if (g === 0.16) n = o2 === 21 ? 1 : 0;
+      else n = 0;
+      return { g, o2, n };
+    })
+  );
+}
+
+// Earth Impact Physics
+const AU_KM = 1.496e8;
+const fluxFromLevel = (level) => 10 ** (level - 8);
+function classFromLevel(level) {
+  const flux = fluxFromLevel(level);
+  const letters = [
+    ['X', 1e-4],
+    ['M', 1e-5],
+    ['C', 1e-6],
+    ['B', 1e-7],
+    ['A', 1e-8],
+  ];
+  const [letter, base] = letters.find(([, b]) => flux >= b) || letters[4];
+  return `${letter}${(flux / base).toFixed(1)}`;
+}
+
+const HIT = { direct: 1, glancing: 0.5, miss: 0 };
+
+const lerpTable = (table, x) => {
+  if (x <= table[0][0]) return table[0][1];
+  for (let i = 1; i < table.length; i++) {
+    const [x1, y1] = table[i];
+    const [x0, y0] = table[i - 1];
+    if (x <= x1) return y0 + ((x - x0) / (x1 - x0)) * (y1 - y0);
+  }
+  return table[table.length - 1][1];
+};
+
+const scaleFrom = (value, steps) => steps.reduce((lvl, s, i) => (value >= s ? i + 1 : lvl), 0);
+
+function earthImpact(inp) {
+  const hit = HIT[inp.hit] ?? 0;
+  const flux = fluxFromLevel(inp.level);
+  const R = scaleFrom(flux, [1e-5, 5e-5, 1e-4, 1e-3, 2e-3]);
+  const pfu = 10 ** (1.5 * (inp.level - 2.6)) * (0.3 + 0.7 * hit) * (inp.speed / 1000);
+  const S = scaleFrom(pfu, [10, 100, 1e3, 1e4, 1e5]);
+  const v = inp.speed * hit + 400 * (1 - hit);
+  const n = inp.density * hit + 5 * (1 - hit);
+  const bz = inp.bz * hit;
+  const bs = Math.max(0, -bz);
+  const dst = hit > 0 ? -(0.01 * v * bs + 20 * hit) : -8;
+  const kp = Math.min(
+    9,
+    lerpTable(
+      [
+        [0, 1],
+        [-30, 3],
+        [-50, 5],
+        [-100, 6],
+        [-150, 7],
+        [-250, 8],
+        [-350, 9],
+      ].map(([d, k]) => [-d, k]),
+      -dst,
+    ),
+  );
+  const G = kp >= 9 ? 5 : kp >= 8 ? 4 : kp >= 7 ? 3 : kp >= 6 ? 2 : kp >= 5 ? 1 : 0;
+  const P = 1.6726e-6 * n * v * v;
+  const rmp = (10.22 + 1.29 * Math.tanh(0.184 * (bz + 8.14))) * P ** (-1 / 6.6);
+  const auroraLat = clamp(66.5 - 3.4 * kp - Math.max(0, (-dst - 400) / 80), 18, 70);
+  const cityAbs = Math.abs(inp.cityLat);
+  const aurora = cityAbs >= auroraLat ? 'overhead' : cityAbs >= auroraLat - 5 ? 'horizon' : 'no';
+  const vAvg = 400 + (inp.speed - 400) * 0.8;
+  const arrivalHours = AU_KM / vAvg / 3600;
+
+  const gpsErr = Math.round(1 + kp * kp * 0.55 + S * 2);
+  const drag = Math.round(8 * kp ** 1.6);
+  const geoExposed = rmp < 6.6;
+  const impacts = {
+    radio: { score: R * 20, detail: R ? `Shortwave radio fades on sunny side for ~${[0, 10, 30, 60, 120, 180][R]} min` : 'Radios work normally' },
+    gps: { score: clamp(gpsErr / 45) * 100, detail: `GPS can be off by about ${gpsErr} m` },
+    satellites: {
+      score: clamp(drag / 250 + (geoExposed ? 0.4 : 0) + S * 0.06) * 100,
+      detail: geoExposed ? `Shield squeezed inside GEO orbit! Satellites exposed. Drag +${drag}%` : `Air drag on low satellites +${drag}%`,
+    },
+    power: {
+      score: clamp(-dst / 700) * 100,
+      detail: -dst > 500 ? 'Big risk of blackouts from induced currents' : -dst > 200 ? 'Power grid operators on alert' : 'Power grids are fine',
+    },
+    astronauts: {
+      score: S * 20,
+      detail: S >= 3 ? 'Astronauts must shelter in shielded areas' : S >= 1 ? 'Extra radiation: spacewalks postponed' : 'Normal radiation levels',
+    },
+    flights: { score: (S >= 2 || R >= 3 ? 55 : 0) + S * 9, detail: S >= 2 || R >= 3 ? 'Polar flights rerouted to lower routes' : 'Flights normal' },
+  };
+  const overall = Math.round(
+    clamp(
+      (impacts.radio.score * 0.12 +
+        impacts.gps.score * 0.12 +
+        impacts.satellites.score * 0.2 +
+        impacts.power.score * 0.26 +
+        impacts.astronauts.score * 0.18 +
+        impacts.flights.score * 0.12) /
+        100,
+    ) * 100,
+  );
+
+  return {
+    R,
+    S,
+    G,
+    kp,
+    dst: Math.round(dst),
+    pfu,
+    rmp,
+    auroraLat,
+    aurora,
+    arrivalHours,
+    impacts,
+    overall,
+    geoExposed,
+    classType: classFromLevel(inp.level),
+    hit,
+  };
+}
+
+function inputsFromFlare(flare) {
+  const abs = Math.abs(flare.lon);
+  return {
+    level: Math.log10(flare.flux) + 8,
+    hit: !flare.hasCME ? 'miss' : abs < 35 ? 'direct' : abs < 70 ? 'glancing' : 'miss',
+    speed: flare.hasCME ? Math.round(500 + (Math.log10(flare.flux) + 6) * 400) : 420,
+    bz: flare.hasCME ? -12 : 0,
+    density: flare.hasCME ? 15 : 6,
+  };
+}
+
+// Flame Lab Physics
+const GRAVITY_SIZE = [
+  [0, 0.62],
+  [0.16, 1.0],
+  [0.38, 1.08],
+  [1, 0.95],
+];
+
+function computeFlame({ gravity, o2, material }) {
+  const g = clamp(gravity);
+  const sg = Math.sqrt(g);
+  const canBurn = o2 >= material.loi;
+  const oxy = clamp((o2 - material.loi) / 14 + 0.35, 0.3, 1.4);
+  const size = canBurn ? material.flam * oxy * lerpTable(GRAVITY_SIZE, g) : 0;
+  const blueness = 1 - clamp(sg * 1.15);
+
+  return {
+    material,
+    canBurn,
+    size,
+    radius: 0.22 + 0.33 * size,
+    stretch: 1 + 1.3 * sg,
+    taper: clamp(sg * 1.4),
+    blueness,
+    soot: 0.25 + 0.75 * (1 - blueness),
+    flow: 0.18 + 0.82 * sg,
+    smokeRise: 1.7 * g,
+    shape: g < 0.02 ? 'Round ball' : g < 0.5 ? 'Short and wide' : 'Tall teardrop',
+    colorName: blueness > 0.6 ? 'Blue and dim' : blueness > 0.25 ? 'Orange, blue base' : 'Bright yellow',
+    oxygenSpeed: g < 0.02 ? 'Slow drift' : g < 0.5 ? 'Gentle breeze' : 'Fast breeze',
+    smokeGoes: g < 0.02 ? 'Everywhere, slowly' : 'Up to the ceiling',
+  };
+}
+
+function dangerLevel(size, burning) {
+  if (!burning || size <= 0) return { label: 'Safe', tone: 'low', pct: 0 };
+  const pct = Math.round(clamp(size / 1.4) * 100);
+  if (size > 0.9) return { label: 'Danger!', tone: 'critical', pct };
+  if (size > 0.55) return { label: 'Watch out', tone: 'high', pct };
+  return { label: 'Small', tone: 'moderate', pct };
+}
+
+function explain(state, flame) {
+  const { status, gravity: g, o2, coolFlame, heatVision, fizzled, burnedOut } = state;
+  const m = flame.material;
+
+  if (status === 'extinguishing') {
+    return {
+      title: 'Whoosh! Carbon dioxide',
+      text: 'The extinguisher sprays CO₂, a heavy gas that pushes oxygen away from the fuel. No oxygen means the fire triangle is broken.',
+      word: { term: 'Suppressant', meaning: 'Anything that puts out a fire, like CO₂, water mist or foam.' },
+    };
+  }
+  if (status === 'out' && coolFlame && !heatVision) {
+    return {
+      title: 'Is it really out?',
+      text: 'It looks like the fire is gone… but in space some fuel drops keep burning as an invisible "cool flame". Switch on Heat vision to check!',
+      word: { term: 'Cool flame', meaning: 'A flame at about 500 °C instead of 1,500 °C. It gives off almost no light.' },
+    };
+  }
+  if (status === 'out' && coolFlame && heatVision) {
+    return {
+      title: 'Found it: a hidden cool flame!',
+      text: 'Heat vision shows the flame our eyes miss. NASA discovered these on the space station in the FLEX experiment. Astronauts need special sensors to spot them.',
+      word: { term: 'Infrared', meaning: 'A kind of light we feel as heat but cannot see. Heat cameras can see it.' },
+    };
+  }
+  if ((status === 'out' || status === 'fizzle') && fizzled) {
+    return {
+      title: "It won't stay lit!",
+      text: `${m.name} needs at least ${m.loi}% oxygen to keep burning. This air has only ${o2}%. ${m.loi > 25 ? 'That is why fire-safe materials protect astronauts.' : 'Try adding more oxygen.'}`,
+      word: { term: 'Oxygen index', meaning: 'The smallest amount of oxygen a material needs to keep burning.' },
+    };
+  }
+  if (status === 'out' && burnedOut) {
+    return {
+      title: 'All burned up',
+      text: 'The fire used up all of its fuel, so it stopped. Remove the fuel and a fire cannot keep going. Press Reset for a new sample.',
+      word: { term: 'Fuel', meaning: 'Anything that can burn: paper, cloth, plastic or liquid fuel.' },
+    };
+  }
+  if (status === 'out') {
+    return {
+      title: 'Fire is out. Great job!',
+      text: 'You stopped the fire. On a real spacecraft, astronauts would also switch off fans so fresh air stops feeding any leftover flames.',
+      word: { term: 'Ventilation', meaning: 'Fans that move air around. In space, fans are the only "wind".' },
+    };
+  }
+  if (status === 'burning' && g < 0.02) {
+    return {
+      title: 'A floating fire ball!',
+      text: 'In space, hot air does not rise because there is no "up". The flame spreads evenly in every direction and becomes a ball. Fresh oxygen only drifts in slowly, so the flame is small, cool and blue.',
+      word: { term: 'Microgravity', meaning: 'When things feel almost weightless, like on the space station.' },
+    };
+  }
+  if (status === 'burning' && g < 0.5) {
+    return {
+      title: 'A wide, hungry flame',
+      text: `Gravity here is weak, so hot air rises gently. That soft breeze feeds the fire with oxygen without cooling it much, so some materials burn even better than on Earth!${o2 > 25 ? ' The extra oxygen in the base makes it hungrier still.' : ''}`,
+      word: { term: 'Buoyancy', meaning: 'Hot air is lighter than cold air, so gravity lets it float upward.' },
+    };
+  }
+  if (status === 'burning') {
+    return {
+      title: 'Hot air rises!',
+      text: 'On Earth, gravity pulls heavy cold air down, and the light hot air from the fire rises up. This pulls the flame into a pointy teardrop. Tiny glowing bits of soot make it yellow.',
+      word: { term: 'Convection', meaning: 'Heat moving around because warm air or water rises and cool air sinks.' },
+    };
+  }
+  return {
+    title: 'Ready for an experiment',
+    text: 'Pick a place and something to burn, then press "Light it!" or click the sample. Every fire needs fuel, heat and oxygen. Together they make the fire triangle.',
+    word: { term: 'Fire triangle', meaning: 'Fuel + heat + oxygen. Take away any one and the fire goes out.' },
+  };
+}
+
+const FlameModels = {
+  clamp,
+  seeded,
+  shapFor,
+  materialRisk,
+  rankMaterials,
+  cabinRisk,
+  riskLevel,
+  gravityCurve,
+  gravityObservations,
+  predictAt,
+  regimeAt,
+  gapGrid,
+  fluxFromLevel,
+  classFromLevel,
+  HIT,
+  earthImpact,
+  inputsFromFlare,
+  computeFlame,
+  dangerLevel,
+  explain,
+};
+
+if (typeof window !== 'undefined') {
+  window.FlameModels = FlameModels;
+  Object.assign(window, FlameModels);
+}
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = FlameModels;
+}
+
+  </script>
+  <script>
+/**
+ * FlameAtlas Shared Core Logic
+ * Handles global state (Phase, Kids Mode, Sound, XP, Badges, Sparky, Toasts) with Alpine.js
+ */
+
+// Sound effects synthesizer via Web Audio
+let audioCtx = null;
+let soundEnabled = localStorage.getItem('flameatlas_sound') !== 'false';
+
+function getAudioContext() {
+  if (!soundEnabled || typeof window === 'undefined') return null;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  } catch (e) {
+    return null;
+  }
+}
+
+function playTone(freq, start, dur, { type = 'sine', vol = 0.12, slide = 0 } = {}) {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  try {
+    const t0 = ctx.currentTime + start;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t0);
+    if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(40, freq + slide), t0 + dur);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(vol, t0 + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.02);
+  } catch (e) {}
+}
+
+const sfx = {
+  pop: () => playTone(620, 0, 0.08, { type: 'triangle', vol: 0.06, slide: 200 }),
+  ding: () => {
+    playTone(880, 0, 0.18, { vol: 0.09 });
+    playTone(1320, 0.08, 0.25, { vol: 0.07 });
+  },
+  fanfare: () => [523, 659, 784, 1047].forEach((f, i) => playTone(f, i * 0.11, 0.3, { type: 'triangle', vol: 0.1 })),
+  whoosh: () => playTone(200, 0, 0.5, { type: 'sawtooth', vol: 0.04, slide: 900 }),
+  oops: () => playTone(300, 0, 0.25, { type: 'square', vol: 0.05, slide: -150 }),
+};
+
+if (typeof window !== 'undefined') window.sfx = sfx;
+
+// Sparky Robot Mascot SVG generator
+function renderSparkySvg(size = 72, mood = 'happy') {
+  return `
+    <svg viewBox="0 0 120 130" width="${size}" height="${(size * 130) / 120}" class="animate-float" aria-hidden="true">
+      <defs>
+        <linearGradient id="sp-body" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffffff"/>
+          <stop offset="1" stop-color="#cfd8ee"/>
+        </linearGradient>
+        <linearGradient id="sp-flame" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0" stop-color="#ff6a2b"/>
+          <stop offset="1" stop-color="#ffd23f"/>
+        </linearGradient>
+        <radialGradient id="sp-visor" cx="40%" cy="35%" r="70%">
+          <stop offset="0" stop-color="#4fe0ff"/>
+          <stop offset="1" stop-color="#1a3f8f"/>
+        </radialGradient>
+      </defs>
+      <!-- Antenna flame -->
+      <path d="M60 6 C66 14 70 18 66 26 C64 30 56 30 54 26 C50 18 56 14 60 6 Z" fill="url(#sp-flame)"/>
+      <rect x="57" y="26" width="6" height="10" rx="3" fill="#8a96b8"/>
+      <!-- Head -->
+      <rect x="22" y="34" width="76" height="56" rx="26" fill="url(#sp-body)" stroke="#8a96b8" stroke-width="2"/>
+      <rect x="31" y="44" width="58" height="36" rx="18" fill="url(#sp-visor)"/>
+      <!-- Eyes -->
+      <path d="M44 62 q6 -8 12 0" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M64 62 q6 -8 12 0" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <!-- Mouth & cheeks -->
+      <path d="M52 71 q8 6 16 0" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <circle cx="36" cy="72" r="4" fill="#ff8fa3" opacity="0.7"/>
+      <circle cx="84" cy="72" r="4" fill="#ff8fa3" opacity="0.7"/>
+      <!-- Torso -->
+      <rect x="36" y="92" width="48" height="30" rx="14" fill="url(#sp-body)" stroke="#8a96b8" stroke-width="2"/>
+      <circle cx="60" cy="106" r="7" fill="#ff6a2b"/>
+      <path d="M57 106 l3 -5 l3 5 l-3 3 z" fill="#ffd23f"/>
+      <!-- Arms -->
+      <rect x="20" y="96" width="16" height="9" rx="4.5" fill="#cfd8ee" stroke="#8a96b8" stroke-width="2"/>
+      <rect x="84" y="96" width="16" height="9" rx="4.5" fill="#cfd8ee" stroke="#8a96b8" stroke-width="2"/>
+    </svg>
+  `;
+}
+
+// Global Alpine Store
+function getFlameAtlasStore() {
+  return {
+    // Phases
+    phases: [
+      { id: 'moon', name: 'Moon Base', gravity: 0.16, o2: 34, pressure: 8.2, commDelay: '1.3 s', note: 'Proposed 8.2 psi / 34% O₂ habitat — materials ignite more easily.' },
+      { id: 'mars', name: 'Mars Habitat', gravity: 0.38, o2: 28, pressure: 9.5, commDelay: '14 min', note: 'Partial gravity allows buoyant convection; communication lag delays ground response.' },
+      { id: 'transit', name: 'Deep Space Transit', gravity: 0.0, o2: 21, pressure: 14.7, commDelay: 'Variable', note: 'Zero-g spherical flames, slow burning, high toxic soot buildup.' },
+      { id: 'iss', name: 'ISS Low Earth Orbit', gravity: 0.0, o2: 21, pressure: 14.7, commDelay: '< 1 s', note: 'Microgravity testbed with immediate ground support.' },
+      { id: 'gateway', name: 'Lunar Gateway', gravity: 0.0, o2: 30, pressure: 10.2, commDelay: '1.3 s', note: 'Outside Earth magnetosphere with intermittent crew presence.' }
+    ],
+    currentPhaseId: localStorage.getItem('flameatlas_phase') || 'moon',
+    get currentPhase() {
+      return this.phases.find((p) => p.id === this.currentPhaseId) || {
+        id: 'moon',
+        name: 'Moon',
+        gravity: 0.16,
+        o2: 34,
+        pressure: 8.2,
+        commDelay: '1.3 s',
+        note: 'Proposed 8.2 psi / 34% O₂ habitat — materials ignite more easily.'
+      };
+    },
+    setPhase(id) {
+      this.currentPhaseId = id;
+      localStorage.setItem('flameatlas_phase', id);
+      sfx.pop();
+      window.dispatchEvent(new CustomEvent('phase-changed', { detail: this.currentPhase }));
+    },
+
+    // Kids mode (defaults to true as per spec)
+    kids: localStorage.getItem('flameatlas_kids') !== 'false',
+    toggleKids() {
+      this.kids = !this.kids;
+      localStorage.setItem('flameatlas_kids', this.kids);
+      document.documentElement.toggleAttribute('data-kids', this.kids);
+      sfx.pop();
+    },
+
+    // Sound toggle
+    sound: soundEnabled,
+    toggleSound() {
+      this.sound = !this.sound;
+      soundEnabled = this.sound;
+      localStorage.setItem('flameatlas_sound', this.sound);
+    },
+
+    // Game stats & XP
+    xp: Number(localStorage.getItem('flameatlas_xp') || 0),
+    badges: JSON.parse(localStorage.getItem('flameatlas_badges') || '[]'),
+    stats: JSON.parse(localStorage.getItem('flameatlas_stats') || '{}'),
+    levels: [
+      { level: 1, title: 'Cadet', xp: 0 },
+      { level: 2, title: 'Spark Spotter', xp: 60 },
+      { level: 3, title: 'Flame Tracker', xp: 150 },
+      { level: 4, title: 'Fire Scientist', xp: 280 },
+      { level: 5, title: 'Habitat Guardian', xp: 450 },
+      { level: 6, title: 'Mission Fire Chief', xp: 680 }
+    ],
+    allBadges: [
+      { id: 'first-light', name: 'First Light', icon: 'flame', desc: 'Ignite your first simulated flame.' },
+      { id: 'space-ball', name: 'Fire Sphere', icon: 'circle-dot', desc: 'Create a spherical flame in zero gravity.' },
+      { id: 'moon-fire', name: 'Moon Flame', icon: 'moon', desc: 'Test material combustion under lunar gravity.' },
+      { id: 'firefighter', name: 'CO₂ Suppressor', icon: 'shield-alert', desc: 'Successfully extinguish a fire using CO₂.' },
+      { id: 'ghost-buster', name: 'Cool Flame Hunter', icon: 'eye', desc: 'Spot a hidden low-temp flame with infrared.' },
+      { id: 'alarm-raiser', name: 'Safety Sentinel', icon: 'bell-ring', desc: 'Trigger early warning cabin smoke sensors.' },
+      { id: 'risk-reader', name: 'Risk Analyst', icon: 'gauge', desc: 'Identify the highest-risk mission habitat.' },
+      { id: 'explorer', name: 'Mission Specialist', icon: 'compass', desc: 'Survey all five spaceflight mission environments.' }
+    ],
+    allMissions: [],
+
+    get currentLevel() {
+      let cur = this.levels[0];
+      for (const l of this.levels) {
+        if (this.xp >= l.xp) cur = l;
+      }
+      const next = this.levels.find((l) => l.xp > this.xp);
+      const progress = next ? (this.xp - cur.xp) / (next.xp - cur.xp) : 1;
+      return { ...cur, next, progress: Math.min(1, Math.max(0, progress)) };
+    },
+
+    addXp(amount, reason = '') {
+      const prevLevel = this.currentLevel.level;
+      this.xp += amount;
+      localStorage.setItem('flameatlas_xp', this.xp);
+      const newLevel = this.currentLevel.level;
+      if (reason) {
+        this.toast('xp', `+${amount} XP`, reason);
+        sfx.ding();
+      }
+      if (newLevel > prevLevel) {
+        setTimeout(() => {
+          this.toast('level', `Level Up! Level ${newLevel}`, this.currentLevel.title);
+          sfx.fanfare();
+        }, 300);
+      }
+    },
+
+    unlockBadge(badgeId) {
+      if (this.badges.includes(badgeId)) return false;
+      const b = this.allBadges.find((x) => x.id === badgeId);
+      if (!b) return false;
+      this.badges.push(badgeId);
+      localStorage.setItem('flameatlas_badges', JSON.stringify(this.badges));
+      this.toast('badge', 'Badge Unlocked!', b.name);
+      this.addXp(40);
+      sfx.fanfare();
+      if (typeof confetti === 'function') {
+        confetti({ particleCount: 90, spread: 75, origin: { y: 0.3 } });
+      }
+      return true;
+    },
+
+    bumpStat(key, by = 1) {
+      this.stats[key] = (this.stats[key] || 0) + by;
+      localStorage.setItem('flameatlas_stats', JSON.stringify(this.stats));
+      return this.stats[key];
+    },
+
+    // Trophy Room Modal
+    trophyOpen: false,
+    toggleTrophy() {
+      this.trophyOpen = !this.trophyOpen;
+      sfx.pop();
+    },
+
+    // Mobile Menu
+    mobileMenuOpen: false,
+    toggleMobileMenu() {
+      this.mobileMenuOpen = !this.mobileMenuOpen;
+      sfx.pop();
+    },
+
+    // Sparky Tips & Welcome
+    sparkyVisible: true,
+    sparkySpeechOpen: true,
+    welcomeOpen: false,
+    currentSectionKey: 'overview',
+    toggleSparky() {
+      this.sparkySpeechOpen = !this.sparkySpeechOpen;
+      sfx.pop();
+    },
+
+    // Toast notifications
+    toasts: [],
+    toast(kind, title, text) {
+      const id = Date.now() + Math.random();
+      this.toasts.push({ id, kind, title, text });
+      setTimeout(() => {
+        this.toasts = this.toasts.filter((t) => t.id !== id);
+      }, kind === 'badge' ? 4500 : 2500);
+    },
+
+    // Initializer
+    async init() {
+      document.documentElement.toggleAttribute('data-kids', this.kids);
+
+      // Check first visit welcome
+      if (!localStorage.getItem('flameatlas_welcomed')) {
+        this.welcomeOpen = true;
+      }
+
+      // Load data
+      try {
+        const [missionsRes, gameRes] = await Promise.all([
+          fetch('./data/missions.json'),
+          fetch('./data/game.json')
+        ]);
+        if (missionsRes.ok) this.phases = await missionsRes.json();
+        if (gameRes.ok) {
+          const gameData = await gameRes.json();
+          this.levels = gameData.levels || this.levels;
+          this.allBadges = gameData.badges || [];
+          this.allMissions = gameData.missions || [];
+          this.kidSections = gameData.kidSections || {};
+        }
+      } catch (e) {
+        console.warn('Fallback loading data:', e);
+      }
+    },
+
+    closeWelcome() {
+      this.welcomeOpen = false;
+      localStorage.setItem('flameatlas_welcomed', 'true');
+      sfx.pop();
+    }
+  };
+}
+
+let appStoreRegistered = false;
+function registerFlameAtlasStore() {
+  if (appStoreRegistered) return;
+  if (typeof Alpine !== 'undefined' && typeof Alpine.store === 'function') {
+    try {
+      Alpine.store('app', getFlameAtlasStore());
+      appStoreRegistered = true;
+      if (typeof window !== 'undefined') {
+        injectMobileNav();
+        setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 100);
+        setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 600);
+      }
+    } catch (e) {
+      console.warn('Store registration:', e);
+    }
+  }
+}
+
+// Multi-stage registration hooks
+document.addEventListener('alpine:init', registerFlameAtlasStore);
+if (typeof Alpine !== 'undefined' && typeof Alpine.store === 'function') {
+  registerFlameAtlasStore();
+}
+document.addEventListener('DOMContentLoaded', registerFlameAtlasStore);
+window.addEventListener('load', registerFlameAtlasStore);
+
+if (typeof window !== 'undefined') {
+  window.renderSparkySvg = renderSparkySvg;
+  window.getFlameAtlasStore = getFlameAtlasStore;
+  window.registerFlameAtlasStore = registerFlameAtlasStore;
+}
+
+function injectMobileNav() {
+  if (typeof document === 'undefined' || document.getElementById('mobile-nav-drawer')) return;
+  const drawer = document.createElement('div');
+  drawer.id = 'mobile-nav-drawer';
+  drawer.setAttribute('x-show', '$store.app.mobileMenuOpen');
+  drawer.setAttribute('x-transition.opacity', '');
+  drawer.className = 'fixed inset-0 z-50 flex md:hidden bg-slate-950/80 backdrop-blur-sm';
+  drawer.style.display = 'none';
+  drawer.innerHTML = `
+    <div class="w-72 bg-slate-950 border-r border-slate-800 p-5 flex flex-col justify-between h-full"
+         @click.outside="$store.app.mobileMenuOpen = false">
+      <div>
+        <div class="flex items-center justify-between mb-6">
+          <a href="index.html" class="flex items-center gap-2.5 font-bold text-white text-base">
+            <i data-lucide="flame" class="w-5 h-5 text-orange-400"></i>
+            <span>FlameAtlas</span>
+          </a>
+          <button @click="$store.app.mobileMenuOpen = false" class="text-slate-400 hover:text-white p-1">✕</button>
+        </div>
+        <nav class="space-y-1 text-sm font-medium">
+          <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="gauge" class="w-4 h-4 text-orange-400"></i>
+            <span x-text="$store.app.kids ? 'Mission Map' : 'Mission Overview'"></span>
+          </a>
+          <a href="flame-lab.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="flask-conical" class="w-4 h-4 text-cyan-400"></i>
+            <span x-text="$store.app.kids ? 'Fire Lab 3D' : 'Flame Lab 3D'"></span>
+          </a>
+          <a href="space-craft.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="rocket" class="w-4 h-4 text-rose-400"></i>
+            <span x-text="$store.app.kids ? 'Spacecraft Fire Sim' : 'Spacecraft Simulation'"></span>
+          </a>
+          <a href="solar-watch.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
+            <span x-text="$store.app.kids ? 'Sun Blasts' : 'Solar Flare Watch'"></span>
+          </a>
+          <a href="earth-impact.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="globe-2" class="w-4 h-4 text-emerald-400"></i>
+            <span x-text="$store.app.kids ? 'Storm vs Earth' : 'Solar Storm vs Earth'"></span>
+          </a>
+          <a href="material-ranker.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
+            <span x-text="$store.app.kids ? 'Burn Race' : 'Material Ranker'"></span>
+          </a>
+          <a href="gravity-gap.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="orbit" class="w-4 h-4 text-sky-400"></i>
+            <span x-text="$store.app.kids ? 'Gravity Guess' : 'Gravity Gap-Filler'"></span>
+          </a>
+          <a href="flame-radar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="radar" class="w-4 h-4 text-indigo-400"></i>
+            <span x-text="$store.app.kids ? 'Ghost Flames' : 'Invisible Flame Radar'"></span>
+          </a>
+          <a href="fire-gpt.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="message-square-text" class="w-4 h-4 text-pink-400"></i>
+            <span x-text="$store.app.kids ? 'Quiz Time' : 'FireGPT AI'"></span>
+          </a>
+          <a href="gap-map.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="map" class="w-4 h-4 text-yellow-400"></i>
+            <span x-text="$store.app.kids ? 'Plan Tests' : 'Research Gap Map'"></span>
+          </a>
+          <a href="sources.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
+            <span x-text="$store.app.kids ? 'Space Cards' : 'Data Sources'"></span>
+          </a>
+          <a href="api-docs.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60">
+            <i data-lucide="code-2" class="w-4 h-4 text-cyan-400"></i>
+            <span>API & Data Explorer</span>
+          </a>
+        </nav>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(drawer);
+
+  const header = document.querySelector('header');
+  if (header && !document.getElementById('mobile-menu-btn')) {
+    const btn = document.createElement('button');
+    btn.id = 'mobile-menu-btn';
+    btn.setAttribute('@click', '$store.app.toggleMobileMenu()');
+    btn.className = 'md:hidden glass-pill p-2 text-slate-300 hover:text-white shrink-0 mr-1';
+    btn.innerHTML = `<i data-lucide="menu" class="w-4 h-4"></i>`;
+    header.insertBefore(btn, header.firstChild);
+  }
+}
+
+  </script>
+  <script>
+/**
+ * 3D Solar Storm vs Earth Simulation (Three.js CDN)
+ * Realistic Earth with procedural lighting, squashed magnetopause boundary (Shue model),
+ * dynamic auroral oval curtains that shift toward equator with Kp, and satellite threat indicators.
+ */
+
+function initEarthScene3D(containerEl) {
+  let width = containerEl.clientWidth || 800;
+  let height = containerEl.clientHeight || 500;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color('#02030a');
+
+  const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 150);
+  camera.position.set(0, 3, 11);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(width, height);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  containerEl.appendChild(renderer.domElement);
+
+  let controls = null;
+  if (typeof THREE.OrbitControls !== 'undefined') {
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.minDistance = 4;
+    controls.maxDistance = 25;
+  }
+
+  // Starfield
+  const starGeo = new THREE.BufferGeometry();
+  const STAR_COUNT = 1200;
+  const starPos = new Float32Array(STAR_COUNT * 3);
+  for (let i = 0; i < STAR_COUNT * 3; i++) {
+    starPos[i] = (Math.random() - 0.5) * 80;
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.12, opacity: 0.5, transparent: true });
+  scene.add(new THREE.Points(starGeo, starMat));
+
+  // Solar Light from +X (sun direction)
+  const sunLight = new THREE.DirectionalLight(0xfffbeb, 1.4);
+  sunLight.position.set(12, 1, 2);
+  scene.add(sunLight);
+
+  const ambientLight = new THREE.AmbientLight(0x1e293b, 0.4);
+  scene.add(ambientLight);
+
+  // Earth Group
+  const earthGroup = new THREE.Group();
+  scene.add(earthGroup);
+
+  // Earth Globe
+  const earthGeo = new THREE.SphereGeometry(1.5, 48, 48);
+  const earthMat = new THREE.MeshStandardMaterial({
+    color: 0x1d4ed8,
+    roughness: 0.7,
+    metalness: 0.1
+  });
+  const earthMesh = new THREE.Mesh(earthGeo, earthMat);
+  earthGroup.add(earthMesh);
+
+  // Atmosphere Glow
+  const atmosGeo = new THREE.SphereGeometry(1.58, 36, 36);
+  const atmosMat = new THREE.MeshBasicMaterial({
+    color: 0x38bdf8,
+    transparent: true,
+    opacity: 0.15,
+    side: THREE.BackSide
+  });
+  earthGroup.add(new THREE.Mesh(atmosGeo, atmosMat));
+
+  // Auroral Oval Curtains (North and South)
+  const auroraGeo = new THREE.TorusGeometry(0.7, 0.08, 16, 48);
+  const auroraMat = new THREE.MeshBasicMaterial({
+    color: 0x34d399,
+    transparent: true,
+    opacity: 0.4,
+    wireframe: true
+  });
+  const northAurora = new THREE.Mesh(auroraGeo, auroraMat);
+  northAurora.rotation.x = Math.PI / 2;
+  northAurora.position.y = 1.35;
+  earthGroup.add(northAurora);
+
+  const southAurora = new THREE.Mesh(auroraGeo, auroraMat.clone());
+  southAurora.rotation.x = Math.PI / 2;
+  southAurora.position.y = -1.35;
+  earthGroup.add(southAurora);
+
+  // Magnetopause Boundary Shell (squashed on dayside +X, tail on nightside -X)
+  const magnetGeo = new THREE.BufferGeometry();
+  const LINE_POINTS = 64;
+  const positions = new Float32Array(LINE_POINTS * 3);
+  for (let i = 0; i < LINE_POINTS; i++) {
+    const theta = (i / LINE_POINTS) * Math.PI * 2;
+    positions[i * 3] = Math.cos(theta) * 3.5;
+    positions[i * 3 + 1] = Math.sin(theta) * 3.5;
+    positions[i * 3 + 2] = 0;
+  }
+  magnetGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const magnetMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.5 });
+  const magnetLine = new THREE.LineLoop(magnetGeo, magnetMat);
+  scene.add(magnetLine);
+
+  // Satellites
+  // ISS (LEO) - close
+  const issGeo = new THREE.BoxGeometry(0.12, 0.06, 0.06);
+  const issMat = new THREE.MeshBasicMaterial({ color: 0x34d399 });
+  const issMesh = new THREE.Mesh(issGeo, issMat);
+  earthGroup.add(issMesh);
+
+  // GEO Satellite - far
+  const geoGeo = new THREE.BoxGeometry(0.16, 0.08, 0.08);
+  const geoMat = new THREE.MeshBasicMaterial({ color: 0x34d399 });
+  const geoMesh = new THREE.Mesh(geoGeo, geoMat);
+  earthGroup.add(geoMesh);
+
+  // Simulation parameters
+  let currentImpact = {
+    kp: 1,
+    rmp: 10.9,
+    auroraLat: 66,
+    geoExposed: false,
+    G: 0
+  };
+
+  function updateSimulation(impact) {
+    currentImpact = impact;
+
+    // Auroral oval size: moves toward equator as Kp rises
+    // Lat 66° = ring radius ~0.65; Lat 35° = ring radius ~1.2
+    const radius = Math.min(1.4, Math.max(0.5, 0.6 + (impact.kp / 9) * 0.75));
+    northAurora.scale.set(radius, radius, 1);
+    northAurora.position.y = Math.sqrt(Math.max(0.01, 1.5 * 1.5 - radius * radius * 0.8));
+    southAurora.scale.set(radius, radius, 1);
+    southAurora.position.y = -northAurora.position.y;
+
+    // Aurora brightness & color: green -> red for severe storms
+    if (impact.kp >= 7) {
+      auroraMat.color.setHex(0xf43f5e);
+      auroraMat.opacity = 0.8;
+    } else if (impact.kp >= 4) {
+      auroraMat.color.setHex(0xfacc15);
+      auroraMat.opacity = 0.6;
+    } else {
+      auroraMat.color.setHex(0x34d399);
+      auroraMat.opacity = 0.35;
+    }
+
+    // Magnetopause stand-off line: Shue distance (in Earth radii)
+    // Scaled to 3D scene (1 Earth radius = 1.5 units)
+    const standOff = (Math.max(4, impact.rmp) / 10.9) * 4.5;
+    const pos = magnetGeo.attributes.position.array;
+    for (let i = 0; i < LINE_POINTS; i++) {
+      const angle = (i / LINE_POINTS) * Math.PI * 2;
+      // Day side (+X) is squashed; night side (-X) stretches into tail
+      const cosA = Math.cos(angle);
+      const sinA = Math.sin(angle);
+      const r = cosA > 0 ? standOff * (1 - 0.25 * cosA) : standOff * (1 - 1.2 * cosA);
+      pos[i * 3] = r * cosA;
+      pos[i * 3 + 1] = r * sinA * 0.9;
+      pos[i * 3 + 2] = 0;
+    }
+    magnetGeo.attributes.position.needsUpdate = true;
+
+    // GEO Satellite danger check
+    if (impact.geoExposed) {
+      geoMat.color.setHex(0xf43f5e);
+    } else {
+      geoMat.color.setHex(0x34d399);
+    }
+
+    // ISS threat check
+    if (impact.kp >= 8) {
+      issMat.color.setHex(0xf43f5e);
+    } else if (impact.kp >= 5) {
+      issMat.color.setHex(0xfacc15);
+    } else {
+      issMat.color.setHex(0x34d399);
+    }
+  }
+
+  // Animation Loop
+  let reqId = null;
+  function animate() {
+    reqId = requestAnimationFrame(animate);
+    const t = performance.now() / 1000;
+
+    if (controls) controls.update();
+
+    earthMesh.rotation.y += 0.003;
+
+    // Satellites orbiting
+    const issAngle = t * 1.5;
+    issMesh.position.set(Math.cos(issAngle) * 1.8, Math.sin(issAngle * 0.7) * 0.4, Math.sin(issAngle) * 1.8);
+
+    const geoAngle = t * 0.3;
+    geoMesh.position.set(Math.cos(geoAngle) * 4.2, 0, Math.sin(geoAngle) * 4.2);
+
+    renderer.render(scene, camera);
+  }
+  reqId = requestAnimationFrame(animate);
+
+  function resize() {
+    width = containerEl.clientWidth || 800;
+    height = containerEl.clientHeight || 500;
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height);
+  }
+  window.addEventListener('resize', resize);
+
+  return {
+    update(impact) {
+      updateSimulation(impact);
+    },
+    destroy() {
+      cancelAnimationFrame(reqId);
+      window.removeEventListener('resize', resize);
+      renderer.dispose();
+      containerEl.innerHTML = '';
+    }
+  };
+}
+
+if (typeof window !== 'undefined') {
+  window.initEarthScene3D = initEarthScene3D;
+}
+
+  </script>
+  <script>
+/**
+ * FlameAtlas Unified Assistant Engine (FireGPT + Aura Assistant)
+ * 
+ * Unifies FireGPT (NASA research explainer) and AURA (spacecraft flight & tactical AI)
+ * into a single unified assistant system available across all pages.
+ * 
+ * Data Flow:
+ * 1. User question
+ * 2. Check Common Intents file (/data/intents.json) as the first source of truth
+ *    - Page-specific intents & current page context
+ *    - Tactical telemetry rules (AURA spacecraft kinetics)
+ *    - General microgravity combustion knowledge base
+ * 3. If found -> Return verified response + citations
+ * 4. If not found -> Call serverless OpenAI API (/api/openai) as fallback
+ * 5. Return AI-generated response
+ */
+
+(function (window, document) {
+  'use strict';
+
+  // Helper: Markdown formatter for chat bubbles
+  function formatMarkdown(text) {
+    if (!text) return '';
+    let html = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    // Bold **text**
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // Italic *text*
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    // Inline code `text`
+    html = html.replace(/`(.*?)`/g, '<code class="px-1 py-0.5 rounded bg-slate-800 text-pink-300 font-mono text-[11px]">$1</code>');
+    // Bullet lists
+    html = html.replace(/^• (.*)$/gm, '<li class="ml-3 list-disc">$1</li>');
+    html = html.replace(/^- (.*)$/gm, '<li class="ml-3 list-disc">$1</li>');
+    // Newlines
+    html = html.replace(/\n\n/g, '<div class="h-2"></div>');
+    html = html.replace(/\n/g, '<br/>');
+
+    return html;
+  }
+
+  // Detect current page identifier
+  function getCurrentPageKey() {
+    if (typeof window === 'undefined') return 'index.html';
+    const path = window.location.pathname;
+    const filename = path.substring(path.lastIndexOf('/') + 1) || 'index.html';
+    return filename.toLowerCase();
+  }
+
+  // Unified Assistant Core Class
+  class UnifiedAssistantCore {
+    constructor() {
+      this.intentsData = null;
+      this.loaded = false;
+      this.activeSim = null;
+      this.initPromise = this.loadIntents();
+    }
+
+    async loadIntents() {
+      try {
+        const res = await fetch('./data/intents.json');
+        if (res.ok) {
+          this.intentsData = await res.json();
+          this.loaded = true;
+          return this.intentsData;
+        }
+      } catch (e) {
+        console.warn('Failed to load ./data/intents.json, attempting fallback:', e);
+      }
+
+      // Emergency fallback structure if network fails
+      this.intentsData = {
+        name: 'FlameAtlas In-Memory Fallback',
+        page_intents: {},
+        kb: [
+          {
+            keys: ['nomex', 'moon', '34'],
+            answer: 'In a 34% O₂ / 8.2 psi Moon habitat, Nomex HT90-40 is expected to sustain upward flame spread. BASS samples self-extinguished in ISS air but spread once O₂ exceeded ~30%.',
+            citations: ['PSI-26 BASS', 'NTRS 20150023456']
+          },
+          {
+            keys: ['cool flame', 'invisible'],
+            answer: 'Cool flames are low-temperature (~500–800 K) reactions that emit almost no visible light. FLEX observed n-heptane droplets continuing to burn in a cool-flame regime after the hot flame extinguished.',
+            citations: ['PSI-69 FLEX', 'PSI-159 CFI-G']
+          }
+        ]
+      };
+      this.loaded = true;
+      return this.intentsData;
+    }
+
+    // Attach active simulation if on spacecraft page
+    attachSimulation(sim) {
+      this.activeSim = sim;
+    }
+
+    // Retrieve page explanation
+    getPageExplanation(pageKey) {
+      const page = pageKey || getCurrentPageKey();
+      if (!this.intentsData || !this.intentsData.page_intents) return null;
+      const config = this.intentsData.page_intents[page];
+      if (config) {
+        const explainIntent = config.intents ? config.intents.find(i => i.id.includes('explain')) : null;
+        return {
+          pageName: config.pageName,
+          summary: config.summary,
+          details: explainIntent ? explainIntent.answer : config.summary,
+          citations: explainIntent ? explainIntent.citations : ['NASA Open Science', 'ECLSS Standards'],
+          suggested: config.suggested || []
+        };
+      }
+      return null;
+    }
+
+    // Suggested queries for current page
+    getSuggestedQueries(pageKey) {
+      const page = pageKey || getCurrentPageKey();
+      if (this.intentsData && this.intentsData.page_intents && this.intentsData.page_intents[page]) {
+        return this.intentsData.page_intents[page].suggested || [];
+      }
+      return (this.intentsData && this.intentsData.suggested_global) || [
+        'Explain this page',
+        'Why does fire burn as a sphere in 0g?',
+        'Will Nomex burn in 34% oxygen?',
+        'How do cool flames work?'
+      ];
+    }
+
+    // Check dynamic spacecraft telemetry (AURA engine integration)
+    checkDynamicTelemetry(query) {
+      if (!this.activeSim) return null;
+      const q = query.toLowerCase();
+      const sim = this.activeSim;
+
+      // 1. Where is the fire query
+      if (q.includes('where') && (q.includes('fire') || q.includes('flame') || q.includes('burn'))) {
+        const burning = Object.values(sim.sections || {}).filter((s) => s.burning);
+        if (burning.length === 0) {
+          return {
+            reply: '🛰️ **Spacecraft Telemetry Status: GREEN**\n\nNo active fires are detected anywhere on board the NSS Prometheus. All thermal infrared sensors report cabin temperatures within nominal range (15°C–32°C). Habitation Centrifuge Ring is spinning steadily at 8.0 RPM generating 1.0g.',
+            citations: ['NASA PSI-26 BASS', 'Flight Rule ECLSS-104'],
+            source: 'AURA Real-Time Telemetry Bus'
+          };
+        }
+        const materials = window.MATERIAL_DATABASE || {};
+        const details = burning.map((s) => {
+          const mat = materials[s.materialId] || { name: 'Unknown fuel', category: 'General' };
+          const g = s.id === 'centrifuge' ? (sim.gravityMetrics?.artificialG || 1.0) : 0.0;
+          const flameShape = g < 0.05 ? 'spherical blue diffusion flame (microgravity)' : 'elongated flickering orange teardrop (buoyant artificial gravity)';
+          return `• **${s.name} (${s.code})**:\n  - Temperature: **${s.temperature.toFixed(0)}°C** | HRR: **${s.heatReleaseRate || 0} kW**\n  - Oxygen: **${s.o2.toFixed(1)}%** | Pressure: **${s.pressure.toFixed(1)} kPa**\n  - Fuel: **${mat.name}** (${mat.category})\n  - Flame physics: ${flameShape}\n  - Toxic gases: CO ${s.co_ppm || 0} ppm, Smoke ${(s.smokeDensity || 0).toFixed(2)} OD/m`;
+        }).join('\n\n');
+
+        return {
+          reply: `⚠️ **Active Compartment Fire Alert:**\n\n${details}\n\n**Immediate recommendation**: Turn off ventilation dampers to prevent smoke spread, isolate power buses to stop arcing, and evaluate whether to flood with CO₂ or execute Emergency Vacuum Venting.`,
+          citations: ['NASA Saffire-IV Flight Data', 'NASA PSI-69 FLEX', 'Apollo 1 Post-Mortem Analysis'],
+          source: 'AURA Dynamic Sensor Telemetry'
+        };
+      }
+
+      // 2. Battery thermal runaway query
+      if (q.includes('power core') || q.includes('battery') || (q.includes('thermal runaway') && q.includes('how'))) {
+        return {
+          reply: `⚠️ **CRITICAL PROTOCOL FOR BATTERY THERMAL RUNAWAY:**\nLithium-ion NMC cells decompose exothermically and release atomic oxygen internally (LOI = 0%). Standard vacuum purging or CO₂ flooding **will NOT** stop cathode decomposition!\n\n**Mandatory Protocol:**\n1. Evacuate crew immediately and lock Bulkhead blast doors.\n2. Execute **Vacuum Purge** to remove flammable hydrogen and toxic HF gases and prevent hull over-pressurization.\n3. Keep emergency coolant shunts active to draw thermal energy below the 160°C thermal runaway propagation threshold.\n4. Abandon section if structural bulkheads exceed 500°C.`,
+          citations: ['NASA Battery Safety Standard JSC 20793', 'NASA Saffire-I Flight Experiment'],
+          source: 'AURA Tactical Emergency Response'
+        };
+      }
+
+      return null;
+    }
+
+    // Match query against Common Intents file
+    matchCommonIntents(query, pageKey) {
+      if (!this.intentsData) return null;
+      const q = query.toLowerCase().trim();
+      const activePage = pageKey || getCurrentPageKey();
+
+      let best = null;
+      let bestScore = 0;
+
+      // 1. Check current page intents first (highest priority)
+      if (this.intentsData.page_intents && this.intentsData.page_intents[activePage]?.intents) {
+        for (const entry of this.intentsData.page_intents[activePage].intents) {
+          let score = 0;
+          for (const k of entry.keys) {
+            if (q.includes(k.toLowerCase())) score += 3;
+          }
+          if (entry.questions) {
+            for (const pq of entry.questions) {
+              if (q.includes(pq.toLowerCase()) || pq.toLowerCase().includes(q)) score += 5;
+            }
+          }
+          if (score > bestScore) {
+            bestScore = score;
+            best = entry;
+          }
+        }
+      }
+
+      // 2. Check all other page intents
+      if (this.intentsData.page_intents) {
+        for (const [pk, pObj] of Object.entries(this.intentsData.page_intents)) {
+          if (pk === activePage || !pObj.intents) continue;
+          for (const entry of pObj.intents) {
+            let score = 0;
+            for (const k of entry.keys) {
+              if (q.includes(k.toLowerCase())) score += 1.5;
+            }
+            if (entry.questions) {
+              for (const pq of entry.questions) {
+                if (q.includes(pq.toLowerCase()) || pq.toLowerCase().includes(q)) score += 3.5;
+              }
+            }
+            if (score > bestScore) {
+              bestScore = score;
+              best = entry;
+            }
+          }
+        }
+      }
+
+      // 3. Check general knowledge base (kb)
+      if (Array.isArray(this.intentsData.kb)) {
+        for (const entry of this.intentsData.kb) {
+          let score = 0;
+          for (const k of entry.keys) {
+            if (q.includes(k.toLowerCase())) score += 2;
+          }
+          if (score > bestScore) {
+            bestScore = score;
+            best = entry;
+          }
+        }
+      }
+
+      if (best && bestScore >= 2.5) {
+        return {
+          reply: best.answer,
+          citations: best.citations || ['NASA PSI Repository'],
+          source: 'Common Intents Engine (/data/intents.json)',
+          confidence: best.confidence || 0.85
+        };
+      }
+
+      return null;
+    }
+
+    // Call serverless OpenAI API fallback (/api/openai)
+    async callOpenAiFallback(query, pageKey, history = []) {
+      const pageInfo = this.getPageExplanation(pageKey);
+      const pageTitle = pageInfo ? pageInfo.pageName : pageKey;
+
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 12000);
+
+        const res = await fetch('/api/openai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: query,
+            pageContext: pageTitle,
+            history: history
+          }),
+          signal: ctrl.signal
+        });
+        clearTimeout(timer);
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ok && data.reply) {
+            return {
+              reply: data.reply,
+              citations: data.citations || ['OpenAI AI Synthesis', 'NASA PSI / NTRS Open Science'],
+              source: data.source || 'OpenAI API (Serverless Fallback)',
+              model: data.model
+            };
+          }
+        }
+      } catch (err) {
+        console.warn('OpenAI serverless fallback request failed:', err);
+      }
+
+      // Graceful local fallback if offline or backend server not running
+      return {
+        reply: `I could not find an exact match for "${query}" in the Common Intents database, and the serverless OpenAI fallback is currently offline.\n\nFireGPT answers from indexed NASA Physical Sciences Informatics (PSI), NTRS reports, and spacecraft ECLSS flight rules. Try asking:\n• *"Explain this page"*\n• *"Will Nomex burn in 34% oxygen on the Moon?"*\n• *"Why are cool flames invisible?"*\n• *"How does zero gravity change flame shape?"*\n• *"What is the section abandonment protocol?"*`,
+        citations: ['NASA PSI Repository', 'NASA NTRS 20150023456', 'Flight Rule 14.8'],
+        source: 'FireGPT Offline NASA Fallback'
+      };
+    }
+
+    // Main unified answer pipeline
+    async ask(query, history = []) {
+      await this.initPromise;
+      const cleanQ = (query || '').trim();
+      if (!cleanQ) return null;
+
+      const pageKey = getCurrentPageKey();
+
+      // Check "explain page" intent directly
+      if (cleanQ.toLowerCase() === 'explain this page' || cleanQ.toLowerCase() === 'explain page' || cleanQ.toLowerCase().includes('what is this page')) {
+        const pageExplain = this.getPageExplanation(pageKey);
+        if (pageExplain) {
+          return {
+            reply: `📄 **${pageExplain.pageName} Overview:**\n\n${pageExplain.details}`,
+            citations: pageExplain.citations,
+            source: 'Common Intents Engine (/data/intents.json)'
+          };
+        }
+      }
+
+      // Step 1: Check dynamic telemetry if on spacecraft simulation
+      const telemetryResult = this.checkDynamicTelemetry(cleanQ);
+      if (telemetryResult) return telemetryResult;
+
+      // Step 2: Check Common Intents as First Source of Truth
+      const intentResult = this.matchCommonIntents(cleanQ, pageKey);
+      if (intentResult) return intentResult;
+
+      // Step 3: Fallback to Serverless OpenAI API
+      const openAiResult = await this.callOpenAiFallback(cleanQ, pageKey, history);
+      return openAiResult;
+    }
+  }
+
+  // Create singleton instance
+  const assistantCore = new UnifiedAssistantCore();
+
+  // Backward compatibility wrapper for AURA Chatbot in space-craft.html
+  class UnifiedAuraChatbotAdapter {
+    constructor(simulation) {
+      this.sim = simulation;
+      assistantCore.attachSimulation(simulation);
+    }
+
+    generateEmergencyBriefing() {
+      const sim = this.sim;
+      const burningSections = Object.values(sim.sections || {}).filter((s) => s.burning);
+      const friedSections = Object.values(sim.sections || {}).filter((s) => s.electronics?.primary?.status === 'FRIED');
+
+      if (burningSections.length === 0 && friedSections.length === 0) {
+        return {
+          title: 'SYSTEMS NOMINAL',
+          status: 'GREEN',
+          message: 'All 6 spacecraft sections report nominal atmosphere and thermal parameters. Habitation Centrifuge Ring is spinning steadily at 8.0 RPM generating 1.0g. No thermal anomalies or electrical surges detected.',
+          actions: ['Run diagnostic sweep', 'Inspect fire sensors', 'Review emergency protocols']
+        };
+      }
+
+      let text = '';
+      if (burningSections.length > 0) {
+        const materials = window.MATERIAL_DATABASE || {};
+        text += `🔥 CRITICAL THERMAL EVENT in ${burningSections.length} module(s): `;
+        text += burningSections.map((s) => `${s.name} (${s.temperature.toFixed(0)}°C, O₂: ${s.o2.toFixed(1)}%, Fuel: ${materials[s.materialId]?.name || 'Solid'})`).join('; ') + '. ';
+      }
+
+      if (friedSections.length > 0) {
+        text += `⚡ ELECTRONICS BLACKOUT in: ` + friedSections.map((s) => s.name).join(', ') + '. ';
+      }
+
+      if (sim.gravityMetrics?.bearingStress > 70) {
+        text += `⚠️ DYNAMIC UNBALANCE: Centrifuge bearing stress at ${sim.gravityMetrics.bearingStress}%. Mass shift is inducing ${sim.gravityMetrics.wobbleRms}°/s nutation. `;
+      }
+
+      if (sim.orbitalDecayRisk) {
+        text += `🚨 ORBITAL DECAY IN PROGRESS: Propulsion offline! Spacecraft losing altitude under Earth gravity. Re-entry in ~${Math.round((sim.orbitTimeRemaining || 300) / 60)} minutes! `;
+      }
+
+      return {
+        title: 'EMERGENCY ADVISORY IN EFFECT',
+        status: burningSections.length > 0 ? 'RED' : 'YELLOW',
+        message: text,
+        burningCount: burningSections.length,
+        friedCount: friedSections.length
+      };
+    }
+
+    ask(query) {
+      // Synchronous return for space-craft.html compatibility
+      const telemetry = assistantCore.checkDynamicTelemetry(query);
+      if (telemetry) return telemetry;
+
+      const intent = assistantCore.matchCommonIntents(query, 'space-craft.html');
+      if (intent) return intent;
+
+      return {
+        reply: `Tactical telemetry processed. Citing NASA flight protocols for: "${query}".\n\nIf you need deep generative analysis, the unified FireGPT assistant floating widget or serverless backend is standing by.`,
+        citations: ['NASA PSI-26 BASS', 'Flight Rule ECLSS-104']
+      };
+    }
+  }
+
+  // Alpine Store & Global Component for Unified Assistant
+  function registerUnifiedAssistantStore() {
+    if (typeof Alpine === 'undefined' || typeof Alpine.store !== 'function') return;
+    if (Alpine.store('assistant')) return;
+
+    const pageKey = getCurrentPageKey();
+    const pageExplain = assistantCore.getPageExplanation(pageKey);
+    const initialPageName = pageExplain ? pageExplain.pageName : 'Mission Control';
+
+    Alpine.store('assistant', {
+      isOpen: false,
+      isMinimized: false,
+      busy: false,
+      queryInput: '',
+      pageName: initialPageName,
+      suggested: assistantCore.getSuggestedQueries(pageKey),
+      messages: [
+        {
+          id: 'welcome',
+          role: 'bot',
+          text: `👋 **Welcome to FireGPT — Unified Flight & Science Assistant.**\n\nI combine NASA Physical Sciences Informatics (PSI) research with AURA's real-time spacecraft flight intelligence.\n\n📍 **Active Context**: *${initialPageName}*\n\nTap **Explain This Page** below or ask me anything about microgravity flames, spacecraft hazards, or space weather!`,
+          citations: ['NASA PSI Repository', 'NTRS 20150023456'],
+          source: 'Common Intents Engine (/data/intents.json)',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ],
+
+      toggle() {
+        this.isOpen = !this.isOpen;
+        if (this.isOpen) {
+          this.refreshContext();
+          if (window.sfx && typeof window.sfx.pop === 'function') window.sfx.pop();
+          setTimeout(() => {
+            if (window.lucide) window.lucide.createIcons();
+            const el = document.getElementById('unified-assistant-messages');
+            if (el) el.scrollTop = el.scrollHeight;
+          }, 100);
+        }
+      },
+
+      openWithPrompt(promptText) {
+        this.isOpen = true;
+        this.isMinimized = false;
+        this.refreshContext();
+        if (window.sfx && typeof window.sfx.pop === 'function') window.sfx.pop();
+        if (promptText) {
+          this.submit(promptText);
+        }
+        setTimeout(() => {
+          if (window.lucide) window.lucide.createIcons();
+          const el = document.getElementById('unified-assistant-messages');
+          if (el) el.scrollTop = el.scrollHeight;
+        }, 100);
+      },
+
+      refreshContext() {
+        const pk = getCurrentPageKey();
+        const pinfo = assistantCore.getPageExplanation(pk);
+        this.pageName = pinfo ? pinfo.pageName : 'Mission Control';
+        this.suggested = assistantCore.getSuggestedQueries(pk);
+      },
+
+      explainPage() {
+        this.submit('Explain this page');
+      },
+
+      async submit(queryToRun) {
+        const q = (queryToRun || this.queryInput).trim();
+        if (!q || this.busy) return;
+        this.queryInput = '';
+        this.busy = true;
+
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        this.messages.push({
+          id: Date.now(),
+          role: 'user',
+          text: q,
+          time: timeStr
+        });
+
+        this.scrollToBottom();
+
+        // Query unified assistant pipeline
+        const historyForApi = this.messages.map(m => ({ role: m.role, text: m.text }));
+        const response = await assistantCore.ask(q, historyForApi);
+
+        this.busy = false;
+        this.messages.push({
+          id: Date.now() + 1,
+          role: 'bot',
+          text: response.reply,
+          citations: response.citations || [],
+          source: response.source || 'Unified Assistant',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+
+        // XP Reward & Sound
+        if (Alpine.store('app') && typeof Alpine.store('app').addXp === 'function') {
+          Alpine.store('app').addXp(10, 'FireGPT inquiry');
+        }
+        if (window.sfx && typeof window.sfx.ding === 'function') {
+          window.sfx.ding();
+        }
+
+        this.scrollToBottom();
+        setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 80);
+      },
+
+      scrollToBottom() {
+        setTimeout(() => {
+          const el = document.getElementById('unified-assistant-messages');
+          if (el) el.scrollTop = el.scrollHeight;
+        }, 60);
+      }
+    });
+  }
+
+  // Inject UI widget into DOM
+  function injectAssistantWidget() {
+    if (typeof document === 'undefined' || document.getElementById('unified-assistant-container')) return;
+
+    const container = document.createElement('div');
+    container.id = 'unified-assistant-container';
+    container.innerHTML = `
+      <!-- Floating Launcher Button -->
+      <div class="fixed bottom-5 right-5 z-40 flex items-center gap-2">
+        <button @click="$store.assistant.toggle()"
+                class="group relative flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-slate-900/90 hover:bg-slate-800 text-white border border-pink-500/40 shadow-xl shadow-pink-500/15 backdrop-blur-md transition-all hover:scale-105 active:scale-95 focus:outline-none">
+          <div class="relative flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-tr from-pink-600 to-rose-500 text-white shadow-md">
+            <i data-lucide="bot" class="w-4 h-4"></i>
+            <span class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-950 animate-pulse"></span>
+          </div>
+          <div class="text-left hidden sm:block">
+            <div class="text-xs font-bold leading-tight flex items-center gap-1.5">
+              <span>FireGPT</span>
+              <span class="text-[9px] px-1.5 py-0.2 rounded bg-pink-500/20 text-pink-300 font-mono">Unified</span>
+            </div>
+            <div class="text-[10px] text-slate-400 leading-tight">NASA Explainer & AURA</div>
+          </div>
+        </button>
+      </div>
+
+      <!-- Unified Assistant Modal / Drawer -->
+      <div x-show="$store.assistant.isOpen"
+           x-transition:enter="transition ease-out duration-300"
+           x-transition:enter-start="opacity-0 translate-y-6 scale-95"
+           x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+           x-transition:leave="transition ease-in duration-200"
+           x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+           x-transition:leave-end="opacity-0 translate-y-6 scale-95"
+           class="fixed bottom-20 right-4 sm:right-6 z-50 w-[95vw] sm:w-[440px] max-w-[460px] h-[580px] max-h-[85vh] flex flex-col rounded-2xl bg-slate-950/95 border border-pink-500/30 shadow-2xl shadow-pink-500/20 backdrop-blur-xl overflow-hidden font-sans text-slate-100"
+           style="display: none;">
+
+        <!-- Header -->
+        <div class="px-4 py-3 bg-gradient-to-r from-slate-900/90 via-slate-900/60 to-pink-950/30 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-pink-600 to-rose-500 flex items-center justify-center text-white shadow-md shadow-pink-500/20">
+              <i data-lucide="bot" class="w-4.5 h-4.5"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-sm text-white leading-none">FireGPT Unified Assistant</span>
+                <span class="text-[9px] px-1.5 py-0.5 rounded-full bg-pink-500/20 text-pink-300 font-mono">v2.0</span>
+              </div>
+              <div class="text-[11px] text-slate-400 leading-tight mt-0.5">
+                First source: <span class="text-cyan-400 font-mono">/data/intents.json</span> · Fallback: <span class="text-rose-400 font-mono">/api/openai</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1">
+            <button @click="$store.assistant.explainPage()" title="Explain current page"
+                    class="px-2 py-1 rounded-lg bg-pink-500/10 hover:bg-pink-500/20 text-pink-300 border border-pink-500/30 text-xs flex items-center gap-1 transition-colors">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+              <span class="text-[10px] font-semibold hidden xs:inline">Explain Page</span>
+            </button>
+            <button @click="$store.assistant.toggle()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Active Context Sub-Bar -->
+        <div class="px-4 py-2 bg-slate-900/80 border-b border-slate-800/80 flex items-center justify-between text-xs">
+          <div class="flex items-center gap-1.5 text-slate-300">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="text-slate-400 text-[11px]">Context:</span>
+            <span class="font-semibold text-slate-200" x-text="$store.assistant.pageName"></span>
+          </div>
+          <a href="fire-gpt.html" class="text-[11px] text-pink-400 hover:text-pink-300 flex items-center gap-1 underline underline-offset-2">
+            <span>Full Portal & Quiz</span>
+            <i data-lucide="external-link" class="w-3 h-3"></i>
+          </a>
+        </div>
+
+        <!-- Messages Area -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-3.5 custom-scroll" id="unified-assistant-messages">
+          <template x-for="msg in $store.assistant.messages" :key="msg.id">
+            <div class="flex flex-col space-y-1" :class="msg.role === 'user' ? 'items-end' : 'items-start'">
+              <div class="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono px-1">
+                <span x-text="msg.role === 'user' ? 'Astronaut / Commander' : 'FireGPT Flight AI'"></span>
+                <span>·</span>
+                <span x-text="msg.time"></span>
+              </div>
+
+              <div class="max-w-[88%] rounded-2xl p-3 text-xs leading-relaxed"
+                   :class="msg.role === 'user' ? 'bg-gradient-to-tr from-pink-600 to-rose-600 text-white font-medium rounded-tr-none shadow-md shadow-pink-500/10' : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-tl-none space-y-2'">
+                <div x-html="window.formatAssistantMarkdown(msg.text)"></div>
+
+                <!-- Source & Citations Metadata -->
+                <div x-show="msg.role === 'bot' && (msg.citations || msg.source)" class="pt-2 border-t border-slate-800/80 space-y-1.5">
+                  <div x-show="msg.source" class="text-[9px] text-slate-400 font-mono flex items-center gap-1">
+                    <span class="text-slate-500">Source:</span>
+                    <span class="text-cyan-400" x-text="msg.source"></span>
+                  </div>
+
+                  <div x-show="msg.citations && msg.citations.length" class="flex flex-wrap items-center gap-1">
+                    <span class="text-[9px] text-slate-500 font-mono">Cites:</span>
+                    <template x-for="cit in msg.citations" :key="cit">
+                      <span class="px-1.5 py-0.2 rounded bg-slate-950 border border-slate-800 text-[9px] text-pink-300 font-mono" x-text="cit"></span>
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <!-- Loading Indicator -->
+          <div x-show="$store.assistant.busy" class="flex items-center gap-2 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400 italic">
+            <span class="w-2.5 h-2.5 rounded-full bg-pink-400 animate-ping"></span>
+            <span>Checking common intents & NASA PSI index...</span>
+          </div>
+        </div>
+
+        <!-- Suggested Prompt Chips -->
+        <div class="px-3 py-1.5 bg-slate-900/40 border-t border-slate-800/60 flex items-center gap-1.5 overflow-x-auto scrollbar-none text-[11px]">
+          <span class="text-slate-500 font-mono shrink-0">Ask:</span>
+          <template x-for="chip in $store.assistant.suggested" :key="chip">
+            <button @click="$store.assistant.submit(chip)"
+                    class="px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-pink-500/40 text-slate-300 hover:text-white shrink-0 transition-colors whitespace-nowrap text-[10px]">
+              <span x-text="chip"></span>
+            </button>
+          </template>
+        </div>
+
+        <!-- Input Bar -->
+        <form @submit.prevent="$store.assistant.submit()" class="p-3 bg-slate-950 border-t border-slate-800 flex gap-2">
+          <input type="text" x-model="$store.assistant.queryInput"
+                 placeholder="Ask about microgravity fire, spacecraft status, NOMEX, cool flames..."
+                 class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pink-500/80 transition-colors">
+          <button type="submit" :disabled="$store.assistant.busy || !$store.assistant.queryInput.trim()"
+                  class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-bold text-xs disabled:opacity-40 transition-all flex items-center gap-1.5 shrink-0">
+            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">Send</span>
+          </button>
+        </form>
+      </div>
+    `;
+
+    document.body.appendChild(container);
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 100);
+  }
+
+  // Global helper to open assistant with prompt
+  function openFireGpt(promptText) {
+    if (typeof Alpine !== 'undefined' && Alpine.store && Alpine.store('assistant')) {
+      Alpine.store('assistant').openWithPrompt(promptText);
+    }
+  }
+
+  // Register on window
+  window.formatAssistantMarkdown = formatMarkdown;
+  window.UnifiedAssistantCore = UnifiedAssistantCore;
+  window.unifiedAssistant = assistantCore;
+  window.AuraChatbot = UnifiedAuraChatbotAdapter;
+  window.openFireGpt = openFireGpt;
+  window.openAuraChat = openFireGpt; // alias for space-craft.html compatibility
+
+  // Multi-stage hook initialization
+  document.addEventListener('alpine:init', () => {
+    registerUnifiedAssistantStore();
+  });
+
+  if (typeof Alpine !== 'undefined' && typeof Alpine.store === 'function') {
+    registerUnifiedAssistantStore();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    registerUnifiedAssistantStore();
+    injectAssistantWidget();
+  });
+
+  window.addEventListener('load', () => {
+    registerUnifiedAssistantStore();
+    injectAssistantWidget();
+  });
+
+})(window, document);
+
+  </script>
+  <style>
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #060911;
+  --bg-glow: #0d1224;
+  --surface: rgba(17, 23, 40, 0.75);
+  --surface-solid: #111728;
+  --surface-2: #172036;
+  --surface-3: #1e2944;
+  --border: rgba(148, 163, 184, 0.14);
+  --border-strong: rgba(148, 163, 184, 0.28);
+
+  --text: #e8edf7;
+  --text-muted: #94a0ba;
+  --text-dim: #6b7690;
+
+  --flame: #ff6a2b;
+  --flame-2: #ffb23f;
+  --flame-soft: rgba(255, 106, 43, 0.15);
+  --cyan: #3fd4ff;
+  --cyan-soft: rgba(63, 212, 255, 0.15);
+  --violet: #a78bfa;
+  --violet-soft: rgba(167, 139, 250, 0.16);
+
+  --risk-low: #34d399;
+  --risk-moderate: #facc15;
+  --risk-high: #fb923c;
+  --risk-critical: #f43f5e;
+
+  --font-sans: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 20px;
+}
+
+html {
+  background-color: #060911;
+}
+
+html[data-kids] {
+  --font-sans: 'Fredoka', 'Space Grotesk', system-ui, sans-serif;
+  --radius: 18px;
+  --radius-lg: 26px;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text);
+  background-color: #060911;
+  background: radial-gradient(1200px 600px at 85% -10%, rgba(255, 106, 43, 0.12), transparent 60%),
+    radial-gradient(900px 500px at -10% 20%, rgba(63, 212, 255, 0.08), transparent 60%), var(--bg);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-feature-settings: 'tnum';
+}
+
+/* Starfield */
+.starfield {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: 
+    radial-gradient(1px 1px at 12% 22%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 72% 12%, rgba(255, 255, 255, 0.35), transparent),
+    radial-gradient(1px 1px at 42% 78%, rgba(255, 255, 255, 0.3), transparent),
+    radial-gradient(1.5px 1.5px at 88% 64%, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 22% 58%, rgba(255, 255, 255, 0.25), transparent),
+    radial-gradient(1px 1px at 58% 38%, rgba(255, 255, 255, 0.3), transparent);
+  background-size: 600px 600px;
+  opacity: 0.6;
+}
+
+/* Custom range slider */
+.range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--cyan) 0%, var(--cyan) var(--fill, 0%), var(--surface-3) var(--fill, 0%));
+  outline: none;
+}
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 4px solid var(--cyan);
+  box-shadow: 0 0 0 6px rgba(63, 212, 255, 0.2);
+  cursor: grab;
+  transition: transform 0.15s ease-out;
+}
+.range::-webkit-slider-thumb:active {
+  transform: scale(1.15);
+  cursor: grabbing;
+}
+html[data-kids] .range {
+  height: 10px;
+}
+html[data-kids] .range::-webkit-slider-thumb {
+  width: 26px;
+  height: 26px;
+}
+
+/* Cards & Shells */
+.glass-panel {
+  background: var(--surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 50px -24px rgba(0, 0, 0, 0.7);
+}
+
+.glass-pill {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+/* Toast container */
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+.toast-msg {
+  pointer-events: auto;
+  min-width: 260px;
+  max-width: 380px;
+  background: #151d33;
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: slideToast 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes slideToast {
+  from { opacity: 0; transform: translateY(16px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Sparky Floating Guide */
+.sparky-widget {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+.sparky-bubble {
+  max-width: 280px;
+  background: #162039;
+  border: 1px solid rgba(63, 212, 255, 0.3);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  border-radius: 16px;
+  border-bottom-left-radius: 4px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.4;
+  position: relative;
+}
+.sparky-avatar {
+  width: 72px;
+  height: 78px;
+  cursor: pointer;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.5));
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.sparky-avatar:hover {
+  transform: scale(1.08) rotate(3deg);
+}
+
+/* 3D Canvas Container */
+.scene-container {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  background: #02030a;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+/* Animations */
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.animate-float {
+  animation: floatY 3s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 15px rgba(255, 106, 43, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(255, 106, 43, 0.6); }
+}
+.pulse-flame {
+  animation: pulseGlow 2s infinite ease-in-out;
+}
+
+  </style>
 </head>
 <body class="text-slate-100 flex min-h-screen bg-[#060911]" x-data="earthImpactPage()">
   <div class="starfield" aria-hidden="true"></div>
