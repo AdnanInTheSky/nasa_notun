@@ -1,40 +1,4 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
-  "trailingSlash": false,
-  "rewrites": [
-    {
-      "source": "/:page/styles/:file*",
-      "destination": "/styles/:file*"
-    },
-    {
-      "source": "/:page/js/:file*",
-      "destination": "/js/:file*"
-    },
-    {
-      "source": "/:page/data/:file*",
-      "destination": "/data/:file*"
-    },
-    {
-      "source": "/:page/favicon.svg",
-      "destination": "/favicon.svg"
-    }
-  ],
-  "functions": {
-    "api/*.js": {
-      "includeFiles": "data/**",
-      "maxDuration": 15
-    }
-  },
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Credentials", "value": "true" },
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
-        { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization" }
-      ]
-    }
-  ]
+  "trailingSlash": false
 }
